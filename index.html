@@ -26,11 +26,26 @@
   .item:hover, .item.on { background: var(--bg); }
   .item .top { display: flex; justify-content: space-between; gap: 8px; }
   .item .name { font-weight: 600; }
+  .item .name .kind { font-weight: 400; font-size: 12px; color: var(--muted); }
   .item .meta { color: var(--muted); font-size: 12px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; font-size: 12px; font-variant-numeric: tabular-nums; }
-  .chips span { color: var(--muted); }
-  .chips em { font-style: normal; color: var(--fg); }
-  .chips .g em { color: var(--good); } .chips .b em { color: var(--bad); } .chips .n em { color: var(--neu); }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); }
+  .badge small { font-size: 11px; color: var(--muted); }
+  .badge.g small { color: var(--good); font-weight: 600; } .badge.b small { color: var(--bad); font-weight: 600; } .badge.n small { color: var(--neu); font-weight: 600; }
+  .badge.bus-on { background: #e6f4ec; border-color: #b9e0c8; color: var(--good); font-weight: 600; }
+  .badge.bus-off { background: #fbeaea; border-color: #efc4c0; color: var(--bad); font-weight: 600; }
+  .badge svg { width: 14px; height: 14px; flex: none; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-weight: 600; }
+  .tag.g { color: var(--good); } .tag.b { color: var(--bad); } .tag.n { color: var(--neu); } .tag.m { color: var(--muted); font-weight: 400; }
+  details { margin-top: 8px; font-size: 13px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+  .facts { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+  .facts li { display: grid; grid-template-columns: 6.5em 1fr; gap: 8px; line-height: 1.45; }
+  .facts .k { color: var(--muted); font-size: 12px; padding-top: 1px; }
+  .facts .v b { font-weight: 600; }
+  .facts .cmp { display: block; color: var(--muted); font-size: 12px; }
+  .facts .v.c-g b { color: var(--good); } .facts .v.c-b b { color: var(--bad); } .facts .v.c-n b { color: var(--neu); }
   .kmark { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); cursor: pointer; }
   .kmark.out { opacity: .3; }
   .kmark.sel { outline: 3px solid var(--fg); }
@@ -57,6 +72,9 @@
         <select id="r" aria-label="반경">
           <option value="1">1km</option><option value="2" selected>2km</option><option value="3">3km</option><option value="5">5km</option>
         </select>
+        <select id="age" aria-label="아이 나이">
+          <option value="0">만 3세</option><option value="1">만 4세</option><option value="2">만 5세</option>
+        </select>
         <select id="type" aria-label="유형">
           <option value="">전체</option><option value="국공립">국공립</option><option value="사립">사립</option>
         </select>
@@ -65,7 +83,7 @@
       <div class="legend">
         <span><i class="dot" style="background:var(--pub)"></i>국공립</span>
         <span><i class="dot" style="background:var(--pri)"></i>사립</span>
-        <span><span class="g">초록</span> 유리 · <span class="b">빨강</span> 불리 · <span class="n">주황</span> 평균과 큰 차이 (같은 유형 서울 평균 ±1표준편차)</span>
+        <span><span class="g">초록</span> 학부모에게 좋은 점 · <span class="b">빨강</span> 확인해볼 점 · <span class="n">주황</span> 다른 곳과 다른 점</span>
       </div>
       <div class="legend">지도를 누르면 그곳이 기준 위치가 됩니다. 출처: 유치원알리미 2026년 정보공시</div>
     </header>
@@ -107,6 +125,168 @@ const grade = (r, k, dir) => {
   if (Math.abs(z) < 1) return '';
   return dir === 0 ? 'n' : (z * dir > 0 ? 'g' : 'b');
 };
+
+const zOf = (r, k) => {
+  if (r[k] == null) return 0;
+  const { m, sd } = AVG[r.유형][k];
+  return (r[k] - m) / sd;
+};
+const avgOf = (r, k) => Math.round(AVG[r.유형][k].m);
+const vs = (r, k, unit, fewer, more) => {
+  const z = zOf(r, k), a = avgOf(r, k);
+  const word = Math.abs(z) < 0.3 ? '비슷해요' : (z < 0 ? fewer : more);
+  return `서울 ${r.유형} 평균 ${a}${unit}과 비교하면 ${word}`;
+};
+
+// 운영 시간·규모를 평균과 비교
+const toMin = (s) => { const m = /(\d{1,2}):(\d{2})/.exec(s || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+const HOURS = (() => {
+  const o = [], c = [];
+  ROWS.forEach((r) => { const [a, b] = (r.운영시간 || '').split('~'); const x = toMin(a), y = toMin(b); if (x != null && y != null) { o.push(x); c.push(y); } });
+  const avg = (v) => v.reduce((s, n) => s + n, 0) / v.length;
+  return { open: avg(o), close: avg(c) };
+})();
+const fmtMin = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(Math.round(m % 60)).padStart(2, '0')}`;
+const SIZE_AVG = {};
+['국공립', '사립'].forEach((t) => {
+  const v = ROWS.filter((r) => r.유형 === t && r.원아수 != null).map((r) => +r.원아수);
+  const m = v.reduce((a, b) => a + b, 0) / v.length;
+  SIZE_AVG[t] = { m, sd: Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / (v.length - 1)) };
+});
+// 한 반 인원·선생님당 아이 수: 같은 유형 서울 평균보다 1명 이상 적으면 유리(g), 1명 이상 많으면 불리(b)
+function headCmp(r, k) {
+  if (r[k] == null) return null;
+  const v = Math.round(r[k]), a = Math.round(AVG[r.유형][k].m), d = v - a;
+  if (k === '교사1인당원아' && r.데이터주의) return { v, a, d, cls: '', lab: '확인 필요', txt: '공시된 교사 수가 학급 수보다 적어 실제보다 많게 나왔을 수 있어요.' };
+  const cls = d <= -1 ? 'g' : d >= 1 ? 'b' : '';
+  const lab = d <= -1 ? `평균 -${-d}명` : d >= 1 ? `평균 +${d}명` : '평균';
+  return { v, a, d, cls, lab, txt: `서울 ${r.유형} 평균은 ${a}명이에요.` };
+}
+
+function badges(r) {
+  const out = [];
+  const cc = costCmp(r);
+  if (cc) out.push([cc.cls, cc.none ? '원비' : cc.total === 0 ? '월 0원' : `월 ${won(cc.total)}`, cc.lab, cc.avg != null ? `${COST_GU} ${r.유형} 평균 월 ${won(Math.round(cc.avg))}` : '']);
+  if (r.원아수 != null) {
+    const { m, sd } = SIZE_AVG[r.유형];
+    const z = (r.원아수 - m) / sd;
+    const lab = z >= 1 ? '큰 편' : z <= -1 ? '작은 편' : '평균';
+    out.push([z >= 1 || z <= -1 ? 'n' : '', `원아 ${r.원아수}명`, lab, `서울 ${r.유형} 평균 ${Math.round(m)}명`]);
+  }
+  const cs = headCmp(r, '학급당원아');
+  if (cs) out.push([cs.cls, `한 반 ${cs.v}명`, cs.lab, `서울 ${r.유형} 평균 ${cs.a}명`]);
+  const ts = headCmp(r, '교사1인당원아');
+  if (ts) out.push([ts.cls, `선생님 1명당 ${ts.v}명`, ts.lab, `서울 ${r.유형} 평균 ${ts.a}명`]);
+  if (r.운영시간) {
+    const [a, b] = r.운영시간.split('~');
+    const o = toMin(a), c = toMin(b);
+    let cls = '', lab = '평균';
+    if (c != null && c - HOURS.close >= 30) { cls = 'g'; lab = '늦게까지'; }
+    else if (c != null && c - HOURS.close <= -30) { cls = 'b'; lab = '일찍 닫아요'; }
+    else if (o != null && HOURS.open - o >= 30) { cls = 'g'; lab = '일찍 열어요'; }
+    out.push([cls, esc(r.운영시간), lab, `서울 평균 ${fmtMin(HOURS.open)}~${fmtMin(HOURS.close)}`]);
+  }
+  return out;
+}
+const BUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 11h16M8 21v-4M16 21v-4"/><circle cx="8" cy="14" r=".5"/><circle cx="16" cy="14" r=".5"/></svg>';
+const NOBUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M3 3l18 18"/></svg>';
+// 원비: 학부모 부담 고지액(지원금 제외, 월). [교육과정 만3·4·5세, 방과후 만3·4·5세], null = 해당 연령반 없음
+const COST = {"개동유치원":[109200,0,0,5000,5000,5000],"나래유치원":[170000,170000,170000,40000,40000,40000],"덕수유치원":[130000,120000,110000,95475,95475,95475],"동덕여자대학교부속유치원":[165000,165000,165000,155000,155000,155000],"동선유치원":[8530,8530,8530,0,0,0],"두산효자유치원":[148000,148000,148000,24000,24000,24000],"루이유치원":[332000,332000,null,0,0,null],"반디유치원":[294720,184720,171960,35000,35000,35000],"사랑유치원":[184000,184000,184000,50000,50000,50000],"새삼선유치원":[0,22000,20000,30000,40000,40000],"새싹유치원":[150750,150750,150750,70000,70000,70000],"서울길원초등학교병설유치원":[0,0,0,0,0,0],"서울길음유치원":[0,0,0,0,0,0],"서울돈암초등학교병설유치원":[0,0,0,0,0,0],"서울동신초등학교병설유치원":[0,0,0,0,0,0],"서울베네딕도유치원":[105000,110000,110000,80000,80000,80000],"서울삼선초등학교병설유치원":[0,0,0,0,0,0],"서울석관초등학교병설유치원":[0,0,0,0,0,0],"서울성북초등학교병설유치원":[0,0,0,0,0,0],"서울숭곡초등학교병설유치원":[0,0,0,0,0,0],"서울숭례초등학교병설유치원":[0,0,0,0,0,0],"서울장곡초등학교병설유치원":[0,0,0,0,0,0],"서울장월초등학교병설유치원":[0,0,0,0,0,0],"서울장위초등학교병설유치원":[0,0,0,0,0,0],"서울정덕초등학교병설유치원":[0,0,0,0,0,0],"서울좋은소리유치원":[0,0,0,0,0,0],"서울좋은소리유치원분원":[0,0,0,0,0,0],"서울청덕초등학교병설유치원":[0,0,0,0,0,0],"선한유치원":[224300,124300,124300,72000,72000,72000],"성신유치원":[105200,105200,105200,135200,135200,135200],"신암유치원":[74400,75000,78000,49600,49600,46600],"아랑유치원":[160000,164000,164000,70000,70000,70000],"영광유치원":[137000,137000,157000,52000,52000,52000],"영암유치원":[46700,43000,43000,60000,60000,60000],"영재유치원":[114000,114000,114000,55000,55000,55000],"영천유치원":[0,0,0,0,0,0],"우촌유치원":[454750,294750,294750,122080,122080,122080],"은영유치원":[77040,75790,73870,40000,40000,40000],"좋은나라유치원":[181700,181700,181700,50000,50000,50000],"탑주유치원":[100000,100000,100000,49000,49000,49000],"한가람유치원":[176100,176100,176100,30000,30000,30000],"한마음유치원":[141000,141000,141000,141000,141000,141000],"해뜨는유치원":[145600,145600,145600,30000,30000,30000],"희망찬유치원":[284900,174900,174900,40000,40000,40000]};
+const COST_GU = '성북구';
+const won = (n) => n >= 10000 ? `${(Math.round(n / 1000) / 10).toLocaleString()}만원` : `${n.toLocaleString()}원`;
+function costOf(r) {
+  if (r.구 !== COST_GU || !COST[r.유치원명]) return null;
+  const a = +(document.getElementById('age').value || 0);
+  const c = COST[r.유치원명];
+  if (c[a] == null) return { none: true, age: a + 3 };
+  const edu = c[a], aft = c[a + 3] || 0;
+  return { edu, aft, total: edu + aft, age: a + 3 };
+}
+function costAvg(type, a) {
+  const v = ROWS.filter((r) => r.구 === COST_GU && r.유형 === type && COST[r.유치원명] && COST[r.유치원명][a] != null)
+    .map((r) => COST[r.유치원명][a] + (COST[r.유치원명][a + 3] || 0));
+  return v.length ? v.reduce((s, n) => s + n, 0) / v.length : null;
+}
+function costCmp(r) {
+  const c = costOf(r);
+  if (!c) return null;
+  if (c.none) return { ...c, cls: '', lab: `만 ${c.age}세 반 없음` };
+  if (c.total === 0) return { ...c, cls: 'g', lab: '무상', avg: costAvg(r.유형, c.age - 3) };
+  const avg = costAvg(r.유형, c.age - 3);
+  const d = Math.round((c.total - avg) / 10000);
+  const cls = d <= -1 ? 'g' : d >= 1 ? 'b' : '';
+  const lab = d <= -1 ? `평균 -${-d}만원` : d >= 1 ? `평균 +${d}만원` : '평균';
+  return { ...c, cls, lab, avg };
+}
+
+const busBadge = (r) => r.차량운영여부 === '운영'
+  ? `<span class="badge bus-on">${BUS_SVG}차량</span>`
+  : r.차량운영여부 === '미운영' ? `<span class="badge bus-off">${BUS_SVG}없음</span>` : '';
+
+// 한 유치원을 학부모 말로 풀어쓰기: 눈에 띄는 점(tags)과 항목별 설명(facts)
+function describe(r) {
+  const tags = [], facts = [];
+  const g = (k, dir) => grade(r, k, dir);
+  const pub = r.유형 === '국공립';
+  const cc = costCmp(r);
+  if (cc && !cc.none) {
+    facts.push([`한 달 비용<br>(만 ${cc.age}세)`, cc.total === 0 ? '교육비·방과후비 모두 <b>0원</b>이에요.' : `교육비 <b>${won(cc.edu)}</b> + 방과후 <b>${won(cc.aft)}</b> = 월 <b>${won(cc.total)}</b>`,
+      `${COST_GU} ${r.유형} 평균은 월 ${won(Math.round(cc.avg || 0))}이에요. 정부 지원금을 뺀 학부모 부담 고지액이고, 특성화 활동·차량·현장학습 같은 선택 비용은 빠져 있을 수 있어요.`, cc.cls]);
+  } else if (cc && cc.none) {
+    facts.push(['한 달 비용', `만 ${cc.age}세 반이 없어요.`, '', '']);
+  } else {
+    facts.push(['한 달 비용', '아직 비용 정보가 없는 지역이에요.', '', '']);
+  }
+
+  if (r.원아수 != null) {
+    facts.push(['아이 수', `전체 <b>${r.원아수}명</b>이 다녀요.`, `서울 ${r.유형} 평균은 ${Math.round(SIZE_AVG[r.유형].m)}명이에요.`, '']);
+  }
+  const cs = headCmp(r, '학급당원아');
+  if (cs) facts.push(['한 반 인원', `평균 <b>${cs.v}명</b>이 한 반이에요.`, cs.txt, cs.cls]);
+  const ts = headCmp(r, '교사1인당원아');
+  if (ts) facts.push(['선생님 한 명당', `아이 <b>${ts.v}명</b>을 맡아요.`, ts.txt, ts.cls]);
+  if (r['4년이상비율'] != null) {
+    const c = g('4년이상비율', 1);
+    if (c && !(pub && c === 'b')) tags.push([c, c === 'g' ? '오래 근무한 선생님이 많아요' : '오래 근무한 선생님이 적어요']);
+    const n = r['4년이상비율'];
+    const txt = n >= 50 ? `선생님 절반 이상(<b>${n}%</b>)이 이 원에서 4년 넘게 일했어요.` : n === 0 ? '이 원에서 4년 넘게 일한 선생님은 <b>없어요</b>.' : `선생님 <b>${n}%</b>가 이 원에서 4년 넘게 일했어요.`;
+    facts.push(['선생님 근속', txt, (pub ? '공립 선생님은 몇 년마다 학교를 옮겨서 낮게 나오는 게 보통이에요. ' : '') + vs(r, '4년이상비율', '%', '낮은 편이에요', '높은 편이에요'), pub && c === 'b' ? '' : c]);
+  }
+  if (r['1년미만비율'] != null) {
+    const c = g('1년미만비율', -1);
+    if (c) tags.push([c, c === 'g' ? '선생님이 잘 안 바뀌어요' : '올해 새로 온 선생님이 많아요']);
+    const n = r['1년미만비율'];
+    const txt = n >= 50 ? `선생님 <b>절반 이상</b>이 근무 1년이 안 됐어요.` : n === 0 ? '근무 1년이 안 된 선생님은 <b>없어요</b>.' : `선생님 <b>${n}%</b>가 근무 1년이 안 됐어요.`;
+    facts.push(['새 선생님', txt, '담임이 자주 바뀌는지 가늠하는 지표예요. ' + vs(r, '1년미만비율', '%', '낮은 편이에요', '높은 편이에요'), c]);
+  }
+  if (r.충원율 != null) {
+    const n = r.충원율;
+    let c = '';
+    if (n >= 95) { c = 'n'; tags.push(['n', '정원이 거의 찼어요']); }
+    else if (n <= 50) { c = 'n'; tags.push(['n', '빈자리가 많아요']); }
+    const txt = n >= 95 ? `정원이 거의 다 찼어요(<b>${n}%</b>). 인기가 많아 자리가 있는지 먼저 확인하세요.` : n <= 50 ? `정원의 <b>${n}%</b>만 찼어요. 입학 여유는 있지만 이유를 물어볼 만해요.` : `정원의 <b>${n}%</b>가 찼어요.`;
+    facts.push(['정원 대비', txt, '', c]);
+  }
+  if (r.수업일수 != null) {
+    const c = g('수업일수', 0);
+    if (c) tags.push(['n', zOf(r, '수업일수') > 0 ? '방학이 짧아요' : '방학이 길어요']);
+    facts.push(['1년 수업일수', `<b>${r.수업일수}일</b> 수업해요.`, (pub ? '공립은 보통 180일 정도로, 사립보다 방학이 길어요. ' : '') + vs(r, '수업일수', '일', '방학이 긴 편이에요', '방학이 짧은 편이에요'), c]);
+  }
+  if (r.운영시간) {
+    const end = +(r.운영시간.split('~')[1] || '').slice(0, 2);
+    facts.push(['운영 시간', `<b>${r.운영시간}</b> (방과후 돌봄 포함)`, `서울 유치원 평균은 ${fmtMin(HOURS.open)}~${fmtMin(HOURS.close)}이에요.`, '']);
+  }
+  if (r.방과후참여율 != null) {
+    const n = Math.min(100, r.방과후참여율);
+    const txt = n >= 90 ? '거의 <b>모든 아이</b>가 오후 돌봄(방과후)까지 있다 가요.' : n < 30 ? `오후 돌봄(방과후)을 이용하는 아이가 <b>${n}%</b>로 적어요. 대부분 일찍 하원해요.` : `아이 <b>${n}%</b>가 오후 돌봄(방과후)을 이용해요.`;
+    if (n < 30) tags.push(['n', '대부분 일찍 하원해요']);
+    facts.push(['오후 돌봄', txt, '', n < 30 ? 'n' : '']);
+  }
+  facts.push(['통학 차량', r.차량운영여부 === '운영' ? '<b>운영해요.</b> 노선은 원에 확인하세요.' : r.차량운영여부 === '미운영' ? '<b>운영하지 않아요.</b> 직접 등하원해야 해요.' : '정보 없음', '', '']);
+  const order = { g: 0, b: 1, n: 2 };
+  tags.sort((a, b) => order[a[0]] - order[b[0]]);
+  return { tags: tags.slice(0, 4), facts };
+}
 
 const km = (a, b, c, d) => {
   const R = 6371, t = Math.PI / 180;
@@ -180,9 +360,10 @@ function start() {
     $('summary').innerHTML = `반경 <b>${r}km</b> 안에 유치원 <b>${near.length}곳</b> (국공립 ${pub}, 사립 ${near.length - pub})`;
     $('list').innerHTML = shown.map(({ x, d }) => `
       <div class="item" data-id="${esc(x.id)}">
-        <div class="top"><span class="name">${esc(x.유치원명)}</span><span class="meta">${d.toFixed(1)}km</span></div>
-        <div class="meta">${esc(x.설립유형)} · 원아 ${x.원아수}명 · ${esc(x.운영시간 || '')} · 차량 ${esc(x.차량운영여부 || '-')}</div>
-        <div class="chips">${METRICS.map(([k, label, dir, u]) => `<span class="${grade(x, k, dir)}">${label} <em>${x[k] ?? '-'}${x[k] == null ? '' : u}</em></span>`).join('')}</div>
+        <div class="top"><span class="name">${esc(x.유치원명)} <span class="kind">[${esc(x.설립유형)}]</span></span><span class="meta">${d.toFixed(1)}km</span></div>
+        <div class="badges">${badges(x).map(([c, t, lab, tip]) => `<span class="badge ${c}"${tip ? ` title="${tip}"` : ''}>${t}${lab ? ` <small>${lab}</small>` : ''}</span>`).join('')}${busBadge(x)}</div>
+        ${(() => { const dsc = describe(x); return `${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
+        <details><summary>자세히 보기</summary><ul class="facts">${dsc.facts.map(([k, v, cmp, c]) => `<li><span class="k">${k}</span><span class="v ${c ? 'c-' + c : ''}">${v}${cmp ? `<span class="cmp">${cmp}</span>` : ''}</span></li>`).join('')}</ul></details>`; })()}
       </div>`).join('') || '<div class="item meta">반경 안에 유치원이 없습니다. 반경을 넓혀 보세요.</div>';
     document.querySelectorAll('.item[data-id]').forEach((it) => {
       it.addEventListener('click', () => {
@@ -202,6 +383,7 @@ function start() {
   $('gu').addEventListener('change', () => { if (!$('gu').value) return; Object.assign(S, guCenter($('gu').value)); render(true); });
   $('r').addEventListener('change', () => render(true));
   $('type').addEventListener('change', () => render(false));
+  $('age').addEventListener('change', () => render(false));
   $('me').addEventListener('click', () => {
     if (!navigator.geolocation) { alert('이 브라우저는 위치 기능을 지원하지 않습니다.'); return; }
     navigator.geolocation.getCurrentPosition(
