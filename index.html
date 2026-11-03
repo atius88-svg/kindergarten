@@ -37,8 +37,11 @@
   .tip { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: 12px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.15); transform: translateY(-28px); }
   .err { padding: 24px; color: var(--bad); }
   @media (max-width: 800px) {
-    .app { grid-template-columns: 1fr; grid-template-rows: 50vh minmax(0, 1fr); }
+    html, body { height: auto; }
+    .app { display: block; height: auto; }
+    #map { height: 55vh; }
     .side { border-left: 0; border-top: 1px solid var(--line); }
+    .list { overflow: visible; }
   }
 </style>
 </head>
