@@ -55,6 +55,19 @@
   .kmark.sel { outline: 3px solid var(--fg); }
   .tip { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: 12px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.15); transform: translateY(-28px); }
   .err { padding: 24px; color: var(--bad); }
+  .home-box { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 13px; }
+  .home-box[hidden] { display: none; }
+  .home-cur { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .home-cur b { font-weight: 600; }
+  .home-form { display: flex; gap: 6px; }
+  .home-form input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); }
+  .home-res { display: grid; gap: 4px; }
+  .home-res button { text-align: left; cursor: pointer; display: grid; }
+  .home-res small { color: var(--muted); font-size: 12px; }
+  .home-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .home-acts button { cursor: pointer; font-size: 13px; }
+  .home-hint { margin: 0; color: var(--muted); font-size: 12px; }
+  .hmark { font-size: 22px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); transform: translateY(-4px); pointer-events: none; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { font: inherit; font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
   .chip[aria-pressed="true"] { background: var(--fg); color: var(--panel); border-color: var(--fg); }
@@ -122,7 +135,8 @@
       <h1 id="h1">우리 동네 유치원</h1>
       <div class="mode" role="group" aria-label="유치원 또는 어린이집"><button type="button" data-mode="kg" aria-pressed="true">🎒 유치원</button><button type="button" data-mode="dc" aria-pressed="false">🧸 어린이집</button></div>
       <div class="controls">
-        <button class="primary" id="me" type="button">내 위치</button>
+        <button class="primary" id="me" type="button">📍 내 위치</button>
+        <button id="home" type="button" aria-expanded="false" aria-controls="home-box">🏠 우리 집</button>
         <select id="gu" aria-label="구 선택"></select>
         <select id="r" aria-label="반경">
           <option value="1">1km</option><option value="2" selected>2km</option><option value="3">3km</option><option value="5">5km</option>
@@ -133,6 +147,13 @@
         <select id="type" aria-label="유형">
           <option value="">전체</option><option value="국공립">국공립</option><option value="사립">사립</option>
         </select>
+      </div>
+      <div class="home-box" id="home-box" hidden>
+        <div class="home-cur" id="home-cur"></div>
+        <form class="home-form" id="home-form"><input id="home-q" type="search" placeholder="주소나 아파트 이름" enterkeyhint="search" aria-label="우리 집 주소 검색"><button class="primary" type="submit">찾기</button></form>
+        <div class="home-res" id="home-res"></div>
+        <div class="home-acts"><button type="button" id="home-here">📍 지금 기준 위치를 우리 집으로</button><button type="button" id="home-del" hidden>삭제</button></div>
+        <p class="home-hint">우리 집은 이 휴대폰(브라우저)에만 저장되고, 다음에 열 때 여기서 시작해요.</p>
       </div>
       <details class="cond" id="cond"><summary>⚙️ 우리 집 조건 <small id="cond-n">설정 안 함</small></summary>
         <div class="cond-grid">
@@ -558,6 +579,11 @@ function start() {
   fillSelects();
   Object.assign(S, guCenter('성북구'));
   loadCond();
+  const HOME = {
+    get() { try { const h = JSON.parse(localStorage.getItem('kg-home') || 'null'); return h && isFinite(h.lat) && isFinite(h.lng) ? h : null; } catch (e) { return null; } },
+    set(v) { try { v ? localStorage.setItem('kg-home', JSON.stringify(v)) : localStorage.removeItem('kg-home'); } catch (e) {} },
+  };
+  if (HOME.get()) { const h = HOME.get(); S.lat = h.lat; S.lng = h.lng; $('gu').value = ''; }
 
   const map = new kakao.maps.Map($('map'), { center: new kakao.maps.LatLng(S.lat, S.lng), level: 6 });
   map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
@@ -567,6 +593,7 @@ function start() {
   const center = new kakao.maps.CustomOverlay({ content: '<div style="width:14px;height:14px;border-radius:50%;background:#1d2420;border:3px solid #fff;box-shadow:0 0 0 2px #1d2420"></div>', yAnchor: 0.5, zIndex: 5 });
   center.setMap(map);
   const tip = new kakao.maps.CustomOverlay({ yAnchor: 1, zIndex: 10 });
+  const homeMark = new kakao.maps.CustomOverlay({ content: '<div class="hmark" aria-hidden="true">🏠</div>', yAnchor: 1, zIndex: 6 });
 
   // 마커: 유치원마다 색 점 하나 (CustomOverlay)
   const marks = new Map();
@@ -781,6 +808,55 @@ function start() {
       { enableHighAccuracy: true, timeout: 8000 }
     );
   });
+  // 🏠 우리 집: 주소·아파트 이름 검색 또는 지금 기준 위치로 저장 (localStorage 'kg-home')
+  const geo = kakao.maps.services ? new kakao.maps.services.Geocoder() : null;
+  const places = kakao.maps.services ? new kakao.maps.services.Places() : null;
+  const drawHome = () => {
+    const h = HOME.get();
+    homeMark.setMap(null);
+    if (h) { homeMark.setPosition(new kakao.maps.LatLng(h.lat, h.lng)); homeMark.setMap(map); }
+    $('home-cur').innerHTML = h
+      ? `<span>🏠 <b>${esc(h.label)}</b></span><button type="button" class="primary" id="home-go">여기로</button>`
+      : '<span>우리 집을 저장해 두면 열 때마다 그 주변을 보여 줘요.</span>';
+    $('home-del').hidden = !h;
+    $('home-here').textContent = h ? '📍 지금 기준 위치로 바꾸기' : '📍 지금 기준 위치를 우리 집으로';
+    if (h) $('home-go').addEventListener('click', () => { goHome(); toggleHome(false); });
+  };
+  const goHome = () => { const h = HOME.get(); if (!h) return; S.lat = h.lat; S.lng = h.lng; $('gu').value = ''; if (location.hash) location.hash = ''; render(true); };
+  const saveHome = (lat, lng, label) => { HOME.set({ lat, lng, label }); drawHome(); goHome(); toggleHome(false); };
+  const toggleHome = (open) => {
+    $('home-box').hidden = !open; $('home').setAttribute('aria-expanded', open);
+    if (open) { $('home-res').innerHTML = ''; drawHome(); if (!HOME.get()) setTimeout(() => $('home-q').focus(), 0); }
+  };
+  $('home').addEventListener('click', () => toggleHome($('home-box').hidden));
+  $('home-here').addEventListener('click', () => {
+    const g = $('gu').value;
+    saveHome(S.lat, S.lng, g ? `${g} 가운데` : '지도에서 고른 곳');
+  });
+  $('home-del').addEventListener('click', () => { HOME.set(null); drawHome(); });
+  $('home-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = $('home-q').value.trim();
+    const box = $('home-res');
+    if (!q) return;
+    if (!geo) { box.innerHTML = '<small>검색 기능을 불러오지 못했어요. 지도를 눌러 위치를 고른 뒤 "지금 기준 위치"로 저장해 주세요.</small>'; return; }
+    box.innerHTML = '<small>찾는 중…</small>';
+    const show = (items) => {
+      if (!items.length) { box.innerHTML = '<small>찾지 못했어요. 도로명 주소나 아파트 이름으로 다시 검색해 보세요.</small>'; return; }
+      box.innerHTML = items.slice(0, 5).map((x, i) => `<button type="button" data-i="${i}"><span>${esc(x.name)}</span><small>${esc(x.addr)}</small></button>`).join('');
+      box.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { const x = items[+b.dataset.i]; saveHome(x.lat, x.lng, x.name); }));
+    };
+    geo.addressSearch(q, (res, st) => {
+      if (st === kakao.maps.services.Status.OK && res.length) {
+        return show(res.map((x) => ({ name: x.road_address?.building_name || x.address_name, addr: x.road_address?.address_name || x.address_name, lat: +x.y, lng: +x.x })));
+      }
+      places.keywordSearch(q, (pr, ps) => {
+        show(ps === kakao.maps.services.Status.OK ? pr.map((x) => ({ name: x.place_name, addr: x.road_address_name || x.address_name, lat: +x.y, lng: +x.x })) : []);
+      }, { location: new kakao.maps.LatLng(37.5665, 126.978), radius: 20000 });
+    });
+  });
+  drawHome();
+
   render(true);
   route();
   S.routed = true;
@@ -789,7 +865,7 @@ function start() {
 // 카카오맵 SDK 로드
 (function () {
   const s = document.createElement('script');
-  s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false`;
+  s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false&libraries=services`;
   s.onload = () => kakao.maps.load(start);
   s.onerror = () => { $('map').innerHTML = '<div class="err">카카오맵을 불러오지 못했습니다. JavaScript 키와, 카카오 개발자센터에 등록한 사이트 도메인을 확인하세요.</div>'; };
   document.head.appendChild(s);
