@@ -17,11 +17,14 @@ jobs:
         with:
           python-version: '3.12'
       - name: 유치원알리미 API에서 받기
+        continue-on-error: true   # 실패해도 어린이집 갱신은 계속
+        timeout-minutes: 20
         env:
           KINDER_API_KEY: ${{ secrets.KINDER_API_KEY }}
         run: python3 scripts/fetch_kg.py
       - name: 어린이집 API에서 받기 (운영키 만료 2027-11-09)
         continue-on-error: true   # 실패해도 유치원 갱신은 계속
+        timeout-minutes: 10
         env:
           CHILDCARE_API_KEY: ${{ secrets.CHILDCARE_API_KEY }}
         run: python3 scripts/fetch_dc.py

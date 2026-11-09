@@ -32,7 +32,7 @@ def fetch(api, sgg, key):
     for i in range(4):
         try:
             req = urllib.request.Request(f'{BASE}{api}.do?{q}', headers={'User-Agent': 'kindergarten-map-updater'})
-            with urllib.request.urlopen(req, timeout=60) as r:
+            with urllib.request.urlopen(req, timeout=30) as r:
                 j = json.loads(r.read().decode('utf-8'))
             if j.get('status') != 'SUCCESS':
                 raise RuntimeError(f"{api} {sgg}: {j.get('status')} {j.get('message')}")
