@@ -12,8 +12,8 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: 유치원알리미 API에서 받기
@@ -37,4 +37,4 @@ jobs:
           git add -A src/data index.html
           if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi
           git commit -m "데이터 자동 갱신 $(date +%Y-%m-%d)"
-          git push
+          git pull --rebase -q origin main && git push
