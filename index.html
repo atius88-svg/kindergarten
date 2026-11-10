@@ -546,7 +546,7 @@ function drawCondHints() {
   const a = +document.getElementById('age').value;
   const pri = costAvg('사립', a), pub = costAvg('국공립', a);
   document.getElementById('f-close-avg').textContent = `서울 유치원 평균은 ${fmtMin(HOURS.close)}에 닫아요.`;
-  document.getElementById('f-cost-avg').textContent = `서울 평균(만 ${a + 3}세): 사립 월 ${won(Math.round(pri || 0))} · 공립 ${won(Math.round(pub || 0))}. ${COST_BASIS} 공시 기준.`;
+  document.getElementById('f-cost-avg').textContent = `서울 평균(만 ${a + 3}세): 사립 월 ${won(Math.round(pri || 0))} · 공립 ${(pub || 0) < 5000 ? '대부분 0원' : '월 ' + won(Math.round(pub))}. ${COST_BASIS} 공시 기준.`;
   document.getElementById('f-cls-avg').textContent = `서울 평균 한 반: 사립 ${Math.round(AVG['사립'].학급당원아.m)}명 · 공립 ${Math.round(AVG['국공립'].학급당원아.m)}명`;
   const n = condCount();
   document.getElementById('cond-n').textContent = n ? `${n}개 적용 중` : '설정 안 함';
