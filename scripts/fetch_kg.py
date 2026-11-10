@@ -7,10 +7,11 @@
 - 서울 25개 구 × 5개 API(일반현황·교원·근속·수업일수·통학차량)를 받아 기존과 같은 cols/rows 형식으로 만든다.
 - 기존 id는 유치원코드(kindercode) → id 대응표(src/data/kg_ids.json)로 유지한다. 처음엔 (구, 이름)으로 맞춘다.
   상세 화면 주소(#k{id})가 바뀌지 않게 하기 위함.
-- 방과후참여율은 API에 없어 기존 값을 그대로 이어 쓴다(새 유치원은 비움).
+- 방과후참여율은 API에 없어 「공시자료 다운로드」의 '방과후 과정 편성ㆍ운영' CSV(1차 공시에만 있음, 키 불필요)에서
+  가장 최근 1차 공시를 받아 참여원아 계 / 원아수로 계산한다. (구, 유치원명)으로 맞추고, 못 받거나 없는 곳은 기존 값을 이어 쓴다.
 - 받은 유치원 수가 너무 적으면(일부 구 실패 등) 파일을 쓰지 않고 실패로 끝낸다 → 깨진 데이터가 배포되지 않음.
 """
-import json, os, sys, time, urllib.parse, urllib.request
+import csv, datetime, io, json, os, sys, time, urllib.parse, urllib.request
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 DATA = os.path.join(ROOT, 'src', 'data', 'kg_seoul.json.txt')
@@ -25,6 +26,39 @@ SEOUL = {
     11740: '강동구',
 }
 MIN_ROWS = 600  # 지금 705곳. 이보다 크게 줄면 무언가 잘못된 것
+SITE = 'https://e-childschoolinfo.moe.go.kr'
+AFTERSCHOOL_CODE = '111'  # 공시항목 '방과후 과정 편성ㆍ운영에 관한 사항'
+
+
+def http(url, data=None, timeout=60):
+    req = urllib.request.Request(url, data=data, headers={'User-Agent': 'kindergarten-map-updater'})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read().decode('utf-8-sig')
+
+
+def fetch_afterschool():
+    """가장 최근 1차 공시의 서울 방과후 CSV → ({(구, 이름): 참여원아 계}, 차수). 실패하면 ({}, None)."""
+    try:
+        for y in range(datetime.date.today().year, datetime.date.today().year - 3, -1):
+            timing = f'{y}1'
+            items = json.loads(http(f'{SITE}/gongsi/{timing}/findGongsiList.do'))
+            if AFTERSCHOOL_CODE not in items.values():
+                continue
+            form = urllib.parse.urlencode({'combineSidoName': '서울특별시', 'combineSidoCode': '11', 'timingListCode': timing,
+                                           'gongsiListCode': AFTERSCHOOL_CODE, 'safetyListCode': '', 'ExcelCsv': '2'}).encode()
+            return parse_afterschool(http(f'{SITE}/download/getOpenData.do', form, timeout=120)), timing
+    except Exception as e:
+        print(f'방과후 CSV를 받지 못해 기존 값을 씁니다: {e}', file=sys.stderr)
+    return {}, None
+
+
+def parse_afterschool(text):
+    out = {}
+    for r in csv.DictReader(io.StringIO(text)):
+        addr = (r.get('주소') or '').split()
+        if len(addr) > 1 and r.get('유치원명'):
+            out[(addr[1], r['유치원명'].strip())] = num(r.get('참여원아 계'))
+    return out
 
 
 def fetch(api, sgg, key):
@@ -113,6 +147,8 @@ def main():
             rows = next(v for v in json.load(open(os.path.join(d, a + '.json'), encoding='utf-8')).values() if isinstance(v, list))
             raw[a] += rows
         min_rows = 1
+        f = [x for x in os.listdir(d) if x.startswith('afterschool') and x.endswith('.csv')]
+        aft, timing = (parse_afterschool(open(os.path.join(d, f[0]), encoding='utf-8-sig').read()), f[0]) if f else ({}, None)
     else:
         key = os.environ.get('KINDER_API_KEY')
         if not key:
@@ -127,6 +163,9 @@ def main():
                 time.sleep(0.3)
             print(f'{gu}: {len([x for x in raw["basicInfo2"] if x.get("_gu") == gu])}곳')
         min_rows = MIN_ROWS
+        aft, timing = fetch_afterschool()
+    if aft:
+        print(f'방과후 공시 {timing}: {len(aft)}곳')
 
     new = build(raw)
     if len(new) < min_rows:
@@ -159,7 +198,8 @@ def main():
             next_id += 1
         used.add(n['id'])
         ids[n['kindercode']] = n['id']
-        n['방과후참여율'] = (prev or {}).get('방과후참여율')
+        p = aft.get((n['구'], n['유치원명']))
+        n['방과후참여율'] = float(round(p / n['원아수'] * 100)) if p is not None and n['원아수'] else (prev or {}).get('방과후참여율')
         rows.append(n)
 
     rows.sort(key=lambda r: r['id'])
