@@ -24,6 +24,10 @@ jobs:
         env:
           KINDER_API_KEY: ${{ secrets.KINDER_API_KEY }}
         run: python3 scripts/fetch_kg.py
+      - name: 유치원 원비 받기 (공시 차수가 바뀐 때만 서울 전체)
+        continue-on-error: true
+        timeout-minutes: 40
+        run: python3 scripts/fetch_cost.py
       - name: 어린이집 API에서 받기 (운영키 만료 2027-11-09)
         continue-on-error: true   # 실패해도 유치원 갱신은 계속
         timeout-minutes: 10

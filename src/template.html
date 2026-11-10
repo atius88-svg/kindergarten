@@ -287,7 +287,7 @@ function badges(r) {
   if (isDC(r)) return dcBadges(r);
   const out = [];
   const cc = costCmp(r);
-  if (cc) out.push([cc.cls, ICON.won + (cc.none ? '' : cc.total === 0 ? '0원' : won(cc.total)), cc.lab, cc.avg != null ? `월 비용 · ${COST_GU} ${r.유형} 평균 월 ${won(Math.round(cc.avg))}` : '월 비용']);
+  if (cc) out.push([cc.cls, ICON.won + (cc.none ? '' : cc.total === 0 ? '0원' : won(cc.total)), cc.lab, cc.avg != null ? `월 비용 · ${r.구} ${r.유형} 평균 월 ${won(Math.round(cc.avg))}` : '월 비용']);
   if (r.원아수 != null) {
     const { m, sd } = SIZE_AVG[r.유형];
     const z = (r.원아수 - m) / sd;
@@ -312,28 +312,32 @@ function badges(r) {
 const BUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 11h16M8 21v-4M16 21v-4"/><circle cx="8" cy="14" r=".5"/><circle cx="16" cy="14" r=".5"/></svg>';
 const NOBUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M3 3l18 18"/></svg>';
 // 원비: 학부모 부담 고지액(지원금 제외, 월). [교육과정 만3·4·5세, 방과후 만3·4·5세], null = 해당 연령반 없음
-const COST = %%COST%%;
-const COST_GU = '성북구';
+const COSTD = %%COST%%;  // {timing, basis, cost: {id: [...]}} — 서울 전체, scripts/fetch_cost.py
+const COST = COSTD.cost;
+const COST_BASIS = COSTD.basis ? COSTD.basis.replace(/\s*\(.*\)/, '') : '';
 const won = (n) => n >= 10000 ? `${(Math.round(n / 1000) / 10).toLocaleString()}만원` : `${n.toLocaleString()}원`;
 function costOf(r) {
-  if (r.구 !== COST_GU || !COST[r.유치원명]) return null;
+  const c = COST[r.id];
+  if (!c) return null;
   const a = +(document.getElementById('age').value || 0);
-  const c = COST[r.유치원명];
   if (c[a] == null) return { none: true, age: a + 3 };
   const edu = c[a], aft = c[a + 3] || 0;
   return { edu, aft, total: edu + aft, age: a + 3 };
 }
-function costAvg(type, a) {
-  const v = ROWS.filter((r) => r.구 === COST_GU && r.유형 === type && COST[r.유치원명] && COST[r.유치원명][a] != null)
-    .map((r) => COST[r.유치원명][a] + (COST[r.유치원명][a + 3] || 0));
-  return v.length ? v.reduce((s, n) => s + n, 0) / v.length : null;
+const COST_AVG = {};
+function costAvg(type, a, gu) {  // gu 없으면 서울 전체
+  const key = `${type}|${a}|${gu || ''}`;
+  if (key in COST_AVG) return COST_AVG[key];
+  const v = ROWS.filter((r) => (!gu || r.구 === gu) && r.유형 === type && COST[r.id] && COST[r.id][a] != null)
+    .map((r) => COST[r.id][a] + (COST[r.id][a + 3] || 0));
+  return (COST_AVG[key] = v.length ? v.reduce((s, n) => s + n, 0) / v.length : null);
 }
 function costCmp(r) {
   const c = costOf(r);
   if (!c) return null;
   if (c.none) return { ...c, cls: '', lab: `만 ${c.age}세 반 없음` };
-  if (c.total === 0) return { ...c, cls: 'g', lab: '무상', avg: costAvg(r.유형, c.age - 3) };
-  const avg = costAvg(r.유형, c.age - 3);
+  if (c.total === 0) return { ...c, cls: 'g', lab: '무상', avg: costAvg(r.유형, c.age - 3, r.구) };
+  const avg = costAvg(r.유형, c.age - 3, r.구);
   const d = Math.round((c.total - avg) / 10000);
   const cls = d <= -1 ? 'g' : d >= 1 ? 'b' : '';
   const lab = d <= -1 ? `평균 -${-d}만원` : d >= 1 ? `평균 +${d}만원` : '평균';
@@ -431,7 +435,7 @@ function describe(r) {
   const cc = costCmp(r);
   if (cc && !cc.none) {
     facts.push([`한 달 비용<br>(만 ${cc.age}세)`, cc.total === 0 ? '교육비·방과후비 모두 <b>0원</b>이에요.' : `교육비 <b>${won(cc.edu)}</b> + 방과후 <b>${won(cc.aft)}</b> = 월 <b>${won(cc.total)}</b>`,
-      `${COST_GU} ${r.유형} 평균은 월 ${won(Math.round(cc.avg || 0))}이에요. 정부 지원금을 뺀 학부모 부담 고지액이고, 특성화 활동·차량·현장학습 같은 선택 비용은 빠져 있을 수 있어요.`, cc.cls]);
+      `${r.구} ${r.유형} 평균은 월 ${won(Math.round(cc.avg || 0))}이에요. 정부 지원금을 뺀 학부모 부담 고지액(${COST_BASIS} 공시)이고, 특성화 활동·차량·현장학습 같은 선택 비용은 빠져 있어요.`, cc.cls]);
   } else if (cc && cc.none) {
     facts.push(['한 달 비용', `만 ${cc.age}세 반이 없어요.`, '', '']);
   } else {
@@ -542,7 +546,7 @@ function drawCondHints() {
   const a = +document.getElementById('age').value;
   const pri = costAvg('사립', a), pub = costAvg('국공립', a);
   document.getElementById('f-close-avg').textContent = `서울 유치원 평균은 ${fmtMin(HOURS.close)}에 닫아요.`;
-  document.getElementById('f-cost-avg').textContent = `${COST_GU} 평균(만 ${a + 3}세): 사립 월 ${won(Math.round(pri || 0))} · 공립 ${won(Math.round(pub || 0))}. 원비는 현재 ${COST_GU}만 있어요.`;
+  document.getElementById('f-cost-avg').textContent = `서울 평균(만 ${a + 3}세): 사립 월 ${won(Math.round(pri || 0))} · 공립 ${won(Math.round(pub || 0))}. ${COST_BASIS} 공시 기준.`;
   document.getElementById('f-cls-avg').textContent = `서울 평균 한 반: 사립 ${Math.round(AVG['사립'].학급당원아.m)}명 · 공립 ${Math.round(AVG['국공립'].학급당원아.m)}명`;
   const n = condCount();
   document.getElementById('cond-n').textContent = n ? `${n}개 적용 중` : '설정 안 함';
@@ -723,7 +727,7 @@ function start() {
       return `<tr><td>${k}</td>${v.map((r) => `<td class="${best != null && score(r) === best ? 'best' : ''}">${f(r)}</td>`).join('')}</tr>`;
     }).join('');
     $('c-body').innerHTML = `<table class="ctable"><thead>${head}</thead><tbody>${body}</tbody></table>
-      <p class="note">초록 굵은 글씨가 항목별로 가장 유리한 곳이에요. ${MODE === 'dc' ? '입소 대기 인원은 공개되지 않아 현원/정원으로 가늠해요. 자리가 여유 있을수록 유리하게 표시했어요.</p>' : ''}<p class="note kg-only">원비는 지원금을 뺀 학부모 부담 고지액이고, 현재 성북구만 있어요. * 표시는 공시 교사 수가 적어 정확하지 않을 수 있어요.</p>`;
+      <p class="note">초록 굵은 글씨가 항목별로 가장 유리한 곳이에요. ${MODE === 'dc' ? '입소 대기 인원은 공개되지 않아 현원/정원으로 가늠해요. 자리가 여유 있을수록 유리하게 표시했어요.</p>' : ''}<p class="note kg-only">원비는 지원금을 뺀 학부모 부담 고지액(${COST_BASIS} 공시)이에요. * 표시는 공시 교사 수가 적어 정확하지 않을 수 있어요.</p>`;
     $('c-body').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { toggleCmp(b.dataset.rm); openCompare(); }));
     $('cmp').hidden = false; $('cbar').hidden = true;
     document.title = `${NOUN()} 비교 | 우리 동네 ${NOUN()}`;
