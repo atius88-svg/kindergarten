@@ -641,6 +641,7 @@ function start() {
   const syncLabels = () => $('map').classList.toggle('labels', map.getLevel() <= 4);
   kakao.maps.event.addListener(map, 'zoom_changed', syncLabels);
   syncLabels();
+  window.kgMap = map;  // 시험용
   const marks = new Map(), ovs = new Map();
   [...ROWS, ...DROWS].forEach((r) => {
     const el = document.createElement('div');
