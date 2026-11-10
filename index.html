@@ -636,9 +636,9 @@ function start() {
   const tip = new kakao.maps.CustomOverlay({ yAnchor: 1, zIndex: 10 });
   const homeMark = new kakao.maps.CustomOverlay({ content: '<div class="hmark" aria-hidden="true">🏠</div>', yAnchor: 1, zIndex: 6 });
 
-  // 마커: 유치원마다 색 점 하나 (CustomOverlay). 지도를 가까이(레벨 4 이하) 보면 이름표가 붙는다.
+  // 마커: 유치원마다 색 점 하나 (CustomOverlay). 지도를 가까이(레벨 5 이하) 보면 이름표가 붙는다.
   const shortName = (n) => n.replace(/초등학교병설유치원$/, '초 병설').replace(/(유치원|어린이집)(분원)?$/, '$2').trim() || n;
-  const syncLabels = () => $('map').classList.toggle('labels', map.getLevel() <= 4);
+  const syncLabels = () => $('map').classList.toggle('labels', map.getLevel() <= 5);
   kakao.maps.event.addListener(map, 'zoom_changed', syncLabels);
   syncLabels();
   window.kgMap = map;  // 시험용
