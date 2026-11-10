@@ -85,6 +85,15 @@ def num(x):
         return 0
 
 
+AGES = [('clcnt3', 'ag3fpcnt', 'ppcnt3'), ('clcnt4', 'ag4fpcnt', 'ppcnt4'), ('clcnt5', 'ag5fpcnt', 'ppcnt5'),
+        ('mixclcnt', 'mixfpcnt', 'mixppcnt'), ('shclcnt', 'spcnfpcnt', 'shppcnt')]
+
+
+def age_breakdown(b):
+    """[[반 수, 정원, 원아] × (만3, 만4, 만5, 혼합, 특수)]"""
+    return [[num(b.get(c)), num(b.get(f)), num(b.get(p))] for c, f, p in AGES]
+
+
 def pct(a, b):
     return round(a / b * 100) if b else None
 
@@ -109,6 +118,8 @@ def build(raw):
             continue
         kids = sum(num(b.get(f)) for f in ('ppcnt3', 'ppcnt4', 'ppcnt5', 'mixppcnt', 'shppcnt'))
         classes = sum(num(b.get(f)) for f in ('clcnt3', 'clcnt4', 'clcnt5', 'mixclcnt', 'shclcnt'))
+        by_age = age_breakdown(b)
+        cap = sum(x[1] for x in by_age)  # 올해 만든 반들의 정원 합
         years = [num(y.get(f)) for f in ('yy1_undr_thcnt', 'yy1_abv_yy2_undr_thcnt', 'yy2_abv_yy4_undr_thcnt',
                                           'yy4_abv_yy6_undr_thcnt', 'yy6_abv_thcnt')]
         teachers = sum(years)
@@ -125,7 +136,10 @@ def build(raw):
             '구': addr[1] if len(addr) > 1 and addr[1].endswith('구') else b.get('_gu', ''),
             '위도': lat, '경도': lng,
             '원아수': kids,
-            '충원율': round(kids / num(b.get('prmstfcnt')) * 100, 0) if num(b.get('prmstfcnt')) else None,
+            '충원율': float(round(kids / cap * 100)) if cap else None,  # 반 정원 기준 (2026-11-10부터)
+            '정원': cap or None,
+            '인가정원': num(b.get('prmstfcnt')) or None,
+            '연령별': by_age,
             '학급당원아': round(kids / classes, 1) if classes else None,
             '교사1인당원아': round(kids / teachers, 1) if teachers else None,
             '4년이상비율': float(pct(years[3] + years[4], teachers)) if teachers else None,
@@ -172,7 +186,7 @@ def main():
         sys.exit(f'받은 유치원이 {len(new)}곳뿐이라 갱신하지 않습니다(최소 {min_rows}).')
 
     old = json.load(open(DATA, encoding='utf-8'))
-    cols = old['cols']
+    cols = old['cols'] + [c for c in ('정원', '인가정원', '연령별') if c not in old['cols']]
     old_rows = [dict(zip(cols, r)) for r in old['rows']]
     by_name = {}
     for r in old_rows:
