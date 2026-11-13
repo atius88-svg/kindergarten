@@ -27,6 +27,9 @@
   .topbar .mode button[aria-pressed="true"] { background: var(--acc); color: #1d2420; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
   .topbar .mode button:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
   #map { width: 100%; height: 100%; min-height: 320px; }
+  .mapbox { position: relative; min-height: 0; }
+  #research { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 20; border: 0; border-radius: 999px; padding: 9px 16px; font: 700 14px/1.2 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: #fff; color: #1d2420; box-shadow: 0 2px 10px rgba(0,0,0,.28); cursor: pointer; white-space: nowrap; }
+  #research:active { transform: translateX(-50%) scale(.97); }
   .side { display: flex; flex-direction: column; border-left: 1px solid var(--line); background: var(--panel); min-height: 0; }
   .side header { padding: 16px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
   .side h1 { font-size: 18px; margin: 0; }
@@ -164,7 +167,7 @@
   <div class="mode" role="group" aria-label="유치원 또는 어린이집"><button type="button" data-mode="kg" aria-pressed="true">유치원</button><button type="button" data-mode="dc" aria-pressed="false">어린이집</button></div>
 </header>
 <div class="app">
-  <div id="map"></div>
+  <div class="mapbox"><div id="map"></div><button type="button" id="research" hidden>↻ 이 지역에서 다시 찾기</button></div>
   <aside class="side">
     <header>
       <div class="controls">
@@ -194,6 +197,7 @@
           <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-ext"> 🌙 연장보육반(19:30 이후) 있는 곳만</label><small>성북구 어린이집 기본 운영은 대부분 07:30~19:30이에요.</small></div>
           <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-night"> 🌃 야간연장형(밤늦게까지) 만</label></div>
           <div class="cond-row"><label class="line"><input type="checkbox" id="f-room"> 🪑 자리 여유 있는 곳만 (정원의 90% 미만)</label><small class="dc-only">입소 대기 인원은 공개되지 않아 정원 대비 현원으로 가늠해요.</small><small class="kg-only">고른 나이 반(없으면 혼합반) 기준이에요.</small></div>
+          <div class="cond-row kg-only"><label class="line"><input type="checkbox" id="f-next"> 🎒 내년 자리 있을 것 같은 곳만</label><small>내년 모집요강 정원 − 올라올 아이로 추정해요(1자리 이상).</small></div>
           <div class="cond-row kg-only"><div class="line">🌙 저녁 <select id="f-close" aria-label="운영 종료 시간">
             <option value="">상관없음</option><option value="1080">6시</option><option value="1110">6시 반</option><option value="1140">7시</option><option value="1170">7시 반</option><option value="1200">8시</option><option value="1260">9시</option>
           </select> 까지 맡아주는 곳</div><small id="f-close-avg"></small></div>
@@ -304,7 +308,8 @@ const ICON = {
   tch: '<span class="em" aria-hidden="true">👩‍🏫</span>',
   clock: '<span class="em" aria-hidden="true">⏰</span>',
   bus: '<span class="em" aria-hidden="true">🚌</span>',
-  seat: '<span class="em" aria-hidden="true">🪑</span>'
+  seat: '<span class="em" aria-hidden="true">🪑</span>',
+  next: '<span class="em" aria-hidden="true">🎒</span>'
 };
 const AGE_LAB = ['만 3세', '만 4세', '만 5세', '혼합반', '특수반'];
 // 고른 나이의 반 현황: 연령별 = [[반 수, 정원, 원아] × (만3, 만4, 만5, 혼합, 특수)]
@@ -316,6 +321,22 @@ function seatOf(r) {
   if (!n) return mix[0] ? { age: a + 3, mix: true, n: mix[0], cap: mix[1], kids: mix[2], pct: mix[1] ? Math.round(mix[2] / mix[1] * 100) : null } : { age: a + 3, none: true };
   return { age: a + 3, n, cap, kids, pct: cap ? Math.round(kids / cap * 100) : null };
 }
+// 내년 예상 빈자리: 모집요강의 내년 나이별 정원(재원예정 포함) − 올해 한 살 아래 반 원아(올라올 아이)
+// RCRT.r[id] = [[반 수, 정원] × (만3, 만4, 만5, 혼합)] — scripts/fetch_rcrt.js(브라우저 수집)
+const RCRT = %%RCRT%%;
+function nextOf(r, ai) {
+  const q = RCRT.r[r.id];
+  if (!q) return null;
+  const a = ai ?? +(document.getElementById('age').value || 0);
+  const [n, cap] = q[a];
+  if (!cap) return q[3][1] ? { age: a + 3, mix: true, mixCap: q[3][1] } : { age: a + 3, none: true };
+  if (q[3][1]) return { age: a + 3, n, cap, mixNext: true };  // 내년에 혼합반도 있으면 나이별로 나누기 어려움
+  const up = a === 0 ? 0 : r.연령별 ? r.연령별[a - 1][2] : null;
+  if (up == null) return { age: a + 3, n, cap };
+  const rough = a > 0 && r.연령별 && r.연령별[3][2] > 0;  // 올해 혼합반 아이 일부도 올라옴
+  return { age: a + 3, n, cap, up, v: Math.max(0, cap - up), rough };
+}
+const nextCls = (v) => v == null ? '' : v === 0 ? 'b' : v >= 10 ? 'g' : '';
 const seatCls = (p) => p == null ? '' : p >= 95 ? 'b' : p < 70 ? 'g' : '';
 const seatLab = (p) => p == null ? '' : p >= 95 ? '꽉 참' : p < 70 ? '여유' : `${p}%`;
 
@@ -342,6 +363,9 @@ function badges(r) {
   }
   const st = seatOf(r);
   if (st && !st.none && st.cap) out.push([seatCls(st.pct), ICON.seat + `${st.mix ? '혼합' : '만' + st.age + '세'} ${st.kids}/${st.cap}`, seatLab(st.pct), `${st.mix ? `만 ${st.age}세 반이 따로 없어 혼합반 기준` : `만 ${st.age}세 반 ${st.n}개`} · 다니는 아이/정원`]);
+  const nx = nextOf(r);
+  if (nx && nx.v != null) out.push([nextCls(nx.v), ICON.next + `내년 ${nx.v ? '약 ' + nx.v + '자리' : '자리 없음'}`, '추정', `내년 만 ${nx.age}세 정원 ${nx.cap}명 − 올라올 아이 ${nx.up}명 (${RCRT.aid}학년도 모집요강 기준 추정)`]);
+  else if (nx && nx.none) out.push(['b', ICON.next + `내년 만${nx.age}세 반 없음`, '', `${RCRT.aid}학년도 모집요강 기준`]);
   const cs = headCmp(r, '학급당원아');
   if (cs) out.push([cs.cls, ICON.cls + `반 ${cs.v}명`, cs.lab, `한 반 인원 · 서울 ${r.유형} 평균 ${cs.a}명`]);
   const ts = headCmp(r, '교사1인당원아');
@@ -500,8 +524,17 @@ function describe(r) {
         const p = cap ? Math.round(kids / cap * 100) : null;
         return `<tr><th>${l}</th><td>${n}개</td><td>${cap}명</td><td>${kids}명</td><td class="${seatCls(p)}">${p == null ? '-' : p + '%'}</td></tr>`;
       }).join('')}</table>`;
-      facts.push(['나이별 반', tbl, `올해 만든 반 기준이에요.${r.인가정원 && r.인가정원 !== r.정원 ? ` 교육청 인가 정원은 ${r.인가정원}명인데, 올해는 반을 ${r.정원}명분만 열었어요.` : ''} 내년 모집 인원은 「처음학교로」 모집요강에서 확인하세요.`, '']);
+      facts.push(['나이별 반', tbl, `올해 만든 반 기준이에요.${r.인가정원 && r.인가정원 !== r.정원 ? ` 교육청 인가 정원은 ${r.인가정원}명인데, 올해는 반을 ${r.정원}명분만 열었어요.` : ''}`, '']);
     }
+  }
+  if (RCRT.r[r.id]) {
+    const q = RCRT.r[r.id];
+    const rows = [0, 1, 2].map((a) => ({ a, x: nextOf(r, a) })).filter(({ x }) => x && !x.none && !x.mix);
+    const mixTxt = q[3][1] ? ` 혼합반도 ${q[3][0]}개(정원 ${q[3][1]}명) 열 예정이라 나이별 빈자리는 따로 계산하지 않았어요.` : '';
+    const tbl = rows.length ? `<table class="agetbl"><tr><th></th><th>반</th><th>정원</th><th>올라올 아이</th><th>빈자리</th></tr>${rows.map(({ x }) =>
+      `<tr><th>만 ${x.age}세</th><td>${x.n}개</td><td>${x.cap}명</td><td>${x.up == null ? '-' : x.up + '명'}</td><td class="${nextCls(x.v)}">${x.v == null ? '-' : '약 ' + x.v + '명' + (x.rough ? '*' : '')}</td></tr>`).join('')}</table>` : '';
+    const rough = rows.some(({ x }) => x.rough) ? ' * 올해 혼합반 아이 중 일부도 올라와서 실제보다 많게 나왔을 수 있어요.' : '';
+    facts.push(['내년 예상 빈자리', tbl || `내년엔 나이별 반 없이 혼합반만 열어요.`, `${RCRT.aid}학년도 모집요강의 나이별 정원에서 올해 한 살 아래 반 아이 수를 뺀 추정치예요. 중도 퇴소·형제 우선은 반영하지 않았어요.${mixTxt}${rough} 정확한 모집 인원·우선순위는 <a href="https://enter.childinfo.go.kr" target="_blank" rel="noopener">유보통합포털(유치원입학)</a> 모집요강에서 확인하세요.`, '']);
   }
   const cs = headCmp(r, '학급당원아');
   if (cs) facts.push(['한 반 인원', `평균 <b>${cs.v}명</b>이 한 반이에요.`, cs.txt, cs.cls]);
@@ -573,8 +606,8 @@ const store = {
 const byId = (id) => (String(id)[0] === 'c' ? DROWS : ROWS).find((r) => r.id === id);
 const closeMin = (r) => toMin((r.운영시간 || '').split('~')[1]);
 // 우리 집 조건 (사용자가 직접 설정, 브라우저에 저장)
-const COND_IDS = ['f-close', 'f-cost', 'f-cls', 'f-bus', 'f-eval', 'f-ext', 'f-night', 'f-room'];
-const DC_CHECKS = ['eval', 'ext', 'night', 'room'];
+const COND_IDS = ['f-close', 'f-cost', 'f-cls', 'f-bus', 'f-eval', 'f-ext', 'f-night', 'f-room', 'f-next'];
+const DC_CHECKS = ['eval', 'ext', 'night', 'room', 'next'];
 const condVal = () => ({
   close: document.getElementById('f-close').value, cost: document.getElementById('f-cost').value,
   cls: document.getElementById('f-cls').value, bus: document.getElementById('f-bus').checked,
@@ -582,8 +615,8 @@ const condVal = () => ({
 });
 function condCount() {
   const c = condVal();
-  if (MODE === 'dc') return DC_CHECKS.filter((k) => c[k]).length + (c.bus ? 1 : 0);
-  return [c.close, c.cost, c.cls].filter((v) => v !== '').length + (c.bus ? 1 : 0) + (c.room ? 1 : 0);
+  if (MODE === 'dc') return DC_CHECKS.filter((k) => k !== 'next' && c[k]).length + (c.bus ? 1 : 0);
+  return [c.close, c.cost, c.cls].filter((v) => v !== '').length + (c.bus ? 1 : 0) + (c.room ? 1 : 0) + (c.next ? 1 : 0);
 }
 function passCond(r) {
   const c = condVal();
@@ -600,6 +633,7 @@ function passCond(r) {
   if (c.cls !== '' && !(r.학급당원아 != null && Math.round(r.학급당원아) <= +c.cls)) return false;
   if (c.bus && r.차량운영여부 !== '운영') return false;
   if (c.room) { const st = seatOf(r); if (!st || st.none || !(st.pct < 90)) return false; }
+  if (c.next) { const nx = nextOf(r); if (!nx || !(nx.v > 0)) return false; }
   return true;
 }
 function drawCondHints() {
@@ -791,6 +825,7 @@ function start() {
       ['새 선생님', (r) => r['1년미만비율'] != null ? r['1년미만비율'] + '%' : '-', (r) => r['1년미만비율'] != null ? -r['1년미만비율'] : null],
       ['수업일수', (r) => r.수업일수 ? r.수업일수 + '일' : '-'],
       [`만 ${age}세 반`, (r) => { const st = seatOf(r); return !st ? '-' : st.none ? '반 없음' : `${st.mix ? '혼합 ' : ''}${st.n}개 · ${st.kids}/${st.cap}명<br><small>${st.pct ?? '-'}%</small>`; }, (r) => { const st = seatOf(r); return st && !st.none && st.pct != null ? -st.pct : null; }],
+      [`내년 만 ${age}세 빈자리`, (r) => { const x = nextOf(r); return !x ? '-' : x.none ? '반 없음' : x.mix ? '혼합반만' : x.v == null ? `정원 ${x.cap}명` : `약 ${x.v}명<br><small>정원 ${x.cap} − ${x.up}</small>`; }, (r) => { const x = nextOf(r); return x && x.v != null ? x.v : null; }],
       ['전체 정원', (r) => r.정원 ? `${r.원아수}/${r.정원}명<br><small>${r.충원율}%</small>` : '-', (r) => r.충원율 != null ? -r.충원율 : null]
     ];
     const head = `<tr><th></th>${v.map((r) => `<th><a href="#k${esc(r.id)}" style="color:inherit">${esc(r.유치원명)}</a><button class="x" type="button" data-rm="${esc(r.id)}">빼기</button></th>`).join('')}</tr>`;
@@ -872,6 +907,21 @@ function start() {
     S.lat = e.latLng.getLat(); S.lng = e.latLng.getLng();
     $('gu').value = '';
     render(false);
+    syncResearch();
+  });
+  // 지도를 옮겨 기준 위치(원 중심)에서 멀어지면 '이 지역에서 다시 찾기' 버튼을 띄운다
+  function syncResearch() {
+    const c = map.getCenter();
+    const far = km(S.lat, S.lng, c.getLat(), c.getLng()) > Math.max(0.3, +$('r').value * 0.4);
+    $('research').hidden = !far;
+  }
+  kakao.maps.event.addListener(map, 'idle', syncResearch);
+  $('research').addEventListener('click', () => {
+    const c = map.getCenter();
+    S.lat = c.getLat(); S.lng = c.getLng();
+    $('gu').value = '';
+    render(false);
+    $('research').hidden = true;
   });
   $('gu').addEventListener('change', () => { if (!$('gu').value) return; Object.assign(S, guCenter($('gu').value)); render(true); });
   $('r').addEventListener('change', () => render(true));
