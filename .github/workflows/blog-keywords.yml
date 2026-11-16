@@ -1,0 +1,37 @@
+name: 블로그 키워드 수집 (프로토타입)
+
+# 수동 실행만. 결과는 커밋하지 않고 실행 화면 요약 + 첨부 파일(Artifacts)로만 남긴다.
+on:
+  workflow_dispatch:
+    inputs:
+      gu:
+        description: '구 이름'
+        default: '성북구'
+
+permissions:
+  contents: read
+
+jobs:
+  blog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: 네이버 블로그 검색 API로 수집·태깅
+        env:
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+        run: python3 scripts/fetch_blog.py --gu "${{ inputs.gu }}" --raw raw
+      - name: 점검표를 실행 화면에 표시
+        run: cat blog_report.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blog-keywords
+          path: |
+            src/data/kg_blog.json
+            blog_report.md
+            raw/
+          retention-days: 14
