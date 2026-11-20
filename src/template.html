@@ -197,7 +197,7 @@
       <details class="cond" id="cond"><summary>⚙️ 우리 집 조건 <small id="cond-n">설정 안 함</small></summary>
         <div class="cond-grid">
           <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-eval"> ⭐ 평가 받은 곳만</label></div>
-          <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-ext"> 🌙 연장보육반(19:30 이후) 있는 곳만</label><small>성북구 어린이집 기본 운영은 대부분 07:30~19:30이에요.</small></div>
+          <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-ext"> 🌙 연장보육반(19:30 이후) 있는 곳만</label><small>어린이집 기본 운영은 대부분 07:30~19:30이에요.</small></div>
           <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-night"> 🌃 야간연장형(밤늦게까지) 만</label></div>
           <div class="cond-row"><label class="line"><input type="checkbox" id="f-room"> 🪑 자리 여유 있는 곳만 (정원의 90% 미만)</label><small class="dc-only">정원 대비 현원 기준이에요.</small><small class="kg-only">고른 나이 반(없으면 혼합반) 기준이에요.</small></div>
           <div class="cond-row dc-only"><div class="line">⏳ 입소 대기 <select id="f-wait" aria-label="입소 대기 상한">
@@ -229,7 +229,7 @@
       <div class="icons kg-only"><span>💰 월 비용</span><span>🧒 원아 수</span><span>🏫 한 반 인원</span><span>👩‍🏫 선생님 1명 : 아이</span><span>⏰ 운영시간</span><span>🚌 통학차량</span></div>
       <div class="icons dc-only"><span>⭐ 평가</span><span>🌙 연장보육반</span><span>🧒 현원/정원</span><span>👩‍🏫 선생님 1명 : 아이</span><span>📹 CCTV</span><span>🚌 통학차량</span></div>
       <div class="legend kg-only">지도를 누르면 그곳이 기준 위치가 됩니다. 출처: 유치원알리미 2026년 정보공시</div>
-      <div class="legend dc-only">지도를 누르면 그곳이 기준 위치가 됩니다. 어린이집은 현재 성북구만 있어요. 출처: 어린이집정보공개포털·공공데이터포털</div>
+      <div class="legend dc-only">지도를 누르면 그곳이 기준 위치가 됩니다. 서울 25개 구 어린이집. 출처: 어린이집정보공개포털·공공데이터포털</div>
     </header>
     <div class="list" id="list"></div>
   </aside>
@@ -350,7 +350,7 @@ const seatLab = (p) => p == null ? '' : p >= 95 ? '꽉 참' : p < 70 ? '여유' 
 
 function headCmp(r, k) {
   if (r[k] == null) return null;
-  const A = isDC(r) ? DAVG : AVG, where = isDC(r) ? '성북구' : '서울';
+  const A = isDC(r) ? DAVG : AVG, where = '서울';
   const v = Math.round(r[k]), a = Math.round(A[r.유형][k].m), d = v - a;
   if (k === '교사1인당원아' && r.데이터주의) return { v, a, d, cls: '', lab: '확인 필요', txt: '공시된 교사 수가 학급 수보다 적어 실제보다 많게 나왔을 수 있어요.' };
   const cls = d <= -1 ? 'g' : d >= 1 ? 'b' : '';
@@ -429,30 +429,38 @@ const busBadge = (r) => r.차량운영여부 === '운영'
   ? `<span class="badge bus-on">${ICON.bus}차량</span>`
   : r.차량운영여부 === '미운영' ? `<span class="badge bus-off">${ICON.bus}없음</span>` : '';
 
-// ---------- 어린이집 (성북구) ----------
-// 출처: 공공데이터포털 어린이집 기본정보 + 어린이집정보공개포털(평가·연장보육·근속). 입소 대기 인원은 비공개.
-const DC = %%DC%%;
-const DROWS = DC.rows.map((v) => Object.fromEntries(DC.cols.map((c, i) => [c, v[i]])));
+// ---------- 어린이집 (서울 25개 구) ----------
+// 출처: 어린이집정보공개포털 OPEN API(기본·나이별 반·입소 대기) + 포털 화면(운영시간·평가·연장보육).
+// 크기가 커서(약 1.4MB) index.html에 넣지 않고 dc.json을 어린이집 모드에 들어갈 때만 불러온다(src/build.py가 만든다).
+const DC_URL = '%%DC_URL%%';
+let DROWS = [];
+let dcLoad = null;
+const loadDC = () => dcLoad || (dcLoad = fetch(DC_URL).then((r) => { if (!r.ok) throw new Error('dc.json ' + r.status); return r.json(); })
+  .then(initDC).catch((e) => { dcLoad = null; throw e; }));
 const isDC = (r) => String(r.id)[0] === 'c';
 const DC_TYPES = ['국공립', '민간', '가정', '직장·법인'];
 const DC_COLOR = { 국공립: 'var(--pub)', 민간: 'var(--pri)', 가정: '#e08a00', '직장·법인': '#8a5cc2' };
 const DAVG = {};
-DC_TYPES.forEach((t) => {
-  DAVG[t] = {};
-  ['교사1인당원아', '4년이상비율', '1년미만비율', '원아수'].forEach((k) => {
-    const v = DROWS.filter((r) => r.유형 === t && r[k] != null).map((r) => +r[k]);
-    const m = v.reduce((a, b) => a + b, 0) / v.length;
-    DAVG[t][k] = { m, sd: Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / Math.max(1, v.length - 1)) };
+let WAIT_P75 = [], WAIT_MED = null;
+function initDC(DC) {
+  DROWS = DC.rows.map((v) => Object.fromEntries(DC.cols.map((c, i) => [c, v[i]])));
+  DC_TYPES.forEach((t) => {
+    DAVG[t] = {};
+    ['교사1인당원아', '4년이상비율', '1년미만비율', '원아수'].forEach((k) => {
+      const v = DROWS.filter((r) => r.유형 === t && r[k] != null).map((r) => +r[k]);
+      const m = v.reduce((a, b) => a + b, 0) / v.length;
+      DAVG[t][k] = { m, sd: Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / Math.max(1, v.length - 1)) };
+    });
   });
-});
+  const w = DROWS.filter((r) => r.대기);
+  WAIT_P75 = WAIT_LAB.map((_, i) => { const v = w.map((r) => r.대기[i]).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length * 0.75)] : null; });
+  const tot = w.map((r) => r.대기[7]).sort((a, b) => a - b);
+  WAIT_MED = tot.length ? tot[Math.floor(tot.length / 2)] : null;
+}
 Object.assign(ICON, { star: '<span class="em" aria-hidden="true">⭐</span>', moon: '<span class="em" aria-hidden="true">🌙</span>', cam: '<span class="em" aria-hidden="true">📹</span>', wait: '<span class="em" aria-hidden="true">⏳</span>' });
 const ymTxt = (s) => s ? `${s.slice(2, 4)}.${s.slice(5, 7)}` : '';
 // 입소 대기 아동 수: 대기 = [만0~5세, 6세 이상, 총계] (API ew_cnt). 한 아이가 여러 곳에 신청하므로 '내 순번'이 아니라 '신청 수'.
 const WAIT_LAB = ['만 0세', '만 1세', '만 2세', '만 3세', '만 4세', '만 5세', '6세 이상', '전체'];
-const WAIT_P75 = WAIT_LAB.map((_, i) => {
-  const v = DROWS.filter((r) => r.대기).map((r) => r.대기[i]).sort((a, b) => a - b);
-  return v.length ? v[Math.floor(v.length * 0.75)] : null;
-});
 function waitOf(r) {
   if (!r.대기) return null;
   const sel = document.getElementById('dcage').value;
@@ -473,12 +481,12 @@ function dcBadges(r) {
   const e = dcEval(r);
   if (e) out.push([e.cls, ICON.star + '평가', e.lab, '어린이집 평가제 결과']);
   const w = waitOf(r);
-  if (w) out.push([w.cls, ICON.wait + `${w.who ? w.who.replace('만 ', '') + ' ' : ''}대기 ${w.v}명`, w.lab, `입소 대기 신청 아동 수${w.who ? ` (${w.who})` : ' (전체 나이)'} · 성북구 상위 25%는 ${WAIT_P75[w.i]}명 이상 · 중복 신청 포함`]);
+  if (w) out.push([w.cls, ICON.wait + `${w.who ? w.who.replace('만 ', '') + ' ' : ''}대기 ${w.v}명`, w.lab, `입소 대기 신청 아동 수${w.who ? ` (${w.who})` : ' (전체 나이)'} · 서울 상위 25%는 ${WAIT_P75[w.i]}명 이상 · 중복 신청 포함`]);
   if (r.연장반 != null) out.push(r.연장반 > 0 ? ['g', ICON.moon + `연장반 ${r.연장반}개`, `${r.연장아동}명`, '19:30 이후 연장보육반 · 이용 아동 수'] : ['b', ICON.moon + '연장반', '없음', '연장보육반']);
   const f = r.충원율;
   out.push([f >= 95 ? 'b' : f < 70 ? 'g' : '', ICON.kids + `${r.원아수}/${r.정원}명`, f >= 95 ? '꽉 참' : f < 70 ? '여유' : `${f}%`, '현원/정원 · 꽉 찬 곳은 대기가 있을 가능성이 높아요']);
   const ts = headCmp(r, '교사1인당원아');
-  if (ts) out.push([ts.cls, ICON.tch + `1:${ts.v}`, ts.lab, `선생님 1명당 아이 · 성북구 ${r.유형} 평균 ${ts.a}명`]);
+  if (ts) out.push([ts.cls, ICON.tch + `1:${ts.v}`, ts.lab, `선생님 1명당 아이 · 서울 ${r.유형} 평균 ${ts.a}명`]);
   if (r.CCTV != null) out.push([r.CCTV ? '' : 'b', ICON.cam + (r.CCTV ? `${r.CCTV}대` : '없음'), '', 'CCTV']);
   return out;
 }
@@ -509,7 +517,7 @@ function dcDescribe(r) {
     if (w && w.cls === 'b') tags.push(['b', '대기가 많아요']); else if (tot === 0) tags.push(['g', '입소 대기 없음']);
     const by = r.대기.slice(0, 7).map((v, i) => [WAIT_LAB[i], v]).filter(([, v]) => v > 0).map(([l, v]) => `${l} ${v}명`).join(' · ');
     facts.push(['입소 대기', tot ? `<b>${tot}명</b>이 입소를 기다리고 있어요.${by ? `<br><small>${by}</small>` : ''}` : '지금 입소를 기다리는 아이가 <b>없어요.</b>',
-      `한 아이가 여러 어린이집에 신청할 수 있어서 실제 경쟁보다 많게 보여요. 나이는 아이의 지금 나이라, 만 0세 대기에는 미리 신청해 둔 경우가 많아요. 성북구 전체 대기 중앙값은 ${Math.round(DROWS.filter((x) => x.대기).map((x) => x.대기[7]).sort((a, b) => a - b)[Math.floor(DROWS.filter((x) => x.대기).length / 2)])}명이에요.`, w ? w.cls : '']);
+      `한 아이가 여러 어린이집에 신청할 수 있어서 실제 경쟁보다 많게 보여요. 나이는 아이의 지금 나이라, 만 0세 대기에는 미리 신청해 둔 경우가 많아요. 서울 어린이집 전체 대기 중앙값은 ${WAIT_MED}명이에요.`, w ? w.cls : '']);
   }
   if (r.연령별) {
     const rows = r.연령별.map(([n, kids], i) => ({ l: DC_AGE_LAB[i], n, kids, max: DC_AGE_MAX[i], i })).filter((x) => x.n > 0 || x.kids > 0);
@@ -528,14 +536,14 @@ function dcDescribe(r) {
   if (r['4년이상비율'] != null) {
     const z = dz('4년이상비율'), c = z >= 1 ? 'g' : z <= -1 ? 'b' : '';
     if (c === 'g') tags.push(['g', '오래 근무한 선생님이 많아요']);
-    facts.push(['선생님 근속', `선생님 <b>${r['4년이상비율']}%</b>가 이 어린이집에서 4년 넘게 일했어요.`, `성북구 ${r.유형} 평균은 ${Math.round(DAVG[r.유형]['4년이상비율'].m)}%예요.`, c]);
+    facts.push(['선생님 근속', `선생님 <b>${r['4년이상비율']}%</b>가 이 어린이집에서 4년 넘게 일했어요.`, `서울 ${r.유형} 평균은 ${Math.round(DAVG[r.유형]['4년이상비율'].m)}%예요.`, c]);
   }
   if (r['1년미만비율'] != null) {
     const z = dz('1년미만비율'), c = z >= 1 ? 'b' : z <= -1 ? 'g' : '';
     if (c === 'b') tags.push(['b', '새로 온 선생님이 많아요']);
-    facts.push(['새 선생님', `선생님 <b>${r['1년미만비율']}%</b>가 근무 1년이 안 됐어요.`, `담임이 자주 바뀌는지 가늠하는 지표예요. 성북구 ${r.유형} 평균은 ${Math.round(DAVG[r.유형]['1년미만비율'].m)}%예요.`, c]);
+    facts.push(['새 선생님', `선생님 <b>${r['1년미만비율']}%</b>가 근무 1년이 안 됐어요.`, `담임이 자주 바뀌는지 가늠하는 지표예요. 서울 ${r.유형} 평균은 ${Math.round(DAVG[r.유형]['1년미만비율'].m)}%예요.`, c]);
   }
-  facts.push(['운영 시간', `<b>${esc(r.운영시간)}</b>`, '성북구 어린이집은 대부분 07:30~19:30 기본 운영이에요.', '']);
+  facts.push(['운영 시간', r.운영시간 ? `<b>${esc(r.운영시간)}</b>` : '정보 없음', '서울 어린이집은 대부분 07:30~19:30 기본 운영이에요.', '']);
   facts.push(['시설', `보육실 <b>${r.보육실}개</b> · 놀이터 <b>${r.놀이터 ? r.놀이터 + '곳' : '없음'}</b> · CCTV <b>${r.CCTV ?? '-'}대</b>`, r.놀이터 ? '' : '바깥 놀이는 근처 공원을 이용하는지 물어보세요.', r.CCTV === 0 ? 'b' : '']);
   facts.push(['통학 차량', r.차량운영여부 === '운영' ? '<b>운영해요.</b> 노선은 어린이집에 확인하세요.' : '<b>운영하지 않아요.</b> 직접 등하원해야 해요.', '', '']);
   facts.push(['연락처', `${esc(r.주소)}${r.전화 ? `<br><a href="tel:${esc(r.전화)}"><b>${esc(r.전화)}</b></a>` : ''}`, '', '']);
@@ -712,7 +720,10 @@ function guCenter(gu) {
   return { lat: rs.reduce((a, r) => a + r.위도, 0) / rs.length, lng: rs.reduce((a, r) => a + r.경도, 0) / rs.length };
 }
 
-function start() {
+async function start() {
+  if (MODE === 'dc' || location.hash.startsWith('#kc')) {
+    try { await loadDC(); } catch (e) { MODE = 'kg'; }
+  }
   const fillSelects = () => {
     const gus = [...new Set(cur().map((r) => r.구))].sort((a, b) => a.localeCompare(b, 'ko'));
     const g = $('gu').value;
@@ -752,8 +763,10 @@ function start() {
   kakao.maps.event.addListener(map, 'zoom_changed', syncLabels);
   syncLabels();
   window.kgMap = map;  // 시험용
+  // 서울 어린이집까지 4천 곳이 넘어서, 마커는 기준 위치 근처(반경×2+1km)만 필요할 때 만들어 지도에 올린다.
   const marks = new Map(), ovs = new Map();
-  [...ROWS, ...DROWS].forEach((r) => {
+  function markOf(r) {
+    if (marks.has(r.id)) return marks.get(r.id);
     const el = document.createElement('div');
     el.className = 'kmark';
     el.style.background = isDC(r) ? DC_COLOR[r.유형] : r.유형 === '국공립' ? 'var(--pub)' : 'var(--pri)';
@@ -770,10 +783,10 @@ function start() {
     });
     el.addEventListener('mouseleave', () => tip.setMap(null));
     const ov = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(r.위도, r.경도), content: el, yAnchor: 0.5, clickable: true });
-    ov.setMap(map);
     marks.set(r.id, el);
     ovs.set(r.id, ov);
-  });
+    return el;
+  }
 
   function select(id, scroll) {
     S.sel = id;
@@ -789,14 +802,18 @@ function start() {
     circle.setPosition(pos); circle.setRadius(r * 1000); center.setPosition(pos);
     if (fit) map.setBounds(circle.getBounds());
 
-    const near = cur().map((x) => ({ x, d: km(S.lat, S.lng, x.위도, x.경도) })).filter((o) => o.d <= r);
-    const nearM = new Map(near.map((o) => [o.x.id, o]));
+    const all = cur().map((x) => ({ x, d: km(S.lat, S.lng, x.위도, x.경도) }));
+    const near = all.filter((o) => o.d <= r);
     const dcMode = MODE === 'dc';
-    marks.forEach((el, id) => {
-      el.classList.toggle('hide', (id[0] === 'c') !== dcMode);
-      const o = nearM.get(id);
-      el.classList.toggle('out', !o || (t && o.x.유형 !== t));
+    const vis = new Set();
+    all.forEach((o) => {
+      if (o.d > r * 2 + 1) return;
+      vis.add(o.x.id);
+      const el = markOf(o.x), ov = ovs.get(o.x.id);
+      el.classList.toggle('out', o.d > r || (t && o.x.유형 !== t));
+      if (!ov.getMap()) ov.setMap(map);
     });
+    ovs.forEach((ov, id) => { if (!vis.has(id) && ov.getMap()) ov.setMap(null); });
     const ok = passCond, nc = condCount();
     const shown = near.filter((o) => (!t || o.x.유형 === t) && ok(o.x)).sort((a, b) => a.d - b.d);
     if (nc) near.forEach((o) => { if (!ok(o.x)) marks.get(o.x.id).classList.add('out'); });
@@ -812,7 +829,7 @@ function start() {
         <div class="badges">${badges(x).map(([c, t, lab, tip]) => `<span class="badge ${c}"${tip ? ` title="${tip}"` : ''}>${t}${lab ? ` <small>${lab}</small>` : ''}</span>`).join('')}${busBadge(x)}</div>
         ${(() => { const dsc = describe(x); return `${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
         <div class="more">자세히 보기 ›</div>`; })()}
-      </div>`).join('') || `<div class="item meta">반경 안에 ${NOUN()}이 없습니다. ${MODE === 'dc' ? '어린이집은 아직 성북구만 있어요. 성북구 쪽으로 옮기거나 ' : ''}반경을 넓혀 보세요.</div>`;
+      </div>`).join('') || `<div class="item meta">반경 안에 ${NOUN()}이 없습니다. ${MODE === 'dc' ? '어린이집은 서울만 있어요. ' : ''}반경을 넓혀 보세요.</div>`;
     document.querySelectorAll('.item[data-id]').forEach((it) => {
       it.addEventListener('click', (e) => {
         const h = e.target.closest('[data-heart]');
@@ -926,12 +943,13 @@ function start() {
   }
   function route() {
     const h = location.hash.slice(1);
+    if (h.startsWith('kc') && !DROWS.length) { loadDC().then(route, () => {}); return; }
     $('detail').hidden = true; $('cmp').hidden = true;
     document.title = `우리 동네 ${NOUN()} 지도`;
     if (h === 'compare') openCompare();
     else if (h.startsWith('k') && byId(h.slice(1))) {
       const r = byId(h.slice(1));
-      if ((isDC(r) ? 'dc' : 'kg') !== MODE) setMode(isDC(r) ? 'dc' : 'kg', true);
+      if ((isDC(r) ? 'dc' : 'kg') !== MODE) { setMode(isDC(r) ? 'dc' : 'kg', true).then(() => route()); return; }
       if (!S.routed) { S.lat = r.위도; S.lng = r.경도; $('gu').value = r.구; S.routed = true; render(true); }
       openDetail(r.id, true);
     }
@@ -943,14 +961,16 @@ function start() {
   window.addEventListener('hashchange', () => { S.navIn = true; });
   COND_IDS.forEach((id) => $(id).addEventListener('change', () => { saveCond(); render(false); }));
   $('f-reset').addEventListener('click', () => { $('f-close').value = ''; $('f-cost').value = ''; $('f-cls').value = ''; $('f-wait').value = ''; $('f-bus').checked = false; DC_CHECKS.forEach((k) => { $('f-' + k).checked = false; }); saveCond(); render(false); });
-  function setMode(m, quiet) {
+  async function setMode(m, quiet) {
     if (m === MODE) return;
+    if (m === 'dc' && !DROWS.length) {
+      $('summary').textContent = '어린이집 정보를 불러오는 중…';
+      try { await loadDC(); } catch (e) { $('summary').textContent = '어린이집 정보를 불러오지 못했어요. 잠시 뒤 다시 눌러 주세요.'; return; }
+    }
     MODE = m;
     try { localStorage.setItem('kg-mode', m); } catch (e) {}
     S.sel = null;
     fillSelects();
-    // 어린이집은 성북구만 있으므로, 기준 위치가 다른 구면 성북구로 옮긴다
-    if (m === 'dc' && $('gu').value !== '성북구' && !DROWS.some((x) => km(S.lat, S.lng, x.위도, x.경도) <= 5)) { $('gu').value = '성북구'; Object.assign(S, guCenter('성북구')); }
     if (!quiet && location.hash) location.hash = '';
     render(true);
   }
