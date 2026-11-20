@@ -18,6 +18,10 @@ DATA = os.path.join(ROOT, 'src', 'data', 'dc_seongbuk.json')
 URL = 'http://api.childcare.go.kr/mediate/rest/cpmsapi030/cpmsapi030/request'
 DISTRICTS = {'11290': '성북구'}  # 서울 25개 구로 넓힐 때 여기에 추가
 KEEP = ['운영시간', '평가완료', '평가연월', '평가', '연장반', '연장아동']  # API에 없는 항목
+# 나이별 반(cpmsapi030 명세서 v1.7): class_cnt_*/child_cnt_* — 만0~5세, 영아혼합(0~2), 영유아혼합(2~3), 유아혼합(3~5), 특수
+AGES = ['00', '01', '02', '03', '04', '05', 'M2', 'M3', 'M5', 'SP']
+WAIT = ['00', '01', '02', '03', '04', '05', 'M6', 'TOT']  # ew_cnt_* 입소대기아동수(명세서엔 있음, 실제 값이 오는지 확인용으로 저장)
+NEW_COLS = ['연령별', '대기']
 TYPE = {'국공립': '국공립', '민간': '민간', '가정': '가정'}  # 나머지(직장·법인단체·사회복지법인·협동)는 '직장·법인'
 
 
@@ -49,8 +53,17 @@ def num(x):
         return 0.0
 
 
+def get(a, k):  # 응답 태그 대소문자가 섞여 있어(crcapat, EM_CNT_0Y) 둘 다 본다
+    v = a.get(k)
+    if v in (None, ''):
+        v = a.get(k.upper()) if a.get(k.upper()) not in (None, '') else a.get(k.lower())
+    return v
+
+
 def convert(a, gu):
-    em = lambda k: int(num(a.get('EM_CNT_' + k)))
+    em = lambda k: int(num(get(a, 'EM_CNT_' + k)))
+    by_age = [[int(num(get(a, 'CLASS_CNT_' + x))), int(num(get(a, 'CHILD_CNT_' + x)))] for x in AGES]
+    wait = [get(a, 'EW_CNT_' + x) for x in WAIT]
     ty = TYPE.get(a.get('crtypename'), '직장·법인')
     teachers = em('A2') + em('A3') + (em('A1') if ty == '가정' else 0)
     kids, cap = int(num(a.get('crchcnt'))), int(num(a.get('crcapat')))
@@ -77,6 +90,8 @@ def convert(a, gu):
         '특성': '|'.join(spec),
         '주소': a.get('craddr', ''),
         '전화': a.get('crtelno', ''),
+        '연령별': by_age if any(c or k for c, k in by_age) else None,  # [[반 수, 아동 수] × AGES]
+        '대기': [int(num(x)) for x in wait] if any(x not in (None, '') for x in wait) else None,
     }
 
 
@@ -100,7 +115,7 @@ def main():
            if a.get('crstatusname') not in ('휴지', '폐지') and not a.get('crabldt') and num(a.get('la'))]
 
     old = json.load(open(DATA, encoding='utf-8'))
-    cols = old['cols']
+    cols = old['cols'] + [c for c in NEW_COLS if c not in old['cols']]
     old_rows = [dict(zip(cols, r)) for r in old['rows']]
     by_id = {r['id']: r for r in old_rows}
     by_name = {(r['구'], r['유치원명']): r for r in old_rows}
