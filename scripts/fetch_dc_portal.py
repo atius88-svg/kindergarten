@@ -4,7 +4,7 @@
   요약   /info_html5/pnis/search/preview/SummaryInfoSlPu.jsp?flag=YJ&STCODE_POP={stcode}   → 운영시간(평일기준시간)
   평가   .../AppraisaAuthenticationGradeSlPu.jsp?flag=PI&STCODE_POP={stcode}             → 평가 상태·평가년월, 결과서 id
   총평   /info_html5/cera/search/totalGradeComment.jsp?flag=commnetGrade&childHouseId={id} → '모든 영역 충족'=A, '대부분'=B
-         (goTotalComment 넷째 인자가 '01'이면 totalGradeCommentEvl2nd.jsp ... &evlIdxTy=01)
+         (goTotalComment 넷째 인자가 '01'인 2주기 평가는 totalGradeCommentEvl2nd.jsp — 영역별 서술만 있고 총평 등급이 없어 평가=None)
   연장   .../EtntctClassAdditionSlPu.jsp?flag=EN&STCODE_POP={stcode}                     → 연장보육반 수·이용 아동 합
 
 사용법 (저장소 루트에서):
@@ -56,9 +56,9 @@ def parse_eval(page):
     link = None
     if m:
         v, s, c, e = m.groups()
-        if not (s in ('3', '4', '5', '9') or c == 'Y'):
-            link = (f'{HOST}/info_html5/cera/search/totalGradeCommentEvl2nd.jsp?flag=commnetGrade&childHouseId={v}&evlIdxTy={e}'
-                    if e == '01' else f'{HOST}/info_html5/cera/search/totalGradeComment.jsp?flag=commnetGrade&childHouseId={v}')
+        # 2주기 평가(e='01', 2025년~)는 결과서에 총평 등급 문구가 없어 받지 않는다(완료·연월만)
+        if not (s in ('3', '4', '5', '9') or c == 'Y') and e != '01':
+            link = f'{HOST}/info_html5/cera/search/totalGradeComment.jsp?flag=commnetGrade&childHouseId={v}'
     done = 1 if '평가완료' in st else 0
     return {'평가완료': done, '평가연월': ym if re.match(r'\d{4}-\d{2}$', ym) else None, '_상태': st or None}, link
 
