@@ -16,6 +16,8 @@ import csv, datetime, io, json, os, sys, time, urllib.parse, urllib.request
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 DATA = os.path.join(ROOT, 'src', 'data', 'kg_seoul.json.txt')
 IDS = os.path.join(ROOT, 'src', 'data', 'kg_ids.json')
+# API에 없는 곳(휴원·공시 전·API 누락) — 손으로 확인해 넣은 행. API에 나타나면 API가 이긴다.
+EXTRA = os.path.join(ROOT, 'src', 'data', 'kg_extra.json')
 BASE = 'https://e-childschoolinfo.moe.go.kr/api/notice/'
 APIS = ['basicInfo2', 'teachersInfo', 'yearOfWork', 'lessonDay', 'schoolBus']
 SEOUL = {
@@ -186,14 +188,15 @@ def main():
         sys.exit(f'받은 유치원이 {len(new)}곳뿐이라 갱신하지 않습니다(최소 {min_rows}).')
 
     old = json.load(open(DATA, encoding='utf-8'))
-    cols = old['cols'] + [c for c in ('정원', '인가정원', '연령별') if c not in old['cols']]
+    cols = old['cols'] + [c for c in ('정원', '인가정원', '연령별', '상태') if c not in old['cols']]
+    extra = json.load(open(EXTRA, encoding='utf-8'))['rows'] if os.path.exists(EXTRA) else []
     old_rows = [dict(zip(cols, r)) for r in old['rows']]
     by_name = {}
     for r in old_rows:
         by_name.setdefault((r['구'], r['유치원명']), []).append(r)
     ids = json.load(open(IDS, encoding='utf-8')) if os.path.exists(IDS) else {}
     by_id = {r['id']: r for r in old_rows}
-    next_id = max([r['id'] for r in old_rows] + list(ids.values()) + [-1]) + 1
+    next_id = max([r['id'] for r in old_rows] + list(ids.values()) + [e['id'] for e in extra] + [-1]) + 1
     used = set()
 
     rows = []
@@ -215,6 +218,22 @@ def main():
         p = aft.get((n['구'], n['유치원명']))
         n['방과후참여율'] = float(round(p / n['원아수'] * 100)) if p is not None and n['원아수'] else (prev or {}).get('방과후참여율')
         rows.append(n)
+
+    have_code = {n['kindercode'] for n in rows}
+    have_name = {(n['구'], n['유치원명']) for n in rows}
+    have_id = {n['id'] for n in rows}
+    for e in extra:
+        if e.get('kindercode') in have_code or (e['구'], e['유치원명']) in have_name:
+            print('API에 생겨서 kg_extra.json 행은 무시:', e['유치원명'])
+            continue
+        if e['id'] in have_id:
+            print('kg_extra.json id가 겹쳐 무시:', e['id'], e['유치원명'])
+            continue
+        n = {k: v for k, v in e.items() if not k.startswith('_')}
+        if e.get('kindercode') and not e.get('상태'):  # 운영 중인 곳만 원비 수집 대상(fetch_cost.py)
+            ids[e['kindercode']] = e['id']
+        rows.append(n)
+    print(f'kg_extra.json에서 {len(rows) - len(new)}곳 추가')
 
     rows.sort(key=lambda r: r['id'])
     if args[:1] == ['--fixtures']:

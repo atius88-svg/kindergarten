@@ -331,11 +331,13 @@ function nextOf(r, ai) {
   const [n, cap] = q[a];
   if (!cap) return q[3][1] ? { age: a + 3, mix: true, mixCap: q[3][1] } : { age: a + 3, none: true };
   if (q[3][1]) return { age: a + 3, n, cap, mixNext: true };  // 내년에 혼합반도 있으면 나이별로 나누기 어려움
-  const up = a === 0 ? 0 : r.연령별 ? r.연령별[a - 1][2] : null;
+  const up = a === 0 || r.상태 ? 0 : r.연령별 ? r.연령별[a - 1][2] : null;
   if (up == null) return { age: a + 3, n, cap };
   const rough = a > 0 && r.연령별 && r.연령별[3][2] > 0;  // 올해 혼합반 아이 일부도 올라옴
   return { age: a + 3, n, cap, up, v: Math.max(0, cap - up), rough };
 }
+// 상태: 휴원·공시 전(src/data/kg_extra.json) — 올해 다니는 아이가 없어 공시 숫자 없이 내년 모집 정보만 보여 준다
+const STATE_TXT = { 휴원: '지금은 휴원 중이에요', '공시 전': '아직 유치원알리미 공시가 없어요' };
 const nextCls = (v) => v == null ? '' : v === 0 ? 'b' : v >= 10 ? 'g' : '';
 const seatCls = (p) => p == null ? '' : p >= 95 ? 'b' : p < 70 ? 'g' : '';
 const seatLab = (p) => p == null ? '' : p >= 95 ? '꽉 참' : p < 70 ? '여유' : `${p}%`;
@@ -353,6 +355,7 @@ function headCmp(r, k) {
 function badges(r) {
   if (isDC(r)) return dcBadges(r);
   const out = [];
+  if (r.상태) out.push(['n', r.상태 === '휴원' ? '지금 휴원' : '공시 전', RCRT.r[r.id] ? `${RCRT.aid}학년도 모집` : '', `${STATE_TXT[r.상태] || ''}. ${RCRT.aid}학년도 원아를 모집해요.`]);
   const cc = costCmp(r);
   if (cc) out.push([cc.cls, ICON.won + (cc.none ? '' : cc.total === 0 ? '0원' : won(cc.total)), cc.lab, cc.avg != null ? `월 비용 · ${r.구} ${r.유형} 평균 월 ${won(Math.round(cc.avg))}` : '월 비용']);
   if (r.원아수 != null) {
@@ -504,14 +507,19 @@ function describe(r) {
   const tags = [], facts = [];
   const g = (k, dir) => grade(r, k, dir);
   const pub = r.유형 === '국공립';
+  if (r.상태) {
+    tags.push(['n', r.상태 === '휴원' ? '지금 휴원 중' : '공시 전']);
+    facts.push(['지금 상태', `<b>${STATE_TXT[r.상태] || esc(r.상태)}.</b> ${RCRT.r[r.id] ? `${RCRT.aid}학년도 원아를 모집해요.` : ''}`,
+      '올해 다니는 아이가 없어 원아 수·선생님·비용 같은 공시 정보는 없어요. 공립이라 원비 부담은 적은 편이에요. 반 운영·비용은 유치원에 직접 확인하세요.', 'n']);
+  }
   const cc = costCmp(r);
   if (cc && !cc.none) {
     facts.push([`한 달 비용<br>(만 ${cc.age}세)`, cc.total === 0 ? '교육비·방과후비 모두 <b>0원</b>이에요.' : `교육비 <b>${won(cc.edu)}</b> + 방과후 <b>${won(cc.aft)}</b> = 월 <b>${won(cc.total)}</b>`,
       `${r.구} ${r.유형} 평균은 월 ${won(Math.round(cc.avg || 0))}이에요. 정부 지원금을 뺀 학부모 부담 고지액(${COST_BASIS} 공시)이고, 특성화 활동·차량·현장학습 같은 선택 비용은 빠져 있어요.`, cc.cls]);
   } else if (cc && cc.none) {
     facts.push(['한 달 비용', `만 ${cc.age}세 반이 없어요.`, '', '']);
-  } else {
-    facts.push(['한 달 비용', '아직 비용 정보가 없는 지역이에요.', '', '']);
+  } else if (!r.상태) {
+    facts.push(['한 달 비용', '아직 비용 정보가 없어요.', '', '']);
   }
 
   if (r.원아수 != null) {
@@ -712,7 +720,7 @@ function start() {
     el.appendChild(lab);
     el.addEventListener('click', (e) => { e.stopPropagation(); select(r.id, true); });
     el.addEventListener('mouseenter', () => {
-      tip.setContent(`<div class="tip"><b>${esc(r.유치원명)}</b> · ${esc(r.설립유형)}<br>${isDC(r) ? `현원 ${r.원아수}/${r.정원}명` : `원아 ${r.원아수}/${r.정원 ?? '-'}명 · ${r.충원율 ?? '-'}%`}</div>`);
+      tip.setContent(`<div class="tip"><b>${esc(r.유치원명)}</b> · ${esc(r.설립유형)}<br>${isDC(r) ? `현원 ${r.원아수}/${r.정원}명` : r.상태 ? `${esc(r.상태)} · ${RCRT.aid}학년도 모집` : `원아 ${r.원아수}/${r.정원 ?? '-'}명 · ${r.충원율 ?? '-'}%`}</div>`);
       tip.setPosition(new kakao.maps.LatLng(r.위도, r.경도));
       tip.setMap(map);
     });
@@ -820,7 +828,7 @@ function start() {
       ['선생님:아이', (r) => r.교사1인당원아 != null ? '1:' + Math.round(r.교사1인당원아) + (r.데이터주의 ? '*' : '') : '-', (r) => r.교사1인당원아 != null && !r.데이터주의 ? -r.교사1인당원아 : null],
       ['운영시간', (r) => esc(r.운영시간 || '-'), (r) => closeMin(r)],
       ['통학차량', (r) => r.차량운영여부 === '운영' ? '🚌 있음' : r.차량운영여부 === '미운영' ? '없음' : '-'],
-      ['원아 수', (r) => r.원아수 + '명'],
+      ['원아 수', (r) => r.원아수 != null ? r.원아수 + '명' : '-'],
       ['4년+ 근속', (r) => r['4년이상비율'] != null ? r['4년이상비율'] + '%' : '-', (r) => r['4년이상비율']],
       ['새 선생님', (r) => r['1년미만비율'] != null ? r['1년미만비율'] + '%' : '-', (r) => r['1년미만비율'] != null ? -r['1년미만비율'] : null],
       ['수업일수', (r) => r.수업일수 ? r.수업일수 + '일' : '-'],
