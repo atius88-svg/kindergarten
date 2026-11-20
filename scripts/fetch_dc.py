@@ -1,11 +1,12 @@
-"""어린이집정보공개포털 「어린이집별 기본정보 조회」(cpmsapi030) → src/data/dc_seongbuk.json 갱신.
+"""어린이집정보공개포털 「어린이집별 기본정보 조회」(cpmsapi030) → src/data/dc_seoul.json 갱신(서울 25개 구).
 
 사용법 (저장소 루트에서):
     CHILDCARE_API_KEY=운영키 python3 scripts/fetch_dc.py
     python3 scripts/fetch_dc.py --fixtures 폴더   # {시군구코드}.json(응답 item 목록)으로 오프라인 테스트, 파일은 안 씀
 
 - 운영계정 키 필요(개발키는 01, 02… 자리표시 값만 돌려줌). 운영계정 만료 2027-11-09 → 12개월마다 갱신.
-- API에 없는 운영시간·평가·연장보육은 기존 값을 그대로 이어 쓴다(새 어린이집은 비움).
+- API에 없는 운영시간·평가·연장보육은 src/data/dc_portal.json(scripts/fetch_dc_portal.py, 포털 화면 수집)에서,
+  없으면 기존 값을 이어 쓴다(새 어린이집은 비움).
 - 교사 수 = 보육교사(A2) + 특수교사(A3), 가정어린이집은 원장(A1)도 포함(원장이 보육 겸임).
   기존 포털 스크랩 값과 대부분 같고 날짜 차이로 ±1 정도 다름.
 - 휴지(휴원) 상태는 뺀다. 받은 수가 기존의 80% 미만이면 파일을 쓰지 않고 실패로 끝낸다.
@@ -14,9 +15,15 @@ import json, os, sys, time, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-DATA = os.path.join(ROOT, 'src', 'data', 'dc_seongbuk.json')
+DATA = os.path.join(ROOT, 'src', 'data', 'dc_seoul.json')
+PORTAL = os.path.join(ROOT, 'src', 'data', 'dc_portal.json')
 URL = 'http://api.childcare.go.kr/mediate/rest/cpmsapi030/cpmsapi030/request'
-DISTRICTS = {'11290': '성북구'}  # 서울 25개 구로 넓힐 때 여기에 추가
+DISTRICTS = {
+    '11110': '종로구', '11140': '중구', '11170': '용산구', '11200': '성동구', '11215': '광진구', '11230': '동대문구',
+    '11260': '중랑구', '11290': '성북구', '11305': '강북구', '11320': '도봉구', '11350': '노원구', '11380': '은평구',
+    '11410': '서대문구', '11440': '마포구', '11470': '양천구', '11500': '강서구', '11530': '구로구', '11545': '금천구',
+    '11560': '영등포구', '11590': '동작구', '11620': '관악구', '11650': '서초구', '11680': '강남구', '11710': '송파구',
+    '11740': '강동구'}
 KEEP = ['운영시간', '평가완료', '평가연월', '평가', '연장반', '연장아동']  # API에 없는 항목
 # 나이별 반(cpmsapi030 명세서 v1.7): class_cnt_*/child_cnt_* — 만0~5세, 영아혼합(0~2), 영유아혼합(2~3), 유아혼합(3~5), 특수
 AGES = ['00', '01', '02', '03', '04', '05', 'M2', 'M3', 'M5', 'SP']
@@ -73,7 +80,7 @@ def convert(a, gu):
         '유치원명': a['crname'].strip(),
         '설립유형': a.get('crtypename', ''),
         '유형': ty,
-        '구': a.get('sigunname') or gu,
+        '구': gu,
         '위도': round(num(a.get('la')), 6),
         '경도': round(num(a.get('lo')), 6),
         '원아수': kids,
@@ -119,6 +126,7 @@ def main():
     old_rows = [dict(zip(cols, r)) for r in old['rows']]
     by_id = {r['id']: r for r in old_rows}
     by_name = {(r['구'], r['유치원명']): r for r in old_rows}
+    portal = json.load(open(PORTAL, encoding='utf-8')) if os.path.exists(PORTAL) else {}
     if len(new) < len(old_rows) * 0.8:
         sys.exit(f'받은 어린이집이 {len(new)}곳뿐이라 갱신하지 않습니다(기존 {len(old_rows)}곳).')
 
@@ -127,8 +135,9 @@ def main():
         prev = by_id.get(n['id']) or by_name.get((n['구'], n['유치원명']))
         if prev:
             n['id'] = prev['id']  # 공유된 상세 주소(#kc…) 유지
+        pt = portal.get(n['id'][1:])
         for k in KEEP:
-            n[k] = (prev or {}).get(k)
+            n[k] = pt.get(k) if pt else (prev or {}).get(k)
         if not n.get('운영시간'):
             n['운영시간'] = None
         rows.append(n)
