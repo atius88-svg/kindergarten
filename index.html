@@ -508,7 +508,6 @@ function describe(r) {
   const g = (k, dir) => grade(r, k, dir);
   const pub = r.유형 === '국공립';
   if (r.상태) {
-    tags.push(['n', r.상태 === '휴원' ? '지금 휴원 중' : '공시 전']);
     facts.push(['지금 상태', `<b>${STATE_TXT[r.상태] || esc(r.상태)}.</b> ${RCRT.r[r.id] ? `${RCRT.aid}학년도 원아를 모집해요.` : ''}`,
       '올해 다니는 아이가 없어 원아 수·선생님·비용 같은 공시 정보는 없어요. 공립이라 원비 부담은 적은 편이에요. 반 운영·비용은 유치원에 직접 확인하세요.', 'n']);
   }
