@@ -28,10 +28,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 40
         run: python3 scripts/fetch_cost.py
-      - name: 어린이집 포털 화면(운영시간·평가·연장보육) — 받은 지 90일 넘은 곳만, 최대 60분
+      - name: 어린이집 포털 화면(운영시간·평가·연장보육) — 받은 지 90일 넘은 곳만, 최대 90분(한 곳 약 4초)
         continue-on-error: true
-        timeout-minutes: 70
-        run: python3 scripts/fetch_dc_portal.py --days 90 --minutes 60
+        timeout-minutes: 100
+        run: python3 scripts/fetch_dc_portal.py --days 90 --minutes 90
       - name: 어린이집 API에서 받기 (서울 25개 구, 운영키 만료 2027-11-09)
         continue-on-error: true   # 실패해도 유치원 갱신은 계속
         timeout-minutes: 15
