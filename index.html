@@ -180,6 +180,9 @@
         <select id="age" class="kg-only" aria-label="아이 나이">
           <option value="0">만 3세</option><option value="1">만 4세</option><option value="2">만 5세</option>
         </select>
+        <select id="dcage" class="dc-only" aria-label="아이 나이(어린이집)">
+          <option value="">나이 전체</option><option value="0">만 0세</option><option value="1">만 1세</option><option value="2">만 2세</option><option value="3">만 3세</option><option value="4">만 4세</option><option value="5">만 5세</option>
+        </select>
         <select id="type" aria-label="유형">
           <option value="">전체</option><option value="국공립">국공립</option><option value="사립">사립</option>
         </select>
@@ -196,7 +199,10 @@
           <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-eval"> ⭐ 평가 받은 곳만</label></div>
           <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-ext"> 🌙 연장보육반(19:30 이후) 있는 곳만</label><small>성북구 어린이집 기본 운영은 대부분 07:30~19:30이에요.</small></div>
           <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-night"> 🌃 야간연장형(밤늦게까지) 만</label></div>
-          <div class="cond-row"><label class="line"><input type="checkbox" id="f-room"> 🪑 자리 여유 있는 곳만 (정원의 90% 미만)</label><small class="dc-only">입소 대기 인원은 공개되지 않아 정원 대비 현원으로 가늠해요.</small><small class="kg-only">고른 나이 반(없으면 혼합반) 기준이에요.</small></div>
+          <div class="cond-row"><label class="line"><input type="checkbox" id="f-room"> 🪑 자리 여유 있는 곳만 (정원의 90% 미만)</label><small class="dc-only">정원 대비 현원 기준이에요.</small><small class="kg-only">고른 나이 반(없으면 혼합반) 기준이에요.</small></div>
+          <div class="cond-row dc-only"><div class="line">⏳ 입소 대기 <select id="f-wait" aria-label="입소 대기 상한">
+            <option value="">상관없음</option><option value="0">없는 곳</option><option value="5">5명</option><option value="10">10명</option><option value="20">20명</option><option value="50">50명</option>
+          </select> 이하</div><small>위에서 고른 나이(전체면 모든 나이 합) 기준이에요.</small></div>
           <div class="cond-row kg-only"><label class="line"><input type="checkbox" id="f-next"> 🎒 내년 자리 있을 것 같은 곳만</label><small>내년 모집요강 정원 − 올라올 아이로 추정해요(1자리 이상).</small></div>
           <div class="cond-row kg-only"><div class="line">🌙 저녁 <select id="f-close" aria-label="운영 종료 시간">
             <option value="">상관없음</option><option value="1080">6시</option><option value="1110">6시 반</option><option value="1140">7시</option><option value="1170">7시 반</option><option value="1200">8시</option><option value="1260">9시</option>
@@ -439,8 +445,22 @@ DC_TYPES.forEach((t) => {
     DAVG[t][k] = { m, sd: Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / Math.max(1, v.length - 1)) };
   });
 });
-Object.assign(ICON, { star: '<span class="em" aria-hidden="true">⭐</span>', moon: '<span class="em" aria-hidden="true">🌙</span>', cam: '<span class="em" aria-hidden="true">📹</span>' });
+Object.assign(ICON, { star: '<span class="em" aria-hidden="true">⭐</span>', moon: '<span class="em" aria-hidden="true">🌙</span>', cam: '<span class="em" aria-hidden="true">📹</span>', wait: '<span class="em" aria-hidden="true">⏳</span>' });
 const ymTxt = (s) => s ? `${s.slice(2, 4)}.${s.slice(5, 7)}` : '';
+// 입소 대기 아동 수: 대기 = [만0~5세, 6세 이상, 총계] (API ew_cnt). 한 아이가 여러 곳에 신청하므로 '내 순번'이 아니라 '신청 수'.
+const WAIT_LAB = ['만 0세', '만 1세', '만 2세', '만 3세', '만 4세', '만 5세', '6세 이상', '전체'];
+const WAIT_P75 = WAIT_LAB.map((_, i) => {
+  const v = DROWS.filter((r) => r.대기).map((r) => r.대기[i]).sort((a, b) => a - b);
+  return v.length ? v[Math.floor(v.length * 0.75)] : null;
+});
+function waitOf(r) {
+  if (!r.대기) return null;
+  const sel = document.getElementById('dcage').value;
+  const i = sel === '' ? 7 : +sel;
+  const v = r.대기[i];
+  const cls = v === 0 ? 'g' : WAIT_P75[i] != null && v >= Math.max(1, WAIT_P75[i]) ? 'b' : '';
+  return { i, v, cls, lab: v === 0 ? '없음' : cls === 'b' ? '많은 편' : '', who: sel === '' ? '' : WAIT_LAB[i] };
+}
 function dcEval(r) {
   if (r.평가완료 == null) return null;
   if (!r.평가완료) return { cls: 'b', lab: '아직 없음', txt: '아직 평가를 받지 않았어요. 새로 문을 연 곳일 수 있어요.' };
@@ -452,6 +472,8 @@ function dcBadges(r) {
   const out = [];
   const e = dcEval(r);
   if (e) out.push([e.cls, ICON.star + '평가', e.lab, '어린이집 평가제 결과']);
+  const w = waitOf(r);
+  if (w) out.push([w.cls, ICON.wait + `대기 ${w.who ? w.who.replace('만 ', '') + ' ' : ''}${w.v}명`, w.lab, `입소 대기 신청 아동 수${w.who ? ` (${w.who})` : ' (전체 나이)'} · 성북구 상위 25%는 ${WAIT_P75[w.i]}명 이상 · 중복 신청 포함`]);
   if (r.연장반 != null) out.push(r.연장반 > 0 ? ['g', ICON.moon + `연장반 ${r.연장반}개`, `${r.연장아동}명`, '19:30 이후 연장보육반 · 이용 아동 수'] : ['b', ICON.moon + '연장반', '없음', '연장보육반']);
   const f = r.충원율;
   out.push([f >= 95 ? 'b' : f < 70 ? 'g' : '', ICON.kids + `${r.원아수}/${r.정원}명`, f >= 95 ? '꽉 참' : f < 70 ? '여유' : `${f}%`, '현원/정원 · 꽉 찬 곳은 대기가 있을 가능성이 높아요']);
@@ -481,14 +503,21 @@ function dcDescribe(r) {
   const f = r.충원율;
   if (f >= 95) tags.push(['b', '자리 거의 없음']);
   facts.push(['자리·대기', `정원 ${r.정원}명 중 <b>${r.원아수}명</b>이 다녀요(${f}%). ${f >= 95 ? '거의 꽉 차서 <b>대기가 있을 가능성이 높아요.</b>' : f < 70 ? '자리에 <b>여유가 있는 편</b>이에요.' : ''}`,
-    '실제 입소 대기 순번은 공개되지 않아요. 아이사랑(childcare.go.kr)에 로그인해 입소대기를 신청하면 내 순번을 볼 수 있어요.', f >= 95 ? 'b' : f < 70 ? 'g' : '']);
+    '내 순번은 공개되지 않아요. 아이사랑(childcare.go.kr)에 로그인해 입소대기를 신청하면 내 순번을 볼 수 있어요.', f >= 95 ? 'b' : f < 70 ? 'g' : '']);
+  if (r.대기) {
+    const tot = r.대기[7], w = waitOf(r);
+    if (w && w.cls === 'b') tags.push(['b', '대기가 많아요']); else if (tot === 0) tags.push(['g', '입소 대기 없음']);
+    const by = r.대기.slice(0, 7).map((v, i) => [WAIT_LAB[i], v]).filter(([, v]) => v > 0).map(([l, v]) => `${l} ${v}명`).join(' · ');
+    facts.push(['입소 대기', tot ? `<b>${tot}명</b>이 입소를 기다리고 있어요.${by ? `<br><small>${by}</small>` : ''}` : '지금 입소를 기다리는 아이가 <b>없어요.</b>',
+      `한 아이가 여러 어린이집에 신청할 수 있어서 실제 경쟁보다 많게 보여요. 나이는 아이의 지금 나이라, 만 0세 대기에는 미리 신청해 둔 경우가 많아요. 성북구 전체 대기 중앙값은 ${Math.round(DROWS.filter((x) => x.대기).map((x) => x.대기[7]).sort((a, b) => a - b)[Math.floor(DROWS.filter((x) => x.대기).length / 2)])}명이에요.`, w ? w.cls : '']);
+  }
   if (r.연령별) {
-    const rows = r.연령별.map(([n, kids], i) => ({ l: DC_AGE_LAB[i], n, kids, max: DC_AGE_MAX[i] })).filter((x) => x.n > 0 || x.kids > 0);
+    const rows = r.연령별.map(([n, kids], i) => ({ l: DC_AGE_LAB[i], n, kids, max: DC_AGE_MAX[i], i })).filter((x) => x.n > 0 || x.kids > 0);
     if (rows.length) {
-      const tbl = `<table class="agetbl"><tr><th></th><th>반</th><th>아이</th><th>한 반</th><th>법정 최대</th></tr>${rows.map(({ l, n, kids, max }) => {
+      const tbl = `<table class="agetbl"><tr><th></th><th>반</th><th>아이</th><th>한 반</th><th>법정 최대</th>${r.대기 ? '<th>대기</th>' : ''}</tr>${rows.map(({ l, n, kids, max, i }) => {
         const per = n ? kids / n : null;
         const c = per == null || !max ? '' : per >= max ? 'b' : per <= max * 0.6 ? 'g' : '';
-        return `<tr><th>${l}</th><td>${n}개</td><td>${kids}명</td><td class="${c}">${per == null ? '-' : (Math.round(per * 10) / 10) + '명'}</td><td>${max ? max + '명' : '-'}</td></tr>`;
+        return `<tr><th>${l}</th><td>${n}개</td><td>${kids}명</td><td class="${c}">${per == null ? '-' : (Math.round(per * 10) / 10) + '명'}</td><td>${max ? max + '명' : '-'}</td>${r.대기 ? `<td>${i < 6 ? r.대기[i] + '명' : '-'}</td>` : ''}</tr>`;
       }).join('')}</table>`;
       facts.push(['나이별 반', tbl, '반 수와 지금 다니는 아이 수예요(나이별 정원은 공개되지 않아요). 법정 최대는 보육교사 1명이 맡을 수 있는 아이 수로, 한 반이 이에 가까우면 그 나이 자리는 거의 찼다는 뜻이에요. 서울시 비율 개선 사업에 참여하는 반은 0~3세를 이보다 적게 받아요.', '']);
     }
@@ -627,16 +656,16 @@ const store = {
 const byId = (id) => (String(id)[0] === 'c' ? DROWS : ROWS).find((r) => r.id === id);
 const closeMin = (r) => toMin((r.운영시간 || '').split('~')[1]);
 // 우리 집 조건 (사용자가 직접 설정, 브라우저에 저장)
-const COND_IDS = ['f-close', 'f-cost', 'f-cls', 'f-bus', 'f-eval', 'f-ext', 'f-night', 'f-room', 'f-next'];
+const COND_IDS = ['f-close', 'f-cost', 'f-cls', 'f-bus', 'f-eval', 'f-ext', 'f-night', 'f-room', 'f-next', 'f-wait'];
 const DC_CHECKS = ['eval', 'ext', 'night', 'room', 'next'];
 const condVal = () => ({
   close: document.getElementById('f-close').value, cost: document.getElementById('f-cost').value,
-  cls: document.getElementById('f-cls').value, bus: document.getElementById('f-bus').checked,
+  cls: document.getElementById('f-cls').value, bus: document.getElementById('f-bus').checked, wait: document.getElementById('f-wait').value,
   ...Object.fromEntries(DC_CHECKS.map((k) => [k, document.getElementById('f-' + k).checked]))
 });
 function condCount() {
   const c = condVal();
-  if (MODE === 'dc') return DC_CHECKS.filter((k) => k !== 'next' && c[k]).length + (c.bus ? 1 : 0);
+  if (MODE === 'dc') return DC_CHECKS.filter((k) => k !== 'next' && c[k]).length + (c.bus ? 1 : 0) + (c.wait !== '' ? 1 : 0);
   return [c.close, c.cost, c.cls].filter((v) => v !== '').length + (c.bus ? 1 : 0) + (c.room ? 1 : 0) + (c.next ? 1 : 0);
 }
 function passCond(r) {
@@ -647,6 +676,7 @@ function passCond(r) {
     if (c.night && !/야간연장형|24시간/.test(r.특성 || '')) return false;
     if (c.room && !(r.충원율 < 90)) return false;
     if (c.bus && r.차량운영여부 !== '운영') return false;
+    if (c.wait !== '') { const w = waitOf(r); if (!w || w.v > +c.wait) return false; }
     return true;
   }
   if (c.close !== '' && (closeMin(r) || 0) < +c.close) return false;
@@ -672,6 +702,7 @@ function loadCond() {
     const c = JSON.parse(localStorage.getItem('kg-cond') || 'null'); if (!c) return;
     document.getElementById('f-close').value = c.close || ''; document.getElementById('f-cost').value = c.cost || '';
     document.getElementById('f-cls').value = c.cls || ''; document.getElementById('f-bus').checked = !!c.bus;
+    document.getElementById('f-wait').value = c.wait ?? '';
     DC_CHECKS.forEach((k) => { document.getElementById('f-' + k).checked = !!c[k]; });
   } catch (e) {}
 }
@@ -828,6 +859,7 @@ function start() {
       ['연장보육반', (r) => r.연장반 != null ? (r.연장반 ? `${r.연장반}개 · ${r.연장아동}명` : '없음') : '-', (r) => r.연장반],
       ['야간연장', (r) => /야간연장형|24시간/.test(r.특성 || '') ? '🌃 있음' : '-'],
       ['현원/정원', (r) => `${r.원아수}/${r.정원}명<br><small>${r.충원율}%</small>`, (r) => -r.충원율],
+      [`입소 대기${$('dcage').value !== '' ? `<br>(만 ${$('dcage').value}세)` : ''}`, (r) => { const w = waitOf(r); return w ? w.v + '명' : '-'; }, (r) => { const w = waitOf(r); return w ? -w.v : null; }],
       ['선생님:아이', (r) => r.교사1인당원아 != null ? '1:' + Math.round(r.교사1인당원아) : '-', (r) => r.교사1인당원아 != null ? -Math.round(r.교사1인당원아) : null],
       ['4년+ 근속', (r) => r['4년이상비율'] != null ? r['4년이상비율'] + '%' : '-', (r) => r['4년이상비율']],
       ['새 선생님', (r) => r['1년미만비율'] != null ? r['1년미만비율'] + '%' : '-', (r) => r['1년미만비율'] != null ? -r['1년미만비율'] : null],
@@ -856,7 +888,7 @@ function start() {
       return `<tr><td>${k}</td>${v.map((r) => `<td class="${best != null && score(r) === best ? 'best' : ''}">${f(r)}</td>`).join('')}</tr>`;
     }).join('');
     $('c-body').innerHTML = `<table class="ctable"><thead>${head}</thead><tbody>${body}</tbody></table>
-      <p class="note">초록 굵은 글씨가 항목별로 가장 유리한 곳이에요. ${MODE === 'dc' ? '입소 대기 인원은 공개되지 않아 현원/정원으로 가늠해요. 자리가 여유 있을수록 유리하게 표시했어요.</p>' : ''}<p class="note kg-only">원비는 지원금을 뺀 학부모 부담 고지액(${COST_BASIS} 공시)이에요. * 표시는 공시 교사 수가 적어 정확하지 않을 수 있어요.</p>`;
+      <p class="note">초록 굵은 글씨가 항목별로 가장 유리한 곳이에요. ${MODE === 'dc' ? '입소 대기는 신청 수라 한 아이가 여러 곳에 들어 있을 수 있어요. 대기가 적고 자리가 여유 있을수록 유리하게 표시했어요.</p>' : ''}<p class="note kg-only">원비는 지원금을 뺀 학부모 부담 고지액(${COST_BASIS} 공시)이에요. * 표시는 공시 교사 수가 적어 정확하지 않을 수 있어요.</p>`;
     $('c-body').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { toggleCmp(b.dataset.rm); openCompare(); }));
     $('cmp').hidden = false; $('cbar').hidden = true;
     document.title = `${NOUN()} 비교 | 우리 동네 ${NOUN()}`;
@@ -910,7 +942,7 @@ function start() {
   $('c-back').addEventListener('click', () => { location.hash = ''; });
   window.addEventListener('hashchange', () => { S.navIn = true; });
   COND_IDS.forEach((id) => $(id).addEventListener('change', () => { saveCond(); render(false); }));
-  $('f-reset').addEventListener('click', () => { $('f-close').value = ''; $('f-cost').value = ''; $('f-cls').value = ''; $('f-bus').checked = false; DC_CHECKS.forEach((k) => { $('f-' + k).checked = false; }); saveCond(); render(false); });
+  $('f-reset').addEventListener('click', () => { $('f-close').value = ''; $('f-cost').value = ''; $('f-cls').value = ''; $('f-wait').value = ''; $('f-bus').checked = false; DC_CHECKS.forEach((k) => { $('f-' + k).checked = false; }); saveCond(); render(false); });
   function setMode(m, quiet) {
     if (m === MODE) return;
     MODE = m;
@@ -948,6 +980,8 @@ function start() {
   $('r').addEventListener('change', () => render(true));
   $('type').addEventListener('change', () => render(false));
   $('age').addEventListener('change', () => render(false));
+  try { $('dcage').value = localStorage.getItem('dc-age') || ''; } catch (e) {}
+  $('dcage').addEventListener('change', () => { try { localStorage.setItem('dc-age', $('dcage').value); } catch (e) {} render(false); });
   $('me').addEventListener('click', () => {
     if (!navigator.geolocation) { alert('이 브라우저는 위치 기능을 지원하지 않습니다.'); return; }
     navigator.geolocation.getCurrentPosition(
