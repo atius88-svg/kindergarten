@@ -48,12 +48,16 @@ def parse_safety(text):
     p = Tables()
     p.feed(text)
     out = {}
+    # 사이트 HTML이 CCTV 표 첫 칸의 </td>를 빼먹어 '설치' 칸이 사라질 수 있음(2026-11-21) → 칸 위치 대신
+    # '미운영/미설치' 글자와 첫 숫자로 판단한다. 첫 숫자 = 운행 차량수 / 총 설치수.
     for t in p.tables:
         last = t['rows'][-1] if t['rows'] else []
+        nums = [n for n in map(num, last) if n is not None]
+        val = 0 if any(x.startswith('미') for x in last) or not nums else nums[0]
         if t['caption'].startswith('통학차량 현황') and last:
-            out['bus'] = num(last[1]) if last[0] == '운영' and len(last) > 1 else 0
+            out['bus'] = val
         elif t['caption'].startswith('CCTV 설치 현황') and last:
-            out['cctv'] = num(last[1]) if last[0] == '설치' and len(last) > 1 else 0
+            out['cctv'] = val
     return out
 
 
