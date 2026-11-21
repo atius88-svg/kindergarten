@@ -1,15 +1,2 @@
-11110000013 ('SE000088', '1', 'N', '01')
-ok 2846 https://info.childcare.go.kr/info_html5/cera/search/totalGradeCommentEvl2nd.jsp?flag=commnetGrade&childHouseId=SE000088
-ok 2521 https://info.childcare.go.kr/info_html5/cera/search/totalGradeCommentEvl2nd.jsp?childHouseId=SE000088
-ok 3449 https://info.childcare.go.kr/info_html5/cera/search/totalGradeComment.jsp?flag=commnetGrade&childHouseId=SE000088
-ok 2911 https://info.childcare.go.kr/info_html5/cera/search/totalGradeComment.jsp?childHouseId=SE000088
-11110000014 ('SE000759', '1', 'N', '01')
-ok 2839 https://info.childcare.go.kr/info_html5/cera/search/totalGradeCommentEvl2nd.jsp?flag=commnetGrade&childHouseId=SE000759
-ok 2521 https://info.childcare.go.kr/info_html5/cera/search/totalGradeCommentEvl2nd.jsp?childHouseId=SE000759
-ok 3442 https://info.childcare.go.kr/info_html5/cera/search/totalGradeComment.jsp?flag=commnetGrade&childHouseId=SE000759
-ok 2911 https://info.childcare.go.kr/info_html5/cera/search/totalGradeComment.jsp?childHouseId=SE000759
-11110000012 ('SE001163', '1', 'N', '')
-ok 2837 https://info.childcare.go.kr/info_html5/cera/search/totalGradeCommentEvl2nd.jsp?flag=commnetGrade&childHouseId=SE001163
-ok 2521 https://info.childcare.go.kr/info_html5/cera/search/totalGradeCommentEvl2nd.jsp?childHouseId=SE001163
-ok 7418 https://info.childcare.go.kr/info_html5/cera/search/totalGradeComment.jsp?flag=commnetGrade&childHouseId=SE001163
-ok 2911 https://info.childcare.go.kr/info_html5/cera/search/totalGradeComment.jsp?childHouseId=SE001163
+SE000088 5134
+SE000759 5277
