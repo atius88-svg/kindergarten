@@ -1,7 +1,7 @@
 # 기관별 정적 상세 페이지(SEO 시험): python3 scripts/build_pages.py  (저장소 루트에서 실행)
 # 시험 단계: 성북구 유치원 30곳만 k/{id}.html 로 만든다. 모든 페이지에 noindex를 넣어 검색에 잡히지 않게 한다.
 # 배포를 결정하면 NOINDEX=False, GU=None, LIMIT=None 으로 바꾸고 sitemap.xml 생성을 켠다.
-import html, json, os, statistics
+import html, json, math, os, statistics, urllib.parse
 
 NOINDEX, GU, LIMIT = True, '성북구', 30
 SITE = 'https://atius88-svg.github.io/kindergarten/'
@@ -13,6 +13,25 @@ ROWS = [dict(zip(kg['cols'], r)) for r in kg['rows']]
 COSTD = L('kg_cost_seoul.json'); COST = COSTD['cost']
 RC = L('kg_rcrt.json'); RCR = RC['r']
 BASIS = COSTD['basis'].split('(')[0].strip()
+DET = L('kg_detail.json')  # 주소·전화·홈페이지·통학차량 대수·CCTV 수 (브라우저로 수집, 시험 30곳)
+KAKAO_KEY = '0688a80cbe72ae0757d555b93dc48ab9'  # 사이트 지도와 같은 JS 키(등록 도메인에서만 동작)
+GEN = set()  # 이번에 만드는 페이지 id
+
+
+def dist_m(a, b):
+    p = math.pi / 180
+    h = math.sin((b['위도'] - a['위도']) * p / 2) ** 2 + math.cos(a['위도'] * p) * math.cos(b['위도'] * p) * math.sin((b['경도'] - a['경도']) * p / 2) ** 2
+    return 12742000 * math.asin(math.sqrt(h))
+
+
+def cost5(i):
+    c = COST.get(str(i))
+    return None if not c or c[2] is None else c[2] + (c[5] or 0)
+
+
+def nearby(r, km=1.0, n=5):
+    v = [(dist_m(r, o), o) for o in ROWS if o['id'] != r['id'] and o['상태'] is None and o['위도'] and o['경도']]
+    return sorted((d, o) for d, o in v if d <= km * 1000)[:n]
 AGE = ['만 3세', '만 4세', '만 5세', '혼합반', '특수반']
 e = html.escape
 
@@ -88,12 +107,40 @@ def page(r):
         info.append(f'<tr><th>운영 시간</th><td>{e(r["운영시간"])} (방과후 포함)</td></tr>')
     if r['방과후참여율'] is not None and r['방과후참여율'] <= 100:
         info.append(f'<tr><th>방과후 참여</th><td>{round(r["방과후참여율"])}%</td></tr>')
-    info.append(f'<tr><th>통학 차량</th><td>{"운영" if r["차량운영여부"] == "운영" else "운영 안 함"}</td></tr>')
+    det = DET.get(str(r['id']))
+    if det:
+        info.append(f'<tr><th>통학 차량</th><td>{f"운영 ({det["bus"]}대)" if det["bus"] else "운영 안 함"}</td></tr>')
+        info.append(f'<tr><th>CCTV</th><td>{det["cctv"]}대 설치</td></tr>')
+    else:
+        info.append(f'<tr><th>통학 차량</th><td>{"운영" if r["차량운영여부"] == "운영" else "운영 안 함"}</td></tr>')
+    near = nearby(r)
+    nrows = []
+    if near:
+        me = cost5(r['id'])
+        nrows.append(f'<tr><th>{e(name)} (이 유치원)</th><td>-</td><td><b>{"-" if me is None else ("0원" if me == 0 else won(me))}</b></td></tr>')
+        for d, o in near:
+            cc = cost5(o['id'])
+            href = f'{o["id"]}.html' if o['id'] in GEN else f'../#k{o["id"]}'
+            nrows.append(f'<tr><th><a href="{href}">{e(o["유치원명"])}</a></th><td>{round(d / 10) * 10}m</td><td>{"-" if cc is None else ("0원" if cc == 0 else won(cc))}</td></tr>')
+    place = ''
+    if det:
+        q = urllib.parse.quote(f'{name},{r["위도"]},{r["경도"]}')
+        contact = [f'<tr><th>주소</th><td>서울 {e(det["addr"])}</td></tr>', f'<tr><th>전화</th><td><a href="tel:{det["tel"]}">{det["tel"]}</a></td></tr>']
+        if det['web'] and det['web'].startswith(('http://', 'https://')):
+            contact.append(f'<tr><th>홈페이지</th><td><a href="{e(det["web"])}" rel="nofollow noopener" target="_blank">{e(det["web"].split("//")[1].rstrip("/"))}</a></td></tr>')
+        place = (f'<div id="map" style="height:200px;border-radius:12px;background:#e6ece8"></div>\n'
+                 f'<p><a href="https://map.kakao.com/link/map/{q}">카카오맵에서 보기</a> · <a href="https://map.kakao.com/link/to/{q}">길찾기</a></p>\n'
+                 f'<table>{"".join(contact)}</table>\n'
+                 f'<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={KAKAO_KEY}&autoload=false"></script>\n'
+                 f'<script>kakao.maps.load(function(){{var p=new kakao.maps.LatLng({r["위도"]},{r["경도"]});new kakao.maps.StaticMap(document.getElementById("map"),{{center:p,level:3,marker:{{position:p}}}})}})</script>')
     title = f'{name} 원비·정원·내년 빈자리 | {gu} 유치원 | 우리동네 유치원'
     desc = ' '.join(lead)[:150]
     ld = {'@context': 'https://schema.org', '@type': 'Preschool', 'name': name,
           'address': {'@type': 'PostalAddress', 'addressRegion': '서울특별시', 'addressLocality': gu, 'addressCountry': 'KR'},
           'geo': {'@type': 'GeoCoordinates', 'latitude': r['위도'], 'longitude': r['경도']}}
+    if det:
+        ld['address']['streetAddress'] = det['addr']
+        ld['telephone'] = det['tel']
     robots = '<meta name="robots" content="noindex,nofollow">\n' if NOINDEX else ''
     sec = lambda h, body: f'<h2>{h}</h2>\n{body}\n' if body else ''
     tbl = lambda head, rows: f'<table><tr>{"".join(f"<th>{x}</th>" for x in head)}</tr>{"".join(rows)}</table>' if rows else ''
@@ -118,12 +165,15 @@ small{{color:#5b6b64}}a{{color:#1f6f54}}
 </style></head><body><main>
 <small><a href="../">우리동네 유치원</a> › {gu} › 유치원</small>
 <h1>{e(name)}</h1>
+{f'<small>서울 {e(DET[str(r["id"])]["addr"])}</small>' if str(r['id']) in DET else ''}
 <p class="lead">{e(" ".join(lead))}</p>
 <a class="cta" href="../#k{r["id"]}">지도에서 주변 유치원과 비교하기</a>
 {sec("한 달 비용", tbl(["", "교육비", "방과후", "합계"], cost_lines) + f"<small>정부 지원금을 뺀 학부모 부담 고지액({BASIS} 공시)이에요. 특성화 활동·차량·현장학습 같은 선택 비용은 빠져 있어요.</small>" if cost_lines else "")}
 {sec("나이별 반", tbl(["", "반", "정원", "다니는 아이", "찬 정도"], fx) + "<small>올해 만든 반 기준이에요.</small>" if fx else "")}
 {sec("내년 예상 빈자리", nxt + f"<small>{e(RC['basis'])}의 나이별 정원에서 올해 한 살 아래 반 아이 수를 뺀 추정치예요. 중도 퇴소·형제 우선은 반영하지 않았어요." + ("<br>올해 혼합반에 다니는 아이는 나이별로 나눌 수 없어서 '올라올 아이'가 실제보다 적게, 빈자리는 많게 나올 수 있어요." if mixed else "") + "</small>" if nxt else "")}
+{sec("가까운 유치원과 비교 (반경 1km)", tbl(["", "거리", "만 5세 월 비용"], nrows) + "<small>이 유치원에서 가까운 순이에요. 비용은 정부 지원금을 뺀 부담 고지액이에요.</small>" if nrows else "")}
 {sec("선생님·운영", f'<table>{"".join(info)}</table>')}
+{sec("위치·연락처", place)}
 <p><small>출처: 유치원알리미 정보공시, 유보통합포털 모집요강. 정확한 내용은 유치원에 직접 확인하세요.</small></p>
 </main></body></html>
 '''
@@ -134,6 +184,7 @@ def main():
     if LIMIT:
         sel = sel[:LIMIT]
     os.makedirs(os.path.join(root, 'k'), exist_ok=True)
+    GEN.update(r['id'] for r in sel)
     for r in sel:
         open(os.path.join(root, 'k', f'{r["id"]}.html'), 'w', encoding='utf-8').write(page(r))
     print(len(sel), 'pages -> k/')
