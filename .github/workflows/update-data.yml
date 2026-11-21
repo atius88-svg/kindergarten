@@ -49,6 +49,11 @@ jobs:
         continue-on-error: true
         timeout-minutes: 100
         run: python3 scripts/fetch_dc_portal.py --days 90 --minutes 90
+      - name: 어린이집 평가결과서(개편 후 평가의 영역별 종합의견) — 새로 평가받은 곳만, 최대 40분
+        id: dceval
+        continue-on-error: true
+        timeout-minutes: 50
+        run: python3 scripts/fetch_dc_eval.py --minutes 40
       - name: 어린이집 API에서 받기 (서울 25개 구, 운영키 만료 2027-11-09)
         id: dc
         continue-on-error: true
@@ -98,6 +103,7 @@ jobs:
             유치원 원비=${{ steps.cost.outcome }}
             유치원 상세정보=${{ steps.detail.outcome }}
             어린이집 포털=${{ steps.portal.outcome }}
+            어린이집 평가결과서=${{ steps.dceval.outcome }}
             어린이집 API=${{ steps.dc.outcome }}
             index.html 빌드=${{ steps.build.outcome }}
             k/ 페이지 빌드=${{ steps.pages.outcome }}
