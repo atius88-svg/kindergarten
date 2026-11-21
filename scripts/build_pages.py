@@ -72,7 +72,8 @@ def page(r):
                 p = f'{round(kids / cap * 100)}%' if cap else '-'
                 fx.append(f'<tr><th>{AGE[i]}</th><td>{n}개</td><td>{cap}명</td><td>{kids}명</td><td>{p}</td></tr>')
     nx = next_rows(r)
-    if nx:
+    mixed = bool(r['연령별'] and r['연령별'][3][2])
+    if nx and not mixed:
         first = [x for x in nx if x[4] is not None and x[0] != '만 3세']
         if first:
             best = max(first, key=lambda x: x[4])
@@ -85,7 +86,7 @@ def page(r):
         info.append(f'<tr><th>4년 넘게 근무한 선생님</th><td>{round(r["4년이상비율"])}%</td></tr>')
     if r['운영시간']:
         info.append(f'<tr><th>운영 시간</th><td>{e(r["운영시간"])} (방과후 포함)</td></tr>')
-    if r['방과후참여율'] is not None:
+    if r['방과후참여율'] is not None and r['방과후참여율'] <= 100:
         info.append(f'<tr><th>방과후 참여</th><td>{round(r["방과후참여율"])}%</td></tr>')
     info.append(f'<tr><th>통학 차량</th><td>{"운영" if r["차량운영여부"] == "운영" else "운영 안 함"}</td></tr>')
     title = f'{name} 원비·정원·내년 빈자리 | {gu} 유치원 | 우리동네 유치원'
@@ -121,7 +122,7 @@ small{{color:#5b6b64}}a{{color:#1f6f54}}
 <a class="cta" href="../#k{r["id"]}">지도에서 주변 유치원과 비교하기</a>
 {sec("한 달 비용", tbl(["", "교육비", "방과후", "합계"], cost_lines) + f"<small>정부 지원금을 뺀 학부모 부담 고지액({BASIS} 공시)이에요. 특성화 활동·차량·현장학습 같은 선택 비용은 빠져 있어요.</small>" if cost_lines else "")}
 {sec("나이별 반", tbl(["", "반", "정원", "다니는 아이", "찬 정도"], fx) + "<small>올해 만든 반 기준이에요.</small>" if fx else "")}
-{sec("내년 예상 빈자리", nxt + f"<small>{e(RC['basis'])}의 나이별 정원에서 올해 한 살 아래 반 아이 수를 뺀 추정치예요. 중도 퇴소·형제 우선은 반영하지 않았어요.</small>" if nxt else "")}
+{sec("내년 예상 빈자리", nxt + f"<small>{e(RC['basis'])}의 나이별 정원에서 올해 한 살 아래 반 아이 수를 뺀 추정치예요. 중도 퇴소·형제 우선은 반영하지 않았어요." + ("<br>올해 혼합반에 다니는 아이는 나이별로 나눌 수 없어서 '올라올 아이'가 실제보다 적게, 빈자리는 많게 나올 수 있어요." if mixed else "") + "</small>" if nxt else "")}
 {sec("선생님·운영", f'<table>{"".join(info)}</table>')}
 <p><small>출처: 유치원알리미 정보공시, 유보통합포털 모집요강. 정확한 내용은 유치원에 직접 확인하세요.</small></p>
 </main></body></html>
