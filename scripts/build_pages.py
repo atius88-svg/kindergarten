@@ -1,7 +1,7 @@
 # 기관별 정적 상세 페이지(SEO 시험): python3 scripts/build_pages.py  (저장소 루트에서 실행)
 # 시험 단계: 성북구 유치원 30곳만 k/{id}.html 로 만든다. 모든 페이지에 noindex를 넣어 검색에 잡히지 않게 한다.
 # 배포를 결정하면 NOINDEX=False, GU=None, LIMIT=None 으로 바꾸고 sitemap.xml 생성을 켠다.
-import html, json, math, os, statistics, urllib.parse
+import html, json, math, os, statistics, sys, traceback, urllib.parse
 
 NOINDEX, GU, LIMIT = True, '성북구', 30
 SITE = 'https://atius88-svg.github.io/kindergarten/'
@@ -13,7 +13,7 @@ ROWS = [dict(zip(kg['cols'], r)) for r in kg['rows']]
 COSTD = L('kg_cost_seoul.json'); COST = COSTD['cost']
 RC = L('kg_rcrt.json'); RCR = RC['r']
 BASIS = COSTD['basis'].split('(')[0].strip()
-DET = L('kg_detail.json')  # 주소·전화·홈페이지·통학차량 대수·CCTV 수 (브라우저로 수집, 시험 30곳)
+DET = L('kg_detail.json')  # 주소·전화·홈페이지·통학차량 대수·CCTV 수 (scripts/fetch_detail.py가 매달 수집). 값이 빠질 수 있어 .get으로 읽는다
 KAKAO_KEY = '0688a80cbe72ae0757d555b93dc48ab9'  # 사이트 지도와 같은 JS 키(등록 도메인에서만 동작)
 GEN = set()  # 이번에 만드는 페이지 id
 
@@ -48,7 +48,7 @@ def cost_avg(typ, gu, a):
 
 def avg(typ, k):
     v = [r[k] for r in ROWS if r['유형'] == typ and r[k] is not None and r['상태'] is None and not (k == '교사1인당원아' and r['데이터주의'])]
-    return statistics.mean(v)
+    return statistics.mean(v) if v else None
 
 
 def next_rows(r):
@@ -71,7 +71,7 @@ def page(r):
     kind = '국공립' if typ == '국공립' else '사립'
     lead = [f'{gu}에 있는 {kind} 유치원이에요.']
     if r['원아수'] is not None:
-        lead.append(f'올해 {r["원아수"]}명이 다니고 한 반 평균은 {round(r["학급당원아"])}명이에요.')
+        lead.append(f'올해 {r["원아수"]}명이 다니고 한 반 평균은 {round(r["학급당원아"])}명이에요.' if r['학급당원아'] is not None else f'올해 {r["원아수"]}명이 다녀요.')
     cost_lines = []
     if c:
         for a in range(3):
@@ -100,19 +100,22 @@ def page(r):
                 lead.append(f'내년({RC["aid"]}학년도)엔 {best[0]} 반에 약 {best[4]}명 자리가 날 것으로 보여요.')
     info = []
     if r['교사1인당원아'] is not None and not r['데이터주의']:
-        info.append(f'<tr><th>선생님 한 명당 아이</th><td>{round(r["교사1인당원아"])}명 (서울 {kind} 평균 {round(avg(typ, "교사1인당원아"))}명)</td></tr>')
+        ta = avg(typ, '교사1인당원아')
+        info.append(f'<tr><th>선생님 한 명당 아이</th><td>{round(r["교사1인당원아"])}명' + (f' (서울 {kind} 평균 {round(ta)}명)' if ta is not None else '') + '</td></tr>')
     if r['4년이상비율'] is not None:
         info.append(f'<tr><th>4년 넘게 근무한 선생님</th><td>{round(r["4년이상비율"])}%</td></tr>')
     if r['운영시간']:
         info.append(f'<tr><th>운영 시간</th><td>{e(r["운영시간"])} (방과후 포함)</td></tr>')
     if r['방과후참여율'] is not None and r['방과후참여율'] <= 100:
         info.append(f'<tr><th>방과후 참여</th><td>{round(r["방과후참여율"])}%</td></tr>')
-    det = DET.get(str(r['id']))
-    if det:
-        info.append(f'<tr><th>통학 차량</th><td>{f"운영 ({det["bus"]}대)" if det["bus"] else "운영 안 함"}</td></tr>')
-        info.append(f'<tr><th>CCTV</th><td>{det["cctv"]}대 설치</td></tr>')
+    det = DET.get(str(r['id'])) or {}
+    bus, cctv = det.get('bus'), det.get('cctv')
+    if bus is not None:
+        info.append(f'<tr><th>통학 차량</th><td>{f"운영 ({bus}대)" if bus else "운영 안 함"}</td></tr>')
     else:
         info.append(f'<tr><th>통학 차량</th><td>{"운영" if r["차량운영여부"] == "운영" else "운영 안 함"}</td></tr>')
+    if cctv is not None:
+        info.append(f'<tr><th>CCTV</th><td>{cctv}대 설치</td></tr>')
     near = nearby(r)
     nrows = []
     if near:
@@ -123,11 +126,13 @@ def page(r):
             href = f'{o["id"]}.html' if o['id'] in GEN else f'../#k{o["id"]}'
             nrows.append(f'<tr><th><a href="{href}">{e(o["유치원명"])}</a></th><td>{round(d / 10) * 10}m</td><td>{"-" if cc is None else ("0원" if cc == 0 else won(cc))}</td></tr>')
     place = ''
-    if det:
+    addr, tel, web = det.get('addr'), det.get('tel'), det.get('web')
+    if addr or tel:
         q = urllib.parse.quote(f'{name},{r["위도"]},{r["경도"]}')
-        contact = [f'<tr><th>주소</th><td>서울 {e(det["addr"])}</td></tr>', f'<tr><th>전화</th><td><a href="tel:{det["tel"]}">{det["tel"]}</a></td></tr>']
-        if det['web'] and det['web'].startswith(('http://', 'https://')):
-            contact.append(f'<tr><th>홈페이지</th><td><a href="{e(det["web"])}" rel="nofollow noopener" target="_blank">{e(det["web"].split("//")[1].rstrip("/"))}</a></td></tr>')
+        contact = ([f'<tr><th>주소</th><td>서울 {e(addr)}</td></tr>'] if addr else []) + \
+                  ([f'<tr><th>전화</th><td><a href="tel:{e(tel)}">{e(tel)}</a></td></tr>'] if tel else [])
+        if web and web.startswith(('http://', 'https://')):
+            contact.append(f'<tr><th>홈페이지</th><td><a href="{e(web)}" rel="nofollow noopener" target="_blank">{e(web.split("//")[1].rstrip("/"))}</a></td></tr>')
         place = (f'<div id="map" style="height:200px;border-radius:12px;background:#e6ece8"></div>\n'
                  f'<p><a href="https://map.kakao.com/link/map/{q}">카카오맵에서 보기</a> · <a href="https://map.kakao.com/link/to/{q}">길찾기</a></p>\n'
                  f'<table>{"".join(contact)}</table>\n'
@@ -138,9 +143,10 @@ def page(r):
     ld = {'@context': 'https://schema.org', '@type': 'Preschool', 'name': name,
           'address': {'@type': 'PostalAddress', 'addressRegion': '서울특별시', 'addressLocality': gu, 'addressCountry': 'KR'},
           'geo': {'@type': 'GeoCoordinates', 'latitude': r['위도'], 'longitude': r['경도']}}
-    if det:
-        ld['address']['streetAddress'] = det['addr']
-        ld['telephone'] = det['tel']
+    if addr:
+        ld['address']['streetAddress'] = addr
+    if tel:
+        ld['telephone'] = tel
     robots = '<meta name="robots" content="noindex,nofollow">\n' if NOINDEX else ''
     sec = lambda h, body: f'<h2>{h}</h2>\n{body}\n' if body else ''
     tbl = lambda head, rows: f'<table><tr>{"".join(f"<th>{x}</th>" for x in head)}</tr>{"".join(rows)}</table>' if rows else ''
@@ -165,7 +171,7 @@ small{{color:#5b6b64}}a{{color:#1f6f54}}
 </style></head><body><main>
 <small><a href="../">우리동네 유치원</a> › {gu} › 유치원</small>
 <h1>{e(name)}</h1>
-{f'<small>서울 {e(DET[str(r["id"])]["addr"])}</small>' if str(r['id']) in DET else ''}
+{f'<small>서울 {e(addr)}</small>' if addr else ''}
 <p class="lead">{e(" ".join(lead))}</p>
 <a class="cta" href="../#k{r["id"]}">지도에서 주변 유치원과 비교하기</a>
 {sec("한 달 비용", tbl(["", "교육비", "방과후", "합계"], cost_lines) + f"<small>정부 지원금을 뺀 학부모 부담 고지액({BASIS} 공시)이에요. 특성화 활동·차량·현장학습 같은 선택 비용은 빠져 있어요.</small>" if cost_lines else "")}
@@ -185,9 +191,20 @@ def main():
         sel = sel[:LIMIT]
     os.makedirs(os.path.join(root, 'k'), exist_ok=True)
     GEN.update(r['id'] for r in sel)
+    # 한 곳에서 오류가 나도 나머지 페이지는 만든다. 오류 난 곳은 예전 파일을 그대로 두고, 끝에 실패로 알린다(워크플로 실패 알림).
+    fail = []
     for r in sel:
-        open(os.path.join(root, 'k', f'{r["id"]}.html'), 'w', encoding='utf-8').write(page(r))
-    print(len(sel), 'pages -> k/')
+        try:
+            out = page(r)
+        except Exception:
+            fail.append(r['id'])
+            print(f'  페이지 오류 {r["id"]} {r["유치원명"]} (예전 파일 유지):', file=sys.stderr)
+            traceback.print_exc(limit=2)
+            continue
+        open(os.path.join(root, 'k', f'{r["id"]}.html'), 'w', encoding='utf-8').write(out)
+    print(len(sel) - len(fail), 'pages -> k/', f'(오류 {len(fail)}곳: {fail})' if fail else '')
+    if fail:
+        sys.exit(1)
 
 
 main()
