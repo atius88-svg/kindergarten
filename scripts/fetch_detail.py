@@ -7,12 +7,14 @@ SEO 기관별 페이지(scripts/build_pages.py)에 쓰는 값. OPEN API에는 �
 유치원코드는 src/data/kg_ids.json(유치원코드 → id).
 
 사용법 (저장소 루트에서):
-    python3 scripts/fetch_detail.py                 # 서울 전체(약 15분)
-    python3 scripts/fetch_detail.py --limit 20      # 앞 20곳만(시험)
+    python3 scripts/fetch_detail.py                       # 받은 지 25일 넘은 곳(또는 없는 곳)만
+    python3 scripts/fetch_detail.py --days 0 --minutes 40 # 전부 다시, 40분 넘으면 저장 후 멈춤(다음 실행이 이어 받음)
+    python3 scripts/fetch_detail.py --limit 20            # 20곳만(시험)
     python3 scripts/fetch_detail.py --parse 요약.html 안전.html   # 파서 시험
 
-결과: {id: {"addr": "성북구 …", "tel": "02-…", "web": "http…"|null, "bus": 운행 차량 수(0=미운영), "cctv": 총 설치수}}
-- 한 곳이 실패하면 그곳은 예전 값을 그대로 둔다. 80% 넘게 받아야 저장.
+결과: {id: {"addr": "성북구 …", "tel": "02-…", "web": "http…"|null, "bus": 운행 차량 수(0=미운영), "cctv": 총 설치수, "t": 받은 날}}
+- 3곳씩 동시에 받고 100곳마다 저장한다. 오래된 곳부터 받는다. 실패한 곳은 예전 값을 그대로 둔다.
+- GitHub(해외)에서 한 곳(요청 2번)에 몇 초씩 걸려 711곳 전체는 30분을 넘는다(2026-11-21 시험) → --minutes로 나눠 받음.
 """
 import json, os, re, sys, time, urllib.parse, urllib.request
 
@@ -77,34 +79,64 @@ def one(code):
     return d
 
 
+def save(d):
+    with open(OUT, 'w', encoding='utf-8') as f:
+        json.dump(dict(sorted(d.items(), key=lambda x: int(x[0]))), f, ensure_ascii=False, separators=(',', ':'))
+
+
 def main():
+    import datetime
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     args = sys.argv[1:]
     if args[:1] == ['--parse']:
         d = parse_summary(open(args[1], encoding='utf-8').read())
         d.update(parse_safety(open(args[2], encoding='utf-8').read()))
         print(d)
         return
-    limit = int(args[args.index('--limit') + 1]) if '--limit' in args else None
+    opt = lambda k, v: type(v)(args[args.index(k) + 1]) if k in args else v
+    days, minutes, limit = opt('--days', 25), opt('--minutes', 0.0), opt('--limit', 0)
+    today = datetime.date.today()
     old = json.load(open(OUT, encoding='utf-8')) if os.path.exists(OUT) else {}
-    codes = list(json.load(open(IDS, encoding='utf-8')).items())[:limit]
-    new, fail = dict(old), 0
-    for n, (code, kid) in enumerate(codes, 1):
-        try:
-            new[str(kid)] = one(code)
-        except Exception as e:
-            fail += 1
-            print(f'  실패 {kid} {code}: {e}', file=sys.stderr)
-            if fail > 30 and fail > n * 0.5:
+    age = lambda kid: (today - datetime.date.fromisoformat(old[kid]['t'])).days if old.get(kid, {}).get('t') else 10 ** 6
+    todo = [(c, str(k)) for c, k in json.load(open(IDS, encoding='utf-8')).items() if age(str(k)) >= days]
+    todo.sort(key=lambda x: -age(x[1]))
+    if limit:
+        todo = todo[:limit]
+    print(f'상세정보: {len(todo)}곳 받을 차례(받은 지 {days}일 이상)')
+    deadline = time.time() + minutes * 60 if minutes else None
+    new, ok, fail, skipped = dict(old), 0, 0, 0
+    with ThreadPoolExecutor(3) as ex:
+        it = iter(todo)
+        run = {}
+        def submit():
+            nonlocal skipped
+            for c, k in it:
+                if deadline and time.time() > deadline:
+                    skipped += 1
+                    continue
+                run[ex.submit(one, c)] = (c, k)
+                return
+        for _ in range(3):
+            submit()
+        while run:
+            f = next(as_completed(run))
+            c, k = run.pop(f)
+            try:
+                new[k] = dict(f.result(), t=today.isoformat())
+                ok += 1
+            except Exception as e:
+                fail += 1
+                print(f'  실패 {k} {c}: {e}', file=sys.stderr)
+            if (ok + fail) % 100 == 0:
+                save(new)
+                print(f'  {ok + fail}/{len(todo)}')
+            if fail > 30 and fail > (ok + fail) * 0.5:
+                save(new)
                 sys.exit('실패가 너무 많아 멈춥니다.')
-        if n % 100 == 0:
-            print(f'  {n}/{len(codes)}')
-        time.sleep(0.3)
-    ok = len(codes) - fail
-    if ok < len(codes) * MIN_OK:
-        sys.exit(f'상세정보를 {ok}/{len(codes)}곳만 받아 저장하지 않습니다.')
-    with open(OUT, 'w', encoding='utf-8') as f:
-        json.dump(dict(sorted(new.items(), key=lambda x: int(x[0]))), f, ensure_ascii=False, separators=(',', ':'))
-    print(f'상세정보 완료: {ok}/{len(codes)}곳 (실패 {fail}곳은 예전 값 유지), 파일에 {len(new)}곳')
+            time.sleep(0.2)
+            submit()
+    save(new)
+    print(f'상세정보 완료: 성공 {ok}, 실패 {fail}(예전 값 유지), 시간 넘어 다음으로 미룸 {skipped}, 파일에 {len(new)}곳')
 
 
 if __name__ == '__main__':
