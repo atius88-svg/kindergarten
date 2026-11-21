@@ -460,7 +460,7 @@ const busBadge = (r) => r.차량운영여부 === '운영'
 // ---------- 어린이집 (서울 25개 구) ----------
 // 출처: 어린이집정보공개포털 OPEN API(기본·나이별 반·입소 대기) + 포털 화면(운영시간·평가·연장보육).
 // 크기가 커서(약 1.4MB) index.html에 넣지 않고 dc.json을 어린이집 모드에 들어갈 때만 불러온다(src/build.py가 만든다).
-const DC_URL = 'dc.json?v=58fb88423f';
+const DC_URL = 'dc.json?v=5019b902e4';
 let DROWS = [];
 let dcLoad = null;
 const loadDC = () => dcLoad || (dcLoad = fetch(DC_URL).then((r) => { if (!r.ok) throw new Error('dc.json ' + r.status); return r.json(); })
@@ -502,7 +502,7 @@ function waitOf(r) {
 // 개편 전 평가(총평 문구가 있거나 2024-07 이전)는 '제도 개편 전 평가'로 따로 표시한다.
 const EVAL_NOTE_OLD = '2024년 7월 개편 전 평가제로 받은 평가예요(보육과정·상호작용, 보육환경·운영관리, 건강·안전, 교직원 4개 영역). 개편으로 A~D 등급제가 폐지돼 예전 등급은 삭제됐고, 당시 결과서의 총평 문구를 보여드려요.';
 const EVAL_NOTE_NEW = '2024년 7월 개편된 평가제로 받은 평가예요. A~D 등급 없이 6개 영역별 종합의견(서술)이 나오고, 고칠 점은 \'다만, …\' 문장으로 적혀요. 어린이집정보공개포털 평가결과서 기준.';
-const EV_V = 'cca6fb';  // 평가결과서 파일(ev/) 버전
+const EV_V = '9db064';  // 평가결과서 파일(ev/) 버전
 // 개편 후 평가 결과서(ev/{id}.json: {ym, a: [[영역, 종합의견]]})를 상세 화면에서 불러와 보완 권고와 영역별 종합의견을 보여 준다
 const isTip = (t) => /^다만/.test(t) || /유의하시기 바랍니다|바랍니다\.?$/.test(t);
 const sentences = (t) => t.split(/(?<=[.!?])\s+/);
