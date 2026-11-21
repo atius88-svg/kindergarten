@@ -15,7 +15,9 @@ sdir = os.path.join(d, '..', 's')
 kg = json.loads(r('data/kg_seoul.json.txt'))
 all_ids = [str(x[kg['cols'].index('id')]) for x in kg['rows']] + [x[0] for x in json.loads(dc)['rows']]
 noshare = [i for i in all_ids if not os.path.exists(os.path.join(sdir, f'{i}.html'))]
-h = (r('template.html').replace('%%NOSHARE%%', json.dumps(noshare)).replace('%%DATA%%', r('data/kg_seoul.json.txt'))
+man = os.path.join(sdir, 'images.json')
+share_v = hashlib.md5(open(man, 'rb').read()).hexdigest()[:6] if os.path.exists(man) else '0'
+h = (r('template.html').replace('%%NOSHARE%%', json.dumps(noshare)).replace('%%SHARE_V%%', share_v).replace('%%DATA%%', r('data/kg_seoul.json.txt'))
      .replace('%%COST%%', r('data/kg_cost_seoul.json')).replace('%%DC_URL%%', f'dc.json?v={ver}')
      .replace('%%RCRT%%', r('data/kg_rcrt.json')).replace('%%DET%%', det))
 open(os.path.join(d, '..', 'index.html'), 'w', encoding='utf-8').write(h + '\n' if not h.endswith('\n') else h)

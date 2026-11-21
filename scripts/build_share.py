@@ -9,7 +9,7 @@
 - 지도에서 빠진 곳의 s/ 파일은 지운다. 한 번에 많이 지워야 하면(데이터 이상일 수 있음) 지우지 않고 오류로 알린다 → 일부러면 --prune.
 필요: Pillow(pip install pillow), scripts/fonts/Jua-Regular.ttf (SIL OFL, scripts/fonts/OFL.txt).
 """
-import html, json, os, re, sys
+import hashlib, html, json, os, re, sys
 
 SITE = 'https://atius88-svg.github.io/kindergarten/'
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -59,8 +59,9 @@ def items():
     return out
 
 
-def page(fid, mode, name, gu, kind, cap, desc):
-    url, img, to = f'{SITE}s/{fid}.html', f'{SITE}s/{fid}.png', f'../#k{fid}'
+def page(fid, mode, name, gu, kind, cap, desc, ver):
+    # 이미지 주소에 ?v=(그린 글자 해시) → 이미지가 바뀌면 카톡이 예전 이미지를 캐시에서 쓰지 않게
+    url, img, to = f'{SITE}s/{fid}.html', f'{SITE}s/{fid}.png?v={ver}', f'../#k{fid}'
     title = f'{name} · {gu} {kind}'
     return f'''<!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
@@ -143,11 +144,11 @@ def main():
     drawn = wrote = 0
     for fid, mode, name, gu, kind, cap, desc in rows:
         p = os.path.join(OUT, f'{fid}.html')
-        txt = page(fid, mode, name, gu, kind, cap, desc)
+        key = f'{mode}|{name}|{gu}|{kind}|{cap or ""}'
+        txt = page(fid, mode, name, gu, kind, cap, desc, hashlib.md5(key.encode()).hexdigest()[:8])
         if not os.path.exists(p) or open(p, encoding='utf-8').read() != txt:
             open(p, 'w', encoding='utf-8').write(txt)
             wrote += 1
-        key = f'{mode}|{name}|{gu}|{kind}|{cap or ""}'
         png = os.path.join(OUT, f'{fid}.png')
         if man.get(fid) != key or not os.path.exists(png):
             draw(mode, name, gu, kind, cap, png)
