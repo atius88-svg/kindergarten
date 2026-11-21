@@ -452,7 +452,7 @@ const busBadge = (r) => r.차량운영여부 === '운영'
 // ---------- 어린이집 (서울 25개 구) ----------
 // 출처: 어린이집정보공개포털 OPEN API(기본·나이별 반·입소 대기) + 포털 화면(운영시간·평가·연장보육).
 // 크기가 커서(약 1.4MB) index.html에 넣지 않고 dc.json을 어린이집 모드에 들어갈 때만 불러온다(src/build.py가 만든다).
-const DC_URL = 'dc.json?v=a40d3a1d07';
+const DC_URL = 'dc.json?v=59b1743cdf';
 let DROWS = [];
 let dcLoad = null;
 const loadDC = () => dcLoad || (dcLoad = fetch(DC_URL).then((r) => { if (!r.ok) throw new Error('dc.json ' + r.status); return r.json(); })
