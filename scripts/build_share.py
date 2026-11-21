@@ -4,7 +4,7 @@
 지도 서비스는 한 페이지라 기관마다 미리보기를 다르게 할 수 없어서, 기관마다 작은 HTML을 만들어 og 태그만 넣고
 사람이 열면 스크립트로 바로 지도 상세(../#k{id}, ../#kc{stcode})로 보낸다. noindex라 검색에는 안 잡힌다.
 - 대상: 지도에 있는 유치원 전부(kg_seoul.json.txt) + 어린이집 전부(dc_seoul.json). 파일 이름은 지도 상세 id와 같다(604, c11290000123).
-- 이미지(800×420): 이름·구·유형만 넣어(숫자 없음) 거의 안 바뀐다 → 글자가 바뀐 곳·새 곳만 다시 그린다(s/images.json에 그린 글자 기록).
+- 이미지(800×420): 이름·구·유형·정원. 정원은 1년에 한 번 정도만 바뀌어 대부분 그대로 → 글자가 바뀐 곳·새 곳만 다시 그린다(s/images.json에 그린 글자 기록).
 - 설명 문구: 유치원은 만 5세 월 비용·원아 수·한 반 인원(공시 기준), 어린이집은 숫자 없이 안내 문구(어린이집 API 약관 확인 전).
 - 지도에서 빠진 곳의 s/ 파일은 지운다. 한 번에 많이 지워야 하면(데이터 이상일 수 있음) 지우지 않고 오류로 알린다 → 일부러면 --prune.
 필요: Pillow(pip install pillow), scripts/fonts/Jua-Regular.ttf (SIL OFL, scripts/fonts/OFL.txt).
@@ -30,7 +30,7 @@ def won(n):
 
 
 def items():
-    """[(파일 id, 모드, 이름, 구, 유형 글자, 설명)]"""
+    """[(파일 id, 모드, 이름, 구, 유형 글자, 정원, 설명)]"""
     kg, cost, dc = load('kg_seoul.json.txt'), load('kg_cost_seoul.json')['cost'], load('dc_seoul.json')
     out = []
     for v in kg['rows']:
@@ -43,20 +43,23 @@ def items():
         if c and c[2] is not None:
             t = c[2] + (c[5] or 0)
             bits.append('만 5세 월 ' + ('0원' if t == 0 else won(t)))
+        if r.get('정원'):
+            bits.append(f'정원 {r["정원"]}명')
         if r.get('원아수') is not None:
             bits.append(f'원아 {r["원아수"]}명')
         if r.get('학급당원아') is not None:
             bits.append(f'한 반 {round(r["학급당원아"])}명')
         desc = ' · '.join(bits) + (' — ' if bits else '') + '원비·한 반 인원·내년 빈자리를 지도에서 주변 유치원과 비교해 보세요.'
-        out.append((i, 'kg', r['유치원명'], r['구'], f'{r["유형"]} 유치원', desc))
+        out.append((i, 'kg', r['유치원명'], r['구'], f'{r["유형"]} 유치원', r.get('정원'), desc))
     for v in dc['rows']:
         r = dict(zip(dc['cols'], v))
-        out.append((r['id'], 'dc', r['유치원명'], r['구'], f'{r["설립유형"]} 어린이집',
-                    '평가·입소 대기·연장보육·선생님 근속을 지도에서 주변 어린이집과 비교해 보세요.'))
+        cap = r.get('정원') or None
+        out.append((r['id'], 'dc', r['유치원명'], r['구'], f'{r["설립유형"]} 어린이집', cap,
+                    (f'정원 {cap}명 — ' if cap else '') + '평가·입소 대기·연장보육·선생님 근속을 지도에서 주변 어린이집과 비교해 보세요.'))
     return out
 
 
-def page(fid, mode, name, gu, kind, desc):
+def page(fid, mode, name, gu, kind, cap, desc):
     url, img, to = f'{SITE}s/{fid}.html', f'{SITE}s/{fid}.png', f'../#k{fid}'
     title = f'{name} · {gu} {kind}'
     return f'''<!doctype html>
@@ -78,7 +81,7 @@ def page(fid, mode, name, gu, kind, desc):
 '''
 
 
-def draw(mode, name, gu, kind, path):
+def draw(mode, name, gu, kind, cap, path):
     from PIL import Image, ImageDraw, ImageFont
     bg, acc, noun = STYLE[mode]
     im = Image.new('RGB', (W, H), bg)
@@ -110,12 +113,24 @@ def draw(mode, name, gu, kind, path):
     for l in lines:
         d.text((52, y), l, font=F(size), fill=acc)
         y += size * 1.15
-    # 아래: 구 · 유형
-    f2 = F(34)
-    d.text((54, 318), gu, font=f2, fill='#ffffff')
+    # 아래 오른쪽: 정원 알약, 왼쪽: 구 · 유형
+    right = W - 52
+    if cap:
+        fc = F(36)
+        t = f'정원 {cap}명'
+        tw = d.textlength(t, font=fc)
+        d.rounded_rectangle([right - tw - 44, 306, right, 364], radius=29, fill=acc)
+        d.text((right - tw - 22, 314), t, font=fc, fill=bg)
+        right -= tw + 44 + 24
+    sz = 34
+    while sz > 24 and d.textlength(gu + kind, font=F(sz)) + 35 > right - 54:
+        sz -= 2
+    f2 = F(sz)
+    ty = 318 + (34 - sz) // 2
+    d.text((54, ty), gu, font=f2, fill='#ffffff')
     gx = 54 + d.textlength(gu, font=f2) + 14
-    d.ellipse([gx, 336, gx + 7, 343], fill='#ffffff')
-    d.text((gx + 21, 318), kind, font=f2, fill='#ffffff')
+    d.ellipse([gx, ty + 18, gx + 7, ty + 25], fill='#ffffff')
+    d.text((gx + 21, ty), kind, font=f2, fill='#ffffff')
     d.rectangle([0, H - 10, W, H], fill=acc)
     im.quantize(colors=48, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).save(path, optimize=True)
 
@@ -126,16 +141,16 @@ def main():
     man_p = os.path.join(OUT, 'images.json')
     man = json.load(open(man_p, encoding='utf-8')) if os.path.exists(man_p) else {}
     drawn = wrote = 0
-    for fid, mode, name, gu, kind, desc in rows:
+    for fid, mode, name, gu, kind, cap, desc in rows:
         p = os.path.join(OUT, f'{fid}.html')
-        txt = page(fid, mode, name, gu, kind, desc)
+        txt = page(fid, mode, name, gu, kind, cap, desc)
         if not os.path.exists(p) or open(p, encoding='utf-8').read() != txt:
             open(p, 'w', encoding='utf-8').write(txt)
             wrote += 1
-        key = f'{mode}|{name}|{gu}|{kind}'
+        key = f'{mode}|{name}|{gu}|{kind}|{cap or ""}'
         png = os.path.join(OUT, f'{fid}.png')
         if man.get(fid) != key or not os.path.exists(png):
-            draw(mode, name, gu, kind, png)
+            draw(mode, name, gu, kind, cap, png)
             man[fid] = key
             drawn += 1
     # 지도에서 빠진 곳 정리
