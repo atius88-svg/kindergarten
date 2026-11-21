@@ -28,6 +28,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 40
         run: python3 scripts/fetch_cost.py
+      - name: 유치원 주소·전화·홈페이지·통학차량 대수·CCTV 받기 (서울 전체, 약 15분)
+        continue-on-error: true
+        timeout-minutes: 30
+        run: python3 scripts/fetch_detail.py
       - name: 어린이집 포털 화면(운영시간·평가·연장보육) — 받은 지 90일 넘은 곳만, 최대 90분(한 곳 약 4초)
         continue-on-error: true
         timeout-minutes: 100
@@ -40,11 +44,13 @@ jobs:
         run: python3 scripts/fetch_dc.py
       - name: index.html 빌드
         run: python3 src/build.py
+      - name: 기관별 정적 페이지(k/) 빌드
+        run: python3 scripts/build_pages.py
       - name: 바뀐 게 있으면 커밋
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A src/data index.html dc.json
+          git add -A src/data index.html dc.json k
           if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi
           git commit -m "데이터 자동 갱신 $(date +%Y-%m-%d)"
           git pull --rebase -q origin main && git push
