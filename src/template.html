@@ -396,6 +396,7 @@ const NOBUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const COSTD = %%COST%%;  // {timing, basis, cost: {id: [...]}} — 서울 전체, scripts/fetch_cost.py
 const COST = COSTD.cost;
 const COST_BASIS = COSTD.basis ? COSTD.basis.replace(/\s*\(.*\)/, '') : '';
+const DET = %%DET%%;  // {id: [주소, 전화, 홈페이지, 통학차량 대수, CCTV 대수]} — 서울 운영 중 유치원, scripts/fetch_detail.py
 const won = (n) => n >= 10000 ? `${(Math.round(n / 1000) / 10).toLocaleString()}만원` : `${n.toLocaleString()}원`;
 function costOf(r) {
   const c = COST[r.id];
@@ -636,7 +637,14 @@ function describe(r) {
     if (n < 30) tags.push(['n', '대부분 일찍 하원해요']);
     facts.push(['오후 돌봄', txt, '', n < 30 ? 'n' : '']);
   }
-  facts.push(['통학 차량', r.차량운영여부 === '운영' ? '<b>운영해요.</b> 노선은 원에 확인하세요.' : r.차량운영여부 === '미운영' ? '<b>운영하지 않아요.</b> 직접 등하원해야 해요.' : '정보 없음', '', '']);
+  const dt = DET[r.id];  // 휴원·공시 전 행은 없음
+  const nBus = dt && dt[3] > 0 ? ` (<b>${dt[3]}대</b>)` : '';
+  facts.push(['통학 차량', r.차량운영여부 === '운영' ? `<b>운영해요</b>${nBus}. 노선은 원에 확인하세요.` : r.차량운영여부 === '미운영' ? '<b>운영하지 않아요.</b> 직접 등하원해야 해요.' : '정보 없음', '', '']);
+  if (dt && dt[4] != null) facts.push(['CCTV', dt[4] === 0 ? '설치한 CCTV가 <b>없다</b>고 공시했어요.' : `<b>${dt[4]}대</b> 설치했어요.`, dt[4] === 0 ? '공시 값이라 실제와 다를 수 있어요. 유치원에 확인해 보세요.' : '', dt[4] === 0 ? 'b' : '']);
+  if (dt) {
+    const web = /^https?:\/\//.test(dt[2] || '') ? `<br><a href="${esc(dt[2])}" target="_blank" rel="noopener"><b>홈페이지</b></a>` : '';
+    facts.push(['연락처', `${esc(dt[0])}${dt[1] ? `<br><a href="tel:${esc(dt[1])}"><b>${esc(dt[1])}</b></a>` : ''}${web}`, '유치원이 공시한 주소·전화·홈페이지예요.', '']);
+  }
   const order = { g: 0, b: 1, n: 2 };
   tags.sort((a, b) => order[a[0]] - order[b[0]]);
   return { tags: tags.slice(0, 4), facts };

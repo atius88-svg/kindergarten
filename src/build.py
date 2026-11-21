@@ -6,8 +6,12 @@ r = lambda p: open(os.path.join(d, p), encoding='utf-8').read().strip()
 dc = r('data/dc_seoul.json')
 open(os.path.join(d, '..', 'dc.json'), 'w', encoding='utf-8').write(dc + '\n')
 ver = hashlib.sha1(dc.encode()).hexdigest()[:10]  # 데이터가 바뀌면 주소가 바뀌어 캐시를 새로 받음
+import json
+# 상세정보는 index.html 크기를 줄이려고 배열로 압축: {id: [주소, 전화, 홈페이지, 통학차량 대수, CCTV 대수]}
+det = json.dumps({k: [v.get('addr'), v.get('tel'), v.get('web'), v.get('bus'), v.get('cctv')]
+                  for k, v in json.loads(r('data/kg_detail.json')).items()}, ensure_ascii=False, separators=(',', ':'))
 h = (r('template.html').replace('%%DATA%%', r('data/kg_seoul.json.txt'))
      .replace('%%COST%%', r('data/kg_cost_seoul.json')).replace('%%DC_URL%%', f'dc.json?v={ver}')
-     .replace('%%RCRT%%', r('data/kg_rcrt.json')))
+     .replace('%%RCRT%%', r('data/kg_rcrt.json')).replace('%%DET%%', det))
 open(os.path.join(d, '..', 'index.html'), 'w', encoding='utf-8').write(h + '\n' if not h.endswith('\n') else h)
 print('index.html', len(h), '/ dc.json', len(dc))
