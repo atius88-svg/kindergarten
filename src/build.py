@@ -10,11 +10,13 @@ import json
 # 상세정보는 index.html 크기를 줄이려고 배열로 압축: {id: [주소, 전화, 홈페이지, 통학차량 대수, CCTV 대수]}
 det = json.dumps({k: [v.get('addr'), v.get('tel'), v.get('web'), v.get('bus'), v.get('cctv')]
                   for k, v in json.loads(r('data/kg_detail.json')).items()}, ensure_ascii=False, separators=(',', ':'))
-# 기관별 페이지(k/{id}.html, scripts/build_pages.py가 먼저 만듦)가 있는 유치원 id — 상세 공유 주소로 쓴다
-kdir = os.path.join(d, '..', 'k')
-pages = sorted((f[:-5] for f in (os.listdir(kdir) if os.path.isdir(kdir) else []) if f[:-5].isdigit() and f.endswith('.html')), key=int)
-h = (r('template.html').replace('%%PAGES%%', json.dumps(pages)).replace('%%DATA%%', r('data/kg_seoul.json.txt'))
+# 공유 미리보기 주소(s/{id}.html, scripts/build_share.py가 먼저 만듦)가 아직 없는 곳 — 이런 곳은 지도 주소로 공유한다
+sdir = os.path.join(d, '..', 's')
+kg = json.loads(r('data/kg_seoul.json.txt'))
+all_ids = [str(x[kg['cols'].index('id')]) for x in kg['rows']] + [x[0] for x in json.loads(dc)['rows']]
+noshare = [i for i in all_ids if not os.path.exists(os.path.join(sdir, f'{i}.html'))]
+h = (r('template.html').replace('%%NOSHARE%%', json.dumps(noshare)).replace('%%DATA%%', r('data/kg_seoul.json.txt'))
      .replace('%%COST%%', r('data/kg_cost_seoul.json')).replace('%%DC_URL%%', f'dc.json?v={ver}')
      .replace('%%RCRT%%', r('data/kg_rcrt.json')).replace('%%DET%%', det))
 open(os.path.join(d, '..', 'index.html'), 'w', encoding='utf-8').write(h + '\n' if not h.endswith('\n') else h)
-print('index.html', len(h), '/ dc.json', len(dc), '/ 기관별 페이지', len(pages))
+print('index.html', len(h), '/ dc.json', len(dc), '/ 공유 주소 없는 곳', len(noshare))

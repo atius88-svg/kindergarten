@@ -60,7 +60,13 @@ jobs:
         id: pages
         continue-on-error: true   # 한 곳 오류로 갱신 전체가 막히지 않게(오류 난 페이지는 예전 파일 유지)
         run: python3 scripts/build_pages.py
-      - name: index.html 빌드 (k/ 페이지 목록을 공유 주소로 쓰므로 k/ 다음에)
+      - name: 공유 미리보기(s/) 빌드 — 카톡 미리보기용 기관별 주소·이미지(새 곳·이름 바뀐 곳만 그림)
+        id: share
+        continue-on-error: true
+        run: |
+          pip install -q pillow
+          python3 scripts/build_share.py
+      - name: index.html 빌드 (공유 주소가 없는 곳을 알아야 해서 s/ 다음에)
         id: build
         continue-on-error: true   # 실패해도 받은 데이터는 커밋(배포 화면은 예전 그대로)
         run: python3 src/build.py
@@ -69,7 +75,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A src/data index.html dc.json k
+          git add -A src/data index.html dc.json k s
           # sitemap.xml은 기관별 페이지 색인을 허용했을 때만 생김(build_pages.py NOINDEX=False)
           if [ -e sitemap.xml ] || git ls-files --error-unmatch sitemap.xml >/dev/null 2>&1; then git add -A sitemap.xml; fi
           if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi
@@ -95,6 +101,7 @@ jobs:
             어린이집 API=${{ steps.dc.outcome }}
             index.html 빌드=${{ steps.build.outcome }}
             k/ 페이지 빌드=${{ steps.pages.outcome }}
+            공유 미리보기 빌드=${{ steps.share.outcome }}
             커밋=${{ steps.commit.outcome }}
             예약 실행 유지=${{ steps.keepalive.outcome }}
         run: |

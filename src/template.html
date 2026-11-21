@@ -413,7 +413,7 @@ const NOBUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const COSTD = %%COST%%;  // {timing, basis, cost: {id: [...]}} — 서울 전체, scripts/fetch_cost.py
 const COST = COSTD.cost;
 const COST_BASIS = COSTD.basis ? COSTD.basis.replace(/\s*\(.*\)/, '') : '';
-const PAGES = new Set(%%PAGES%%);  // k/{id}.html이 있는 유치원(scripts/build_pages.py) — 상세 공유는 이 주소로(카톡 미리보기에 이름·요약)
+const NOSHARE = new Set(%%NOSHARE%%);  // 공유 미리보기 주소 s/{id}.html(scripts/build_share.py)이 아직 없는 곳 — 보통 비어 있음
 const DET = %%DET%%;  // {id: [주소, 전화, 홈페이지, 통학차량 대수, CCTV 대수]} — 서울 운영 중 유치원, scripts/fetch_detail.py
 const won = (n) => n >= 10000 ? `${(Math.round(n / 1000) / 10).toLocaleString()}만원` : `${n.toLocaleString()}원`;
 function costOf(r) {
@@ -997,8 +997,8 @@ async function start() {
       <p class="note">${isDC(r) ? '출처: 공공데이터포털 어린이집 기본정보, 어린이집정보공개포털(평가·연장보육·근속). 입소 대기 순번은 아이사랑에서 확인하세요.' : '출처: 유치원알리미 2026년 정보공시. 설명회 일정·특성화 프로그램은 유치원에 직접 확인하세요.'}</p>`;
     $('d-heart').addEventListener('click', () => toggleCmp(id));
     $('d-share').addEventListener('click', async () => {
-      // 기관별 페이지가 있으면 그 주소를 공유(주소 뒤 #k…는 카톡 미리보기에 안 쓰여서 이름·요약이 안 뜸)
-      const url = !isDC(r) && PAGES.has(r.id) ? new URL(`k/${r.id}.html`, location.href).href : location.href;
+      // 공유는 기관별 미리보기 주소 s/{id}.html로(카톡은 주소 뒤 #k…를 안 봐서 지도 주소로는 이름이 안 뜸). 열면 바로 이 상세로 옴
+      const url = NOSHARE.has(r.id) ? location.href : new URL(`s/${r.id}.html`, location.href).href;
       const title = `${r.유치원명} | 우리 동네 ${isDC(r) ? '어린이집' : '유치원'}`;
       try { if (navigator.share) { await navigator.share({ title, url }); return; } } catch (e) { return; }
       try { await navigator.clipboard.writeText(url); $('d-share').textContent = '✅ 복사됨'; } catch (e) { prompt('이 주소를 복사하세요', url); }
