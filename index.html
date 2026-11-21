@@ -490,17 +490,23 @@ function waitOf(r) {
   const cls = v === 0 ? 'g' : WAIT_P75[i] != null && v >= Math.max(1, WAIT_P75[i]) ? 'b' : '';
   return { i, v, cls, lab: v === 0 ? '없음' : cls === 'b' ? '많은 편' : '', who: sel === '' ? '' : WAIT_LAB[i] };
 }
+// 어린이집 평가제는 2024-07-03 개편: A~D 등급제 폐지, 영역별 서술형 결과(예전 등급은 일괄 삭제).
+// 개편 전 평가(총평 문구가 있거나 2024-07 이전)는 '제도 개편 전 평가'로 따로 표시한다.
+const EVAL_NOTE_OLD = '2024년 7월 개편 전 평가제로 받은 평가예요(보육과정·상호작용, 보육환경·운영관리, 건강·안전, 교직원 4개 영역). 개편으로 A~D 등급제가 폐지돼 예전 등급은 삭제됐고, 당시 결과서의 총평 문구를 보여드려요.';
+const EVAL_NOTE_NEW = '2024년 7월 개편된 평가제로 받은 평가예요. A~D 등급 없이 영역별로 서술한 결과서가 나와요(어린이집정보공개포털에서 볼 수 있어요).';
 function dcEval(r) {
   if (r.평가완료 == null) return null;
-  if (!r.평가완료) return { cls: 'b', lab: '아직 없음', txt: '아직 평가를 받지 않았어요. 새로 문을 연 곳일 수 있어요.' };
-  if (r.평가 === 'A') return { cls: 'g', lab: '모두 충족', txt: `<b>평가 완료</b>(${r.평가연월}) · 총평 “<b>모든 영역 충족</b>”` };
-  if (r.평가 === 'B') return { cls: 'n', lab: '일부 보완', txt: `<b>평가 완료</b>(${r.평가연월}) · 총평 “<b>대부분 충족</b>”, 일부 보완할 점이 있었어요.` };
-  return { cls: '', lab: `'${ymTxt(r.평가연월)}`, txt: `<b>평가 완료</b>(${r.평가연월})` };
+  if (!r.평가완료) return { cls: 'b', lab: '아직 없음', txt: '아직 평가를 받지 않았어요. 새로 문을 연 곳일 수 있어요.', note: EVAL_NOTE_NEW };
+  const old = r.평가 === 'A' || r.평가 === 'B' || (r.평가연월 || '9999') < '2024-07';
+  if (r.평가 === 'A') return { cls: 'g', old, lab: '개편 전 충족', txt: `<b>제도 개편 전 평가</b>(${r.평가연월}) · 총평 “<b>모든 영역 충족</b>”`, note: EVAL_NOTE_OLD };
+  if (r.평가 === 'B') return { cls: 'n', old, lab: '개편 전 일부 보완', txt: `<b>제도 개편 전 평가</b>(${r.평가연월}) · 총평 “<b>대부분 충족</b>”, 일부 보완할 점이 있었어요.`, note: EVAL_NOTE_OLD };
+  if (old) return { cls: '', old, lab: `개편 전 '${ymTxt(r.평가연월)}`, txt: `<b>제도 개편 전 평가</b>(${r.평가연월})`, note: EVAL_NOTE_OLD };
+  return { cls: '', old, lab: `'${ymTxt(r.평가연월)}`, txt: `<b>평가 완료</b>(${r.평가연월}) · 개편된 평가제(영역별 서술형 결과)`, note: EVAL_NOTE_NEW };
 }
 function dcBadges(r) {
   const out = [];
   const e = dcEval(r);
-  if (e) out.push([e.cls, ICON.star + '평가', e.lab, '어린이집 평가제 결과']);
+  if (e) out.push([e.cls, ICON.star + '평가', e.lab, e.old ? '2024년 7월 개편 전 평가제로 받은 평가(당시 총평 문구)' : '어린이집 평가제 결과']);
   const w = waitOf(r);
   if (w) out.push([w.cls, ICON.wait + `${w.who ? w.who.replace('만 ', '') + ' ' : ''}대기 ${w.v}명`, w.lab, `입소 대기 신청 아동 수${w.who ? ` (${w.who})` : ' (전체 나이)'} · 서울 상위 25%는 ${WAIT_P75[w.i]}명 이상 · 중복 신청 포함`]);
   if (r.연장반 != null) out.push(r.연장반 > 0 ? ['g', ICON.moon + `연장반 ${r.연장반}개`, `${r.연장아동}명`, '19:30 이후 연장보육반 · 이용 아동 수'] : ['b', ICON.moon + '연장반', '없음', '연장보육반']);
@@ -520,8 +526,8 @@ function dcDescribe(r) {
   const sp = (r.특성 || '').split('|').filter(Boolean);
   const e = dcEval(r);
   if (e) {
-    if (e.cls === 'g') tags.push(['g', '평가 모든 영역 충족']); else if (e.cls === 'b') tags.push(['b', '평가 전']);
-    facts.push(['평가', e.txt, '보육과정·상호작용, 보육환경·운영관리, 건강·안전, 교직원 4개 영역을 봐요. A~D 등급 글자는 공개 화면에 없어 총평 문구로 보여드려요.', e.cls]);
+    if (e.cls === 'g') tags.push(['g', '개편 전 평가 모든 영역 충족']); else if (e.cls === 'b') tags.push(['b', '평가 전']);
+    facts.push(['평가', e.txt, e.note, e.cls]);
   } else facts.push(['평가', '정보 없음', '', '']);
   sp.forEach((s) => SPEC[s] && tags.push(SPEC[s]));
   if (r.연장반 != null) {
@@ -937,7 +943,7 @@ async function start() {
     const age = +$('age').value + 3;
     const rows = MODE === 'dc' ? [
       ['유형', (r) => esc(r.설립유형)],
-      ['평가', (r) => { const e = dcEval(r); return e ? (e.cls === 'b' ? '아직 없음' : e.lab.startsWith("'") ? '완료 ' + e.lab : e.lab) : '-'; }, (r) => { const e = dcEval(r); return e ? { g: 3, '': 2, n: 1, b: 0 }[e.cls] : null; }],
+      ['평가', (r) => { const e = dcEval(r); return e ? (e.cls === 'b' ? '아직 없음' : e.lab.startsWith("'") ? '완료 ' + e.lab : e.lab) : '-'; }, (r) => { const e = dcEval(r); return e ? { g: 2, '': 2, n: 1, b: 0 }[e.cls] : null; }],
       ['연장보육반', (r) => r.연장반 != null ? (r.연장반 ? `${r.연장반}개 · ${r.연장아동}명` : '없음') : '-', (r) => r.연장반],
       ['야간연장', (r) => /야간연장형|24시간/.test(r.특성 || '') ? '🌃 있음' : '-'],
       ['현원/정원', (r) => `${r.원아수}/${r.정원}명<br><small>${r.충원율}%</small>`, (r) => -r.충원율],
