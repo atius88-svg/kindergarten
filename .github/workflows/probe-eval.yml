@@ -1,0 +1,16 @@
+name: probe-eval (시험용)
+on:
+  push:
+    branches: [probe-eval]
+    paths: [probe/probe.py]
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: python3 probe/probe.py | tee probe/out.log
+      - run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A probe; git commit -m "probe 결과" && git push
