@@ -1,7 +1,9 @@
 # 기관별 정적 상세 페이지(SEO 시험): python3 scripts/build_pages.py  (저장소 루트에서 실행)
 # 시험 단계: 성북구 유치원 30곳만 k/{id}.html 로 만든다. 모든 페이지에 noindex를 넣어 검색에 잡히지 않게 한다.
-# 배포를 결정하면 NOINDEX=False, GU=None, LIMIT=None 으로 바꾸고 sitemap.xml 생성을 켠다.
-import html, json, math, os, statistics, sys, traceback, urllib.parse
+# 배포를 결정하면 NOINDEX=False, GU=None, LIMIT=None 으로 바꾼다 → 저장소 루트에 sitemap.xml도 만든다(noindex인 동안은 만들지 않음).
+# 대상에서 빠진 곳(폐원·휴원 등)의 옛 k/{id}.html은 지운다. 한 번에 많이 지워야 하면(데이터 이상일 수 있음) 지우지 않고 알리며,
+# 일부러 줄인 거면 --prune 을 붙여 실행한다.
+import datetime, html, json, math, os, re, statistics, sys, traceback, urllib.parse
 
 NOINDEX, GU, LIMIT = True, '성북구', 30
 SITE = 'https://atius88-svg.github.io/kindergarten/'
@@ -158,6 +160,14 @@ def page(r):
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
 {robots}<link rel="canonical" href="{SITE}k/{r["id"]}.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="우리동네 유치원·어린이집">
+<meta property="og:title" content="{e(name)} · {gu} 유치원 원비·정원·내년 빈자리">
+<meta property="og:description" content="{e(desc)}">
+<meta property="og:url" content="{SITE}k/{r["id"]}.html">
+<meta property="og:image" content="{SITE}og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>
 <style>
 body{{margin:0;font:16px/1.6 system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#1b2a25;background:#f6f8f6}}
@@ -203,6 +213,29 @@ def main():
             continue
         open(os.path.join(root, 'k', f'{r["id"]}.html'), 'w', encoding='utf-8').write(out)
     print(len(sel) - len(fail), 'pages -> k/', f'(오류 {len(fail)}곳: {fail})' if fail else '')
+    # 대상에서 빠진 곳의 옛 페이지 지우기(옛 숫자가 계속 남지 않게)
+    kdir = os.path.join(root, 'k')
+    keep = {f'{r["id"]}.html' for r in sel}
+    stale = sorted(f for f in os.listdir(kdir) if re.fullmatch(r'\d+\.html', f) and f not in keep)
+    if stale and (len(stale) <= max(10, len(sel) * 0.2) or '--prune' in sys.argv) and sel:
+        for f in stale:
+            os.remove(os.path.join(kdir, f))
+        print(f'대상에서 빠진 옛 페이지 {len(stale)}개 지움: {stale[:10]}')
+    elif stale:
+        print(f'대상에서 빠진 옛 페이지가 {len(stale)}개라 지우지 않음(데이터 이상일 수 있음). 일부러 줄였으면 --prune', file=sys.stderr)
+        fail.append('stale')
+    # sitemap.xml: 색인을 허용했을 때만(noindex인 동안은 지움)
+    sm = os.path.join(root, 'sitemap.xml')
+    if NOINDEX:
+        if os.path.exists(sm):
+            os.remove(sm)
+    else:
+        today = datetime.date.today().isoformat()
+        urls = [SITE] + [f'{SITE}k/{r["id"]}.html' for r in sel if f'{r["id"]}.html' in set(os.listdir(kdir))]
+        with open(sm, 'w', encoding='utf-8') as f:
+            f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+                    + ''.join(f'<url><loc>{u}</loc><lastmod>{today}</lastmod></url>\n' for u in urls) + '</urlset>\n')
+        print('sitemap.xml', len(urls), '주소')
     if fail:
         sys.exit(1)
 

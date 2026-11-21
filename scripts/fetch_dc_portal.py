@@ -121,8 +121,10 @@ def main():
     print(f'포털 수집: {len(todo)}곳 (전체 {len(ids)}곳, 기존 {len(old)}곳)')
     t0, ok, fail = time.time(), 0, 0
 
+    idset = set(ids)
+
     def save():
-        keep = {k: v for k, v in old.items() if k in set(ids)}
+        keep = {k: v for k, v in old.items() if k in idset}
         json.dump(keep, open(OUT, 'w', encoding='utf-8'), ensure_ascii=False, sort_keys=True, separators=(',', ':'))
 
     with cf.ThreadPoolExecutor(workers) as ex:

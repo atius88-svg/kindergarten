@@ -4,8 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>우리 동네 유치원 지도</title>
+<meta name="description" content="서울 유치원·어린이집의 원비, 한 반 인원, 내년 예상 빈자리, 입소 대기, 평가를 지도에서 한눈에 비교해요. 유치원알리미·어린이집정보공개포털 공시 자료 기준.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="우리동네 유치원·어린이집">
+<meta property="og:title" content="우리동네 유치원·어린이집 — 서울 원비·빈자리 비교 지도">
+<meta property="og:description" content="원비, 한 반 인원, 내년 예상 빈자리, 입소 대기를 지도에서 비교해요.">
+<meta property="og:url" content="https://atius88-svg.github.io/kindergarten/">
+<meta property="og:image" content="https://atius88-svg.github.io/kindergarten/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<!-- 카카오 지도 SDK는 큰 데이터 스크립트를 읽는 동안 미리 받아 둔다(아래 스크립트가 같은 주소로 실행) -->
+<link rel="preconnect" href="https://dapi.kakao.com"><link rel="preconnect" href="https://t1.daumcdn.net">
+<link rel="preload" as="script" href="https://dapi.kakao.com/v2/maps/sdk.js?appkey=0688a80cbe72ae0757d555b93dc48ab9&autoload=false&libraries=services">
+<!-- 로고 폰트(Jua)는 로고 글자 '유치원·어린이집'만 담은 작은 파일로, 화면 그리기를 막지 않게 받는다 -->
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap&text=%EC%9C%A0%EC%B9%98%EC%9B%90%EC%96%B4%EB%A6%B0%EC%9D%B4%EC%A7%91" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Jua&display=swap&text=%EC%9C%A0%EC%B9%98%EC%9B%90%EC%96%B4%EB%A6%B0%EC%9D%B4%EC%A7%91" rel="stylesheet"></noscript>
 <style>
   :root { --bg:#f7f8f6; --panel:#fff; --fg:#1d2420; --muted:#69736d; --line:#e2e6e3; --pub:#d4483b; --pri:#2f6fd0; --good:#1e8a4c; --bad:#c23a2e; --neu:#c27a10; }
   * { box-sizing: border-box; }
@@ -115,6 +129,7 @@
   .cond-row small { color: var(--muted); font-size: 12px; }
   .cond-reset { justify-self: start; font: inherit; font-size: 12px; background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 0; }
   .more { margin-top: 6px; font-size: 12px; color: var(--muted); }
+  .more-btn { display: block; width: calc(100% - 32px); margin: 12px 16px; padding: 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--fg); font: inherit; font-weight: 600; cursor: pointer; }
   .sheet { position: fixed; inset: 0; z-index: 50; background: rgba(20, 24, 22, .45); display: flex; justify-content: flex-end; }
   .sheet[hidden] { display: none; }
   .sheet .panel { background: var(--panel); width: min(480px, 100%); height: 100%; overflow: auto; display: flex; flex-direction: column; }
@@ -251,6 +266,8 @@ const KAKAO_JS_KEY = '0688a80cbe72ae0757d555b93dc48ab9';
 const RAW = %%DATA%%;
 const ROWS = RAW.rows.map((v) => Object.fromEntries(RAW.cols.map((c, i) => [c, v[i]])));
 ROWS.forEach((r) => { r.id = String(r.id); });
+const KG_BY = new Map(ROWS.map((r) => [r.id, r]));
+let DC_BY = new Map();
 
 // 지표: [필드, 표시명, 방향] 방향 1=높을수록 유리, -1=낮을수록 유리, 0=중립
 const METRICS = [
@@ -396,6 +413,7 @@ const NOBUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const COSTD = %%COST%%;  // {timing, basis, cost: {id: [...]}} — 서울 전체, scripts/fetch_cost.py
 const COST = COSTD.cost;
 const COST_BASIS = COSTD.basis ? COSTD.basis.replace(/\s*\(.*\)/, '') : '';
+const PAGES = new Set(%%PAGES%%);  // k/{id}.html이 있는 유치원(scripts/build_pages.py) — 상세 공유는 이 주소로(카톡 미리보기에 이름·요약)
 const DET = %%DET%%;  // {id: [주소, 전화, 홈페이지, 통학차량 대수, CCTV 대수]} — 서울 운영 중 유치원, scripts/fetch_detail.py
 const won = (n) => n >= 10000 ? `${(Math.round(n / 1000) / 10).toLocaleString()}만원` : `${n.toLocaleString()}원`;
 function costOf(r) {
@@ -445,6 +463,7 @@ const DAVG = {};
 let WAIT_P75 = [], WAIT_MED = null;
 function initDC(DC) {
   DROWS = DC.rows.map((v) => Object.fromEntries(DC.cols.map((c, i) => [c, v[i]])));
+  DC_BY = new Map(DROWS.map((r) => [r.id, r]));
   DC_TYPES.forEach((t) => {
     DAVG[t] = {};
     ['교사1인당원아', '4년이상비율', '1년미만비율', '원아수'].forEach((k) => {
@@ -628,8 +647,7 @@ function describe(r) {
     facts.push(['1년 수업일수', `<b>${r.수업일수}일</b> 수업해요.`, (pub ? '공립은 보통 180일 정도로, 사립보다 방학이 길어요. ' : '') + vs(r, '수업일수', '일', '방학이 긴 편이에요', '방학이 짧은 편이에요'), c]);
   }
   if (r.운영시간) {
-    const end = +(r.운영시간.split('~')[1] || '').slice(0, 2);
-    facts.push(['운영 시간', `<b>${r.운영시간}</b> (방과후 돌봄 포함)`, `서울 유치원 평균은 ${fmtMin(HOURS.open)}~${fmtMin(HOURS.close)}이에요.`, '']);
+    facts.push(['운영 시간', `<b>${esc(r.운영시간)}</b> (방과후 돌봄 포함)`, `서울 유치원 평균은 ${fmtMin(HOURS.open)}~${fmtMin(HOURS.close)}이에요.`, '']);
   }
   if (r.방과후참여율 != null) {
     const n = Math.min(100, r.방과후참여율);
@@ -658,6 +676,8 @@ const km = (a, b, c, d) => {
 
 const S = { lat: null, lng: null, sel: null, cmp: {} };
 let MODE = (() => { try { return localStorage.getItem('kg-mode') === 'dc' ? 'dc' : 'kg'; } catch (e) { return 'kg'; } })();
+// 어린이집 모드로 시작하면 카카오 지도를 받는 동안 dc.json도 같이 받기 시작(start()가 같은 요청을 이어 씀)
+if (MODE === 'dc' || location.hash.startsWith('#kc')) loadDC().catch(() => {});
 const cur = () => (MODE === 'dc' ? DROWS : ROWS);
 const NOUN = () => (MODE === 'dc' ? '어린이집' : '유치원');
 const $ = (id) => document.getElementById(id);
@@ -669,7 +689,7 @@ const store = {
   get() { try { return JSON.parse(localStorage.getItem(this.key()) || '[]'); } catch (e) { return S.cmp[MODE] || []; } },
   set(v) { S.cmp[MODE] = v; try { localStorage.setItem(this.key(), JSON.stringify(v)); } catch (e) {} }
 };
-const byId = (id) => (String(id)[0] === 'c' ? DROWS : ROWS).find((r) => r.id === id);
+const byId = (id) => (String(id)[0] === 'c' ? DC_BY : KG_BY).get(String(id));
 const closeMin = (r) => toMin((r.운영시간 || '').split('~')[1]);
 // 우리 집 조건 (사용자가 직접 설정, 브라우저에 저장)
 const COND_IDS = ['f-close', 'f-cost', 'f-cls', 'f-bus', 'f-eval', 'f-ext', 'f-night', 'f-room', 'f-next', 'f-wait'];
@@ -684,8 +704,7 @@ function condCount() {
   if (MODE === 'dc') return DC_CHECKS.filter((k) => k !== 'next' && c[k]).length + (c.bus ? 1 : 0) + (c.wait !== '' ? 1 : 0);
   return [c.close, c.cost, c.cls].filter((v) => v !== '').length + (c.bus ? 1 : 0) + (c.room ? 1 : 0) + (c.next ? 1 : 0);
 }
-function passCond(r) {
-  const c = condVal();
+function passCond(r, c = condVal()) {
   if (isDC(r)) {
     if (c.eval && !r.평가완료) return false;
     if (c.ext && !(r.연장반 > 0)) return false;
@@ -798,10 +817,60 @@ async function start() {
 
   function select(id, scroll) {
     S.sel = id;
+    // 목록을 40곳씩 그리므로, 지도에서 고른 곳이 아직 안 그려졌으면 거기까지 더 그린다
+    if (scroll && S.shown && !document.querySelector(`.item[data-id="${id}"]`)) {
+      const i = S.shown.findIndex((o) => o.x.id === id);
+      if (i >= S.listN) moreList(i - S.listN + 1);
+    }
     marks.forEach((el, k) => el.classList.toggle('sel', k === id));
     ovs.forEach((ov, k) => ov.setZIndex(k === id ? 4 : 1));
     document.querySelectorAll('.item').forEach((it) => it.classList.toggle('on', it.dataset.id === id));
     if (scroll) { const it = document.querySelector(`.item[data-id="${id}"]`); if (it) it.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  }
+
+  // 마커: 지도 화면 범위(+15% 여유) 안이면서 기준 위치에서 반경×2+1km 안인 곳만 지도에 올린다.
+  // (서울 어린이집이 4천 곳 가까워 다 올리면 폰에서 지도가 무거움) 지도를 옮기거나 확대하면('idle') 다시 맞춘다.
+  function syncMarks() {
+    const b = map.getBounds();
+    if (!b) return;
+    const sw = b.getSouthWest(), ne = b.getNorthEast();
+    const dy = (ne.getLat() - sw.getLat()) * 0.15, dx = (ne.getLng() - sw.getLng()) * 0.15;
+    const la0 = sw.getLat() - dy, la1 = ne.getLat() + dy, lo0 = sw.getLng() - dx, lo1 = ne.getLng() + dx;
+    const r = +$('r').value, t = $('type').value, nc = condCount(), cv = condVal();
+    const vis = new Set();
+    cur().forEach((x) => {
+      if (x.위도 < la0 || x.위도 > la1 || x.경도 < lo0 || x.경도 > lo1) return;
+      const d = km(S.lat, S.lng, x.위도, x.경도);
+      if (d > r * 2 + 1) return;
+      vis.add(x.id);
+      const el = markOf(x), ov = ovs.get(x.id);
+      el.classList.toggle('out', d > r || (t && x.유형 !== t) || (nc > 0 && !passCond(x, cv)));
+      if (!ov.getMap()) ov.setMap(map);
+    });
+    ovs.forEach((ov, id) => { if (!vis.has(id) && ov.getMap()) ov.setMap(null); });
+  }
+
+  // 목록: 처음 PAGE곳만 그리고 '더 보기'로 이어 그린다(반경 5km면 어린이집이 500곳 넘음)
+  const PAGE = 40;
+  const badgeHTML = (r) => badges(r).map(([c, t, lab, tip]) => `<span class="badge ${c}"${tip ? ` title="${esc(tip)}"` : ''}>${t}${lab ? ` <small>${lab}</small>` : ''}</span>`).join('') + busBadge(r);
+  const cardHTML = (x, d, cmp) => {
+    const dsc = describe(x);
+    return `
+      <div class="item" data-id="${esc(x.id)}">
+        <div class="top"><span class="name">${esc(x.유치원명)} <span class="kind">[${esc(x.설립유형)}]</span></span><span class="right"><span class="meta">${d.toFixed(1)}km</span><button class="cbtn" type="button" data-heart="${esc(x.id)}" aria-pressed="${cmp.includes(x.id)}">${cmp.includes(x.id) ? '✓ 비교중' : '+ 비교'}</button></span></div>
+        <div class="badges">${badgeHTML(x)}</div>
+        ${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
+        <div class="more">자세히 보기 ›</div>
+      </div>`;
+  };
+  function moreList(n) {
+    const list = $('list'), cmp = store.get();
+    const btn = list.querySelector('.more-btn');
+    if (btn) btn.remove();
+    const from = S.listN, to = Math.min(S.shown.length, from + n);
+    list.insertAdjacentHTML('beforeend', S.shown.slice(from, to).map(({ x, d }) => cardHTML(x, d, cmp)).join(''));
+    S.listN = to;
+    if (to < S.shown.length) list.insertAdjacentHTML('beforeend', `<button type="button" class="more-btn">${NOUN()} ${S.shown.length - to}곳 더 보기</button>`);
   }
 
   function render(fit) {
@@ -810,47 +879,34 @@ async function start() {
     circle.setPosition(pos); circle.setRadius(r * 1000); center.setPosition(pos);
     if (fit) map.setBounds(circle.getBounds());
 
-    const all = cur().map((x) => ({ x, d: km(S.lat, S.lng, x.위도, x.경도) }));
-    const near = all.filter((o) => o.d <= r);
+    const near = cur().map((x) => ({ x, d: km(S.lat, S.lng, x.위도, x.경도) })).filter((o) => o.d <= r);
     const dcMode = MODE === 'dc';
-    const vis = new Set();
-    all.forEach((o) => {
-      if (o.d > r * 2 + 1) return;
-      vis.add(o.x.id);
-      const el = markOf(o.x), ov = ovs.get(o.x.id);
-      el.classList.toggle('out', o.d > r || (t && o.x.유형 !== t));
-      if (!ov.getMap()) ov.setMap(map);
-    });
-    ovs.forEach((ov, id) => { if (!vis.has(id) && ov.getMap()) ov.setMap(null); });
-    const ok = passCond, nc = condCount();
-    const shown = near.filter((o) => (!t || o.x.유형 === t) && ok(o.x)).sort((a, b) => a.d - b.d);
-    if (nc) near.forEach((o) => { if (!ok(o.x)) marks.get(o.x.id).classList.add('out'); });
+    syncMarks();
+    const nc = condCount(), cv = condVal();
+    const shown = near.filter((o) => (!t || o.x.유형 === t) && passCond(o.x, cv)).sort((a, b) => a.d - b.d);
     const pub = near.filter((o) => o.x.유형 === '국공립').length;
     const mix = dcMode ? DC_TYPES.map((ty) => `${ty} ${near.filter((o) => o.x.유형 === ty).length}`).join(', ') : `국공립 ${pub}, 사립 ${near.length - pub}`;
     $('summary').innerHTML = `반경 <b>${r}km</b> 안에 ${NOUN()} <b>${near.length}곳</b> (${mix})` + (nc ? ` · 우리 집 조건에 맞는 곳 <b>${shown.length}곳</b>` : '');
     drawCondHints();
     S.dist = Object.fromEntries(near.map((o) => [o.x.id, o.d]));
-    const cmp = store.get();
-    $('list').innerHTML = shown.map(({ x, d }) => `
-      <div class="item" data-id="${esc(x.id)}">
-        <div class="top"><span class="name">${esc(x.유치원명)} <span class="kind">[${esc(x.설립유형)}]</span></span><span class="right"><span class="meta">${d.toFixed(1)}km</span><button class="cbtn" type="button" data-heart="${esc(x.id)}" aria-pressed="${cmp.includes(x.id)}">${cmp.includes(x.id) ? '✓ 비교중' : '+ 비교'}</button></span></div>
-        <div class="badges">${badges(x).map(([c, t, lab, tip]) => `<span class="badge ${c}"${tip ? ` title="${tip}"` : ''}>${t}${lab ? ` <small>${lab}</small>` : ''}</span>`).join('')}${busBadge(x)}</div>
-        ${(() => { const dsc = describe(x); return `${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
-        <div class="more">자세히 보기 ›</div>`; })()}
-      </div>`).join('') || `<div class="item meta">반경 안에 ${NOUN()}이 없습니다. ${MODE === 'dc' ? '어린이집은 서울만 있어요. ' : ''}반경을 넓혀 보세요.</div>`;
-    document.querySelectorAll('.item[data-id]').forEach((it) => {
-      it.addEventListener('click', (e) => {
-        const h = e.target.closest('[data-heart]');
-        if (h) { e.stopPropagation(); toggleCmp(h.dataset.heart); return; }
-        const x = byId(it.dataset.id);
-        map.panTo(new kakao.maps.LatLng(x.위도, x.경도));
-        select(x.id, false);
-        openDetail(x.id);
-      });
-    });
+    S.shown = shown; S.listN = 0;
+    $('list').innerHTML = shown.length ? '' : `<div class="item meta">반경 안에 ${NOUN()}이 없습니다. ${MODE === 'dc' ? '어린이집은 서울만 있어요. ' : ''}반경을 넓혀 보세요.</div>`;
+    if (shown.length) moreList(PAGE);
     if (S.sel) select(S.sel, false);
     drawCbar();
   }
+  // 목록 클릭은 한 곳에서 처리(카드마다 리스너를 달지 않음)
+  $('list').addEventListener('click', (e) => {
+    if (e.target.closest('.more-btn')) { moreList(PAGE); return; }
+    const h = e.target.closest('[data-heart]');
+    if (h) { e.stopPropagation(); toggleCmp(h.dataset.heart); return; }
+    const it = e.target.closest('.item[data-id]');
+    if (!it) return;
+    const x = byId(it.dataset.id);
+    map.panTo(new kakao.maps.LatLng(x.위도, x.경도));
+    select(x.id, false);
+    openDetail(x.id);
+  });
 
   // ---------- 비교함 ----------
   function toggleCmp(id) {
@@ -930,7 +986,7 @@ async function start() {
     $('d-title').textContent = r.유치원명;
     $('d-body').innerHTML = `
       <div><div style="font-size:20px;font-weight:700">${esc(r.유치원명)}</div><div class="d-sub">${d}${esc(r.구)} · ${esc(r.설립유형)}</div></div>
-      <div class="badges">${badges(r).map(([c, t, lab, tip]) => `<span class="badge ${c}"${tip ? ` title="${tip}"` : ''}>${t}${lab ? ` <small>${lab}</small>` : ''}</span>`).join('')}${busBadge(r)}</div>
+      <div class="badges">${badgeHTML(r)}</div>
       ${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
       <div class="actions">
         <button type="button" id="d-heart" class="${inCmp ? 'on' : ''}">${inCmp ? '✓ 비교함에 담김' : '+ 비교함에 담기'}</button>
@@ -941,7 +997,9 @@ async function start() {
       <p class="note">${isDC(r) ? '출처: 공공데이터포털 어린이집 기본정보, 어린이집정보공개포털(평가·연장보육·근속). 입소 대기 순번은 아이사랑에서 확인하세요.' : '출처: 유치원알리미 2026년 정보공시. 설명회 일정·특성화 프로그램은 유치원에 직접 확인하세요.'}</p>`;
     $('d-heart').addEventListener('click', () => toggleCmp(id));
     $('d-share').addEventListener('click', async () => {
-      const url = location.href, title = `${r.유치원명} | 우리 동네 유치원`;
+      // 기관별 페이지가 있으면 그 주소를 공유(주소 뒤 #k…는 카톡 미리보기에 안 쓰여서 이름·요약이 안 뜸)
+      const url = !isDC(r) && PAGES.has(r.id) ? new URL(`k/${r.id}.html`, location.href).href : location.href;
+      const title = `${r.유치원명} | 우리 동네 ${isDC(r) ? '어린이집' : '유치원'}`;
       try { if (navigator.share) { await navigator.share({ title, url }); return; } } catch (e) { return; }
       try { await navigator.clipboard.writeText(url); $('d-share').textContent = '✅ 복사됨'; } catch (e) { prompt('이 주소를 복사하세요', url); }
     });
@@ -996,7 +1054,7 @@ async function start() {
     const far = km(S.lat, S.lng, c.getLat(), c.getLng()) > Math.max(0.3, +$('r').value * 0.4);
     $('research').hidden = !far;
   }
-  kakao.maps.event.addListener(map, 'idle', syncResearch);
+  kakao.maps.event.addListener(map, 'idle', () => { syncMarks(); syncResearch(); });
   $('research').addEventListener('click', () => {
     const c = map.getCenter();
     S.lat = c.getLat(); S.lng = c.getLng();

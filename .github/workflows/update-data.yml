@@ -56,20 +56,22 @@ jobs:
         env:
           CHILDCARE_API_KEY: ${{ secrets.CHILDCARE_API_KEY }}
         run: python3 scripts/fetch_dc.py
-      - name: index.html 빌드
-        id: build
-        continue-on-error: true   # 실패해도 받은 데이터는 커밋(배포 화면은 예전 그대로)
-        run: python3 src/build.py
       - name: 기관별 정적 페이지(k/) 빌드
         id: pages
         continue-on-error: true   # 한 곳 오류로 갱신 전체가 막히지 않게(오류 난 페이지는 예전 파일 유지)
         run: python3 scripts/build_pages.py
+      - name: index.html 빌드 (k/ 페이지 목록을 공유 주소로 쓰므로 k/ 다음에)
+        id: build
+        continue-on-error: true   # 실패해도 받은 데이터는 커밋(배포 화면은 예전 그대로)
+        run: python3 src/build.py
       - name: 바뀐 게 있으면 커밋
         id: commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A src/data index.html dc.json k
+          # sitemap.xml은 기관별 페이지 색인을 허용했을 때만 생김(build_pages.py NOINDEX=False)
+          if [ -e sitemap.xml ] || git ls-files --error-unmatch sitemap.xml >/dev/null 2>&1; then git add -A sitemap.xml; fi
           if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi
           git commit -m "데이터 자동 갱신 $(date +%Y-%m-%d)"
           git pull --rebase -q origin "$GITHUB_REF_NAME" && git push

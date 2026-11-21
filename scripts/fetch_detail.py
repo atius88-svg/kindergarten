@@ -19,13 +19,12 @@ SEO 기관별 페이지(scripts/build_pages.py)에 쓰는 값. OPEN API에는 �
 import json, os, re, sys, time, urllib.parse, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fetch_cost import Tables  # caption별 표 파서 재사용
+from fetch_cost import Tables, active_ids  # caption별 표 파서·운영 중 목록 재사용
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 OUT = os.path.join(ROOT, 'src', 'data', 'kg_detail.json')
 IDS = os.path.join(ROOT, 'src', 'data', 'kg_ids.json')
 BASE = 'https://e-childschoolinfo.moe.go.kr/kinderMt/'
-MIN_OK = 0.8
 
 
 def num(s):
@@ -102,7 +101,10 @@ def main():
     today = datetime.date.today()
     old = json.load(open(OUT, encoding='utf-8')) if os.path.exists(OUT) else {}
     age = lambda kid: (today - datetime.date.fromisoformat(old[kid]['t'])).days if old.get(kid, {}).get('t') else 10 ** 6
-    todo = [(c, str(k)) for c, k in json.load(open(IDS, encoding='utf-8')).items() if age(str(k)) >= days]
+    act = active_ids()
+    if act:
+        old = {k: v for k, v in old.items() if k in act}  # 휴원·폐원한 곳 값은 지움(지도·페이지에 안 쓰임)
+    todo = [(c, str(k)) for c, k in json.load(open(IDS, encoding='utf-8')).items() if age(str(k)) >= days and (not act or str(k) in act)]
     todo.sort(key=lambda x: -age(x[1]))
     if limit:
         todo = todo[:limit]

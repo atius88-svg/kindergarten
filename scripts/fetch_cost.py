@@ -73,6 +73,17 @@ class Tables(HTMLParser):
             self.cell.append(data)
 
 
+def active_ids():
+    """kg_seoul.json.txt에서 운영 중(상태 없음)인 유치원 id. kg_ids.json은 휴원·폐원한 곳도 남겨 두므로(다시 열면 같은 id) 수집 대상은 이걸로 거른다."""
+    try:
+        k = json.loads(open(os.path.join(ROOT, 'src', 'data', 'kg_seoul.json.txt'), encoding='utf-8').read())
+        i, st = k['cols'].index('id'), k['cols'].index('상태') if '상태' in k['cols'] else None
+        return {str(r[i]) for r in k['rows'] if st is None or not r[st]}
+    except Exception as e:
+        print(f'  운영 중 목록을 못 읽어 kg_ids.json 전체를 씀: {e}', file=sys.stderr)
+        return None
+
+
 def money(s):
     s = (s or '').replace(',', '').replace('원', '').strip()
     return int(s) if re.fullmatch(r'\d+', s) else None
@@ -208,6 +219,9 @@ def main():
     old = json.load(open(OUT, encoding='utf-8')) if os.path.exists(OUT) else {}
     old.setdefault('cost', {})
     codes = [(code, str(kid)) for code, kid in json.load(open(IDS, encoding='utf-8')).items()]
+    act = active_ids()
+    if act:
+        codes = [(c, k) for c, k in codes if k in act]  # 휴원·폐원한 곳은 받지 않음
     code_of = {kid: code for code, kid in codes}
     every = sorted(code_of, key=int)
 
