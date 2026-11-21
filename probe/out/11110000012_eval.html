@@ -1,0 +1,786 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko">
+<head>
+<title>평가 &lt; 정보공시</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<meta http-equiv="Cache-Control" content="no-cache" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" /><!-- 151130 viewport 추가 -->
+<meta name="format-detection" content="telephone=no">
+
+<link rel="stylesheet" type="text/css" href="/css/info_html5/unityPblntf/common.css" />
+<!--[if IE 7 ]><link rel="stylesheet" type="text/css" href="/css/info_html5/ie7.css" /><![endif]-->
+<!--[if IE 8 ]><link rel="stylesheet" type="text/css" href="/css/info_html5/ie8.css" /><![endif]-->
+<!--[if IE 8 ]><link rel="stylesheet" type="text/css" href="/css/info_html5/unityPblntf/ie8.css" /><![endif]-->
+<!--[if IE 11 ]><link rel="stylesheet" type="text/css" href="/css/info_html5/unityPblntf/ie11.css" /><![endif]-->
+<link href="/images/info/unityPblntf/sub/favicon.ico" rel="shortcut icon"/><!-- favicon 경로 수정했습니다. -->
+<script type="text/javascript" src="/js/info_html5/jquery-1.8.3.js"></script> <!-- 151209 1.9.1 은 live 로드시 오류 발생 -->
+<script type="text/javascript" src="/js/info_html5/jquery-ui.js"></script>
+<script type="text/javascript" src="/js/info_html5/jquery.cookie-1.4.1.js"></script><!-- 151123 즐겨찾기 위해 추가 -->
+<script type="text/javascript" src="/js/common/jquery.blockUI.js"></script>
+<!--[If lt IE 9]>
+    <script type="text/javascript" src="/js/info_html5/unityPblntf/pie/PIE.js"></script>
+<![endif]-->
+<script type="text/javascript" src="/js/info_html5/unityPblntf/common.js"></script>
+
+<!-- 구글 분석기 -->
+
+ <!-- //구글 분석기 -->
+
+<script type="text/javascript">
+//<![CDATA[
+    var imagePath       = "/info_html5" ;
+    var imageRootPath   = "/" ;
+    var serverType      = "P" ;
+    var serverId        = "info" ;
+
+    var serverIdSame    = "/" ;
+    var domainAddr      = "info.childcare.go.kr";
+
+    $(document).ready(function(){
+    	var $frmCrname = $('#nurseryNameSearchFrm input[name="crname"]');
+    	$frmCrname.focus(function(){
+    		if( this.value == '어린이집을 검색하세요' ){
+//     			this.value = ''; // 2016.06.10 웹접근성 관련 내용 삭제
+    		}
+    	});
+
+        $frmCrname.blur(function(){
+        	if( this.value == '' ){
+//                 this.value = '어린이집을 검색하세요'; // 2016.06.10 웹접근성 관련 내용 삭제
+            }
+        });
+
+        function fnComNurseryNameSearch(){
+        	var cName = $frmCrname.val().replace(/\s/g, "");
+
+            if( cName == '' || cName == '어린이집을 검색하세요' ){
+                alert('어린이집 또는 유치원명을 입력해주세요.');
+                $frmCrname.focus();
+                return false;
+            }
+
+            if( cName.length < 2 ){
+                alert('어린이집명을 2자 이상 입력하세요.');
+                $frmCrname.focus();
+                return false;
+            }
+
+            var filterSearch = ["어린이집", "어린이", "린이집", "어린", "이집", "린이"];
+
+            for(var i=0;i<filterSearch.length;i++) {
+                if (cName == filterSearch[i]) {
+                    alert("정확한 어린이집 또는 유치원명을 입력해주세요");
+                    $frmCrname.focus();
+                    return false;
+                }
+            }
+
+            $('#nurseryNameSearchFrm').get(0).submit();
+        }582
+
+        $frmCrname.keydown(function(e){
+        	if( e.keyCode == 13 ){
+        		fnComNurseryNameSearch();
+            }
+        });
+
+        $('#nurseryNameSearchBtn').click(function(){
+        	fnComNurseryNameSearch();
+        });
+        
+        /*
+        console.log(Object.defineProperties(new Error, {
+        	toString: {value() {(new Error).stack.includes('toString@') && alert('devtools')}},
+        	message: {
+        		get() {
+        			document.location.href = "about:blank";
+        		}
+        	},
+        	
+        }));
+        */
+    });
+
+    document.oncontextmenu = function(e){
+    	if (serverType == "P") {
+    	    alert('오른쪽 마우스는 사용할 수 없습니다.');
+    	    return false;
+    	}
+    };
+    
+    document.addEventListener("keydown", function (e) {
+    	if (serverType == "P") {
+	    	if (event.key === "F12" || (event.ctrlKey && event.shiftKey && (event.key.toLowerCase() === "i" || event.key.toLowerCase() === "j"))) {
+	    		event.preventDefault();
+	    		
+	    	}
+	    	
+	    	if (event.ctrlKey && event.key.toLowerCase() === "u") {
+	    		event.preventDefault();
+	    	}
+    	}
+    });
+    
+//]]>
+</script>
+
+
+<script language="JavaScript">
+$(document).ready(function(){
+
+	classNM = window.opener.$('#favorite_11110000012').attr("class");
+	if(classNM!=''){
+		$('#favorite_pop').removeClass().addClass(classNM);
+		$('#favorite_pop').show();
+		var favortxt = window.opener.$('#favorite_11110000012').children('.blind').html();
+		$('#favorite_pop .blind').html(favortxt);
+	}
+});
+
+function clickFavoriteOnPOP(){
+	window.opener.$('#favorite_11110000012').trigger('click');
+	classNM = window.opener.$('#favorite_11110000012').attr("class");
+	$('#favorite_pop').removeClass().addClass(classNM);
+
+	var favortxt = window.opener.$('#favorite_11110000012').children('.blind').html();
+	$('#favorite_pop .blind').html(favortxt);
+}
+
+</script>
+</head>
+<body>
+
+	<!-- popWrap -->
+	<div id="popWrap2" class="pnis_pop">
+
+		<p class="topArea">
+			<span class="name"></span>			
+			<a href="#" onclick = "clickFavoriteOnPOP();return false;" id="favorite_pop" class="bul_favoriteMap_off" style="display:none;">
+			 	<span class='blind'>즐겨찾기 표시하기 링크</span>
+			 </a>
+			
+			<img class="bi" src="/info_html5/unityPblntf/common/logo.png" alt="투명한 보육정보를 위한 어린이집정보공개포털" />
+		</p>
+
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<meta http-equiv="Cache-Control" content="no-cache" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" /><!-- 151130 viewport 추가 -->
+<meta name="format-detection" content="telephone=no">
+
+<link rel="stylesheet" type="text/css" href="/css/info_html5/unityPblntf/common.css" />
+<!--[if IE 7 ]><link rel="stylesheet" type="text/css" href="/css/info_html5/ie7.css" /><![endif]-->
+<!--[if IE 8 ]><link rel="stylesheet" type="text/css" href="/css/info_html5/ie8.css" /><![endif]-->
+<!--[if IE 8 ]><link rel="stylesheet" type="text/css" href="/css/info_html5/unityPblntf/ie8.css" /><![endif]-->
+<!--[if IE 11 ]><link rel="stylesheet" type="text/css" href="/css/info_html5/unityPblntf/ie11.css" /><![endif]-->
+<link href="/images/info/unityPblntf/sub/favicon.ico" rel="shortcut icon"/><!-- favicon 경로 수정했습니다. -->
+<script type="text/javascript" src="/js/info_html5/jquery-1.8.3.js"></script> <!-- 151209 1.9.1 은 live 로드시 오류 발생 -->
+<script type="text/javascript" src="/js/info_html5/jquery-ui.js"></script>
+<script type="text/javascript" src="/js/info_html5/jquery.cookie-1.4.1.js"></script><!-- 151123 즐겨찾기 위해 추가 -->
+<script type="text/javascript" src="/js/common/jquery.blockUI.js"></script>
+<!--[If lt IE 9]>
+    <script type="text/javascript" src="/js/info_html5/unityPblntf/pie/PIE.js"></script>
+<![endif]-->
+<script type="text/javascript" src="/js/info_html5/unityPblntf/common.js"></script>
+
+<!-- 구글 분석기 -->
+
+ <!-- //구글 분석기 -->
+
+<script type="text/javascript">
+//<![CDATA[
+    var imagePath       = "/info_html5" ;
+    var imageRootPath   = "/" ;
+    var serverType      = "P" ;
+    var serverId        = "info" ;
+
+    var serverIdSame    = "/" ;
+    var domainAddr      = "info.childcare.go.kr";
+
+    $(document).ready(function(){
+    	var $frmCrname = $('#nurseryNameSearchFrm input[name="crname"]');
+    	$frmCrname.focus(function(){
+    		if( this.value == '어린이집을 검색하세요' ){
+//     			this.value = ''; // 2016.06.10 웹접근성 관련 내용 삭제
+    		}
+    	});
+
+        $frmCrname.blur(function(){
+        	if( this.value == '' ){
+//                 this.value = '어린이집을 검색하세요'; // 2016.06.10 웹접근성 관련 내용 삭제
+            }
+        });
+
+        function fnComNurseryNameSearch(){
+        	var cName = $frmCrname.val().replace(/\s/g, "");
+
+            if( cName == '' || cName == '어린이집을 검색하세요' ){
+                alert('어린이집 또는 유치원명을 입력해주세요.');
+                $frmCrname.focus();
+                return false;
+            }
+
+            if( cName.length < 2 ){
+                alert('어린이집명을 2자 이상 입력하세요.');
+                $frmCrname.focus();
+                return false;
+            }
+
+            var filterSearch = ["어린이집", "어린이", "린이집", "어린", "이집", "린이"];
+
+            for(var i=0;i<filterSearch.length;i++) {
+                if (cName == filterSearch[i]) {
+                    alert("정확한 어린이집 또는 유치원명을 입력해주세요");
+                    $frmCrname.focus();
+                    return false;
+                }
+            }
+
+            $('#nurseryNameSearchFrm').get(0).submit();
+        }582
+
+        $frmCrname.keydown(function(e){
+        	if( e.keyCode == 13 ){
+        		fnComNurseryNameSearch();
+            }
+        });
+
+        $('#nurseryNameSearchBtn').click(function(){
+        	fnComNurseryNameSearch();
+        });
+        
+        /*
+        console.log(Object.defineProperties(new Error, {
+        	toString: {value() {(new Error).stack.includes('toString@') && alert('devtools')}},
+        	message: {
+        		get() {
+        			document.location.href = "about:blank";
+        		}
+        	},
+        	
+        }));
+        */
+    });
+
+    document.oncontextmenu = function(e){
+    	if (serverType == "P") {
+    	    alert('오른쪽 마우스는 사용할 수 없습니다.');
+    	    return false;
+    	}
+    };
+    
+    document.addEventListener("keydown", function (e) {
+    	if (serverType == "P") {
+	    	if (event.key === "F12" || (event.ctrlKey && event.shiftKey && (event.key.toLowerCase() === "i" || event.key.toLowerCase() === "j"))) {
+	    		event.preventDefault();
+	    		
+	    	}
+	    	
+	    	if (event.ctrlKey && event.key.toLowerCase() === "u") {
+	    		event.preventDefault();
+	    	}
+    	}
+    });
+    
+//]]>
+</script>
+
+
+<script type="text/javascript" src="/js/info_html5/highcharts.js"></script> <!-- 테스트 필요 -->
+<script type="text/javascript" src="/js/info_html5/highcharts-more.js"></script>
+<link rel="stylesheet" type="text/css" href="/css/info_html5/new.css" />
+
+<script type="text/javascript" src="/js/info_html5/highcharts.js"></script>
+<script type="text/javascript" src="/js/info_html5/highcharts-more.js"></script>
+<link rel="stylesheet" type="text/css" href="/css/info_html5/new.css" />
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+	function goTotalComment(v, s, c, e) {
+		
+    if (s == "3" || s == "4" || s == "5" || c == "Y" || s == "9") {
+      alert("평가결과서가 없습니다.");
+      return; 
+    }
+	if(e == "01") { //NEO2024 cdh 평가제 2주기 분기 처리 01인 경우 2주기 값 추가
+		var oUrl = "/info_html5/cera/search/totalGradeCommentEvl2nd.jsp?flag=commnetGrade&childHouseId="+ v + "&evlIdxTy=" + e
+		window.open(oUrl, "crTCPop", "width=920,height=850,scrollbars=1,resizable=1");	
+	}else {
+		var oUrl = "/info_html5/cera/search/totalGradeComment.jsp?flag=commnetGrade&childHouseId=" + v;
+	    window.open(oUrl, "crTCPop", "width=920,height=850,scrollbars=1,resizable=1");	
+	}
+	}
+
+	function goTotalComment3(v) {
+		//not use belows
+		/*
+	    var oUrl = "/info/cera/search/totalComment3.jsp?flag=commnet&reqNo=" + v + "&sgubun=3";
+	    window.open(oUrl, "crTCPop", "width=690,height=500,scrollbars=1,resizable=1");
+	    */
+	}
+</script>
+
+
+<div class="conArea info_search">
+	<!-- tabMenu_st -->
+
+	<div class="tabMenu_st">
+		<!-- list_tab -->
+		
+
+
+
+
+
+
+
+
+<div class="tabMenu_wrap">
+	<ul>
+		<li>
+			<a href="/info_html5/pnis/search/preview/SummaryInfoSlPu.jsp?flag=YJ&STCODE_POP=11110000012&CRNAMETITLE=&loginFlag=" ><img src="/info_html5/unityPblntf/common/icon-tabMenu-1.png" />요약</a>
+		</li>
+		<li>
+			<a href="/info_html5/pnis/search/preview/BasisPresentConditionSlPu.jsp?flag=GH&STCODE_POP=11110000012&CRNAMETITLE=&loginFlag=" ><img src="/info_html5/unityPblntf/common/icon-tabMenu-2.png"/>기본 현황</a>
+		</li>
+		<li>
+			<a href="/info_html5/pnis/search/preview/ChildStaffSlPu.jsp?flag=BG&STCODE_POP=11110000012&CRNAMETITLE=&loginFlag=" ><img src="/info_html5/unityPblntf/common/icon-tabMenu-3.png"/>영유아 및 교직원</a>
+		</li>
+		<li>
+			<a href="/info_html5/pnis/search/preview/ChildCareCurriculumSlPu.jsp?flag=BB&STCODE_POP=11110000012&CRNAMETITLE=&loginFlag=" ><img src="/info_html5/unityPblntf/common/icon-tabMenu-4.png"/>교육·보육과정</a>
+		</li>
+		<li>
+			<a href="/info_html5/pnis/search/preview/BudgetBalanceSlPu.jsp?flag=YK&&act=TOT&STCODE_POP=11110000012&CRNAMETITLE=&loginFlag=" ><img src="/info_html5/unityPblntf/common/icon-tabMenu-5.png"/>예·결산 등 회계</a>
+		</li>
+		<li>
+			<a href="/info_html5/pnis/search/preview/HealthSafetySlPu.jsp?flag=GA&STCODE_POP=11110000012&CRNAMETITLE=&loginFlag=" ><img src="/info_html5/unityPblntf/common/icon-tabMenu-6.png"/>영양 및 환경 위생</a>
+		</li>
+		<li>
+			<a href="/info_html5/pnis/search/preview/SafetyEducationCheckSlPu.jsp?flag=AE&STCODE_POP=11110000012&CRNAMETITLE=&loginFlag=" ><img src="/info_html5/unityPblntf/common/icon-tabMenu-7.png"/>안전교육·안전점검</a>
+		</li>
+		<li>
+			<a href="/info_html5/pnis/search/preview/VioltfcltySlLPu.jsp?flag=FcltyList&STCODE_POP=11110000012&CRNAMETITLE=&loginFlag=" ><img src="/info_html5/unityPblntf/common/icon-tabMenu-10.png"/>위반내역</a>
+		</li>		
+		
+		<!-- 2018.01.23   i_neosag03  평가인증등급 평가인증창 추가 -->
+		
+			<!-- 평가인증 등급일 경우 평가인증창 팝업 -->
+			<li>
+				<a href="/info_html5/pnis/search/preview/AppraisaAuthenticationGradeSlPu.jsp?flag=PI&STCODE_POP=11110000012&CRNAMETITLE=&loginFlag=" class="current" title="평가 선택됨"><img src="/info_html5/unityPblntf/common/icon-tabMenu-8.png"/>평가</a>
+			</li>
+		
+			
+		
+		
+		<li>
+			<a href="/info_html5/pnis/search/preview/EtntctClassAdditionSlPu.jsp?flag=EN&STCODE_POP=11110000012&CRNAMETITLE=&loginFlag=" ><img src="/info_html5/unityPblntf/common/icon-tabMenu-9.png"/>연장보육반</a>
+		</li>
+	</ul>
+	</div>
+
+
+
+
+
+		<!-- //list_tab -->
+
+		<!-- start: 2018.01.23. by i_neosag03. 통합지표적용 등급평정방식의 평가인증 상세정보 -->
+			<!-- tab_con -->
+			<div class="tab_con">
+				<!-- 8.평가인증 -->
+				<div class="tabConTit mT40">
+					<h4 class="tit_h4_2">평가</h4>
+					<div class="pageOption">
+<!-- 						<a href="#" class="editInfo">정보수정 신청</a> -->
+					</div>
+				</div>
+				
+
+				<!-- //평가인증점수(최신) -->
+				<!-- 평가인증정보 -->
+				<h5 class="tit_h5 bullet">평가 정보</h5>
+				<div class="x-scroll">
+				<!-- 평가인증정보 -->
+			<!-- 1평가완료: 평가정보 -->
+			<table class="table_childcare2 bT mT10">
+				<caption>평가 정보</caption>
+				<colgroup>
+					<col width="25%">
+					<col width="65%">
+				</colgroup>
+				<tbody>
+					<tr>
+						<th scope="row">평가 상태</th>
+						<td class="td_left no_right">
+							 평가완료
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">평가결과서 보기</th>
+						<td class="td_left no_right">
+							<a href="javascript:goTotalComment('SE001163', '1', 'N', '')" title="새창" class="btn_style2">평가결과서 보기</a>
+							
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">평가년월</th>
+						<td class="td_left no_right">
+							
+								
+                    			2024.09
+							
+							
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">평가주기</th>
+						<td class="td_left no_right">
+							
+								
+								
+																 
+										
+											
+											
+												3년
+											
+											
+											
+										
+									
+									
+								
+							
+						</td>
+					</tr>
+					                    
+                                        
+                                        
+                    
+                  						
+				</tbody>
+			</table>
+			
+
+			<!-- //평가인증정보 -->
+				</div>
+				<!-- //평가인증정보 -->
+
+				<!-- 평가인증참여이력 -->
+				<h5 class="tit_h5 bullet">평가(인증) 이력</h5>
+				<div class="x-scroll">
+				<table class="table_childcare2 bT mT10">
+					<caption>평가(인증)이력</caption>
+					<colgroup>
+						<col width="50%" />
+						<col />
+					</colgroup>
+					<thead>
+						<tr>
+							<th scope="col" class="th_back2">년월</th>
+							<th scope="col" class="th_back2 no_right">상태</th>
+						</tr>
+					</thead>
+					<tbody>
+
+          
+						
+							<tr>
+								<td>
+									<!-- 인증 일자 -->
+									<!-- 2018.02.21.테이블이 추가되어 변경 -->
+									
+										
+											
+											2024.09
+										
+										
+									
+								</td>
+								<!-- 업무 구분 코드 -->
+								<!-- 2018.02.21.테이블이 추가되어 변경 -->
+								<td class="no_right">
+                  
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                      평가참여
+                    
+                    
+                  
+                </td>
+							</tr>
+						
+							<tr>
+								<td>
+									<!-- 인증 일자 -->
+									<!-- 2018.02.21.테이블이 추가되어 변경 -->
+									
+										
+											
+											2020.01
+										
+										
+									
+								</td>
+								<!-- 업무 구분 코드 -->
+								<!-- 2018.02.21.테이블이 추가되어 변경 -->
+								<td class="no_right">
+                  
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                      평가참여
+                    
+                    
+                  
+                </td>
+							</tr>
+						
+          
+          <!-- 기존평가인증 참여 이력 -->
+          
+            
+              <tr>
+                <td>
+                
+                  
+                  2017.01
+                
+                </td>
+                <td class="no_right">
+                    재인증
+                </td>
+            </tr>
+            
+              <tr>
+                <td>
+                
+                  
+                  2014.01
+                
+                </td>
+                <td class="no_right">
+                    재인증
+                </td>
+            </tr>
+            
+              <tr>
+                <td>
+                
+                  
+                  2011.01
+                
+                </td>
+                <td class="no_right">
+                    재인증
+                </td>
+            </tr>
+            
+          
+          
+
+					</tbody>
+				</table>
+				</div>
+				<!-- //평가인증참여이력 -->
+
+			</div>
+      <div id="popWrap">              <!-- 2019.05.28 추가 -->
+          <!-- 하단닫기버튼 -->
+          <div class="btn_close3">
+              <a href="javascript:window.close();" class="btn"><span>닫기</span></a>
+              <a href="javascript:window.print();" class="btn"><span>인쇄</span></a>
+          </div>
+          <!-- //하단닫기버튼 -->
+      </div>
+	</div>
+	<!-- end: 2018.01.23. by i_neosag03. 통합지표적용 등급평정방식의 평가인증 상세정보 -->
+</div>
+
+
+<!-- for debugging : start -->
+<!--h1>All_AAvgAll		  	= <=All_AAvgAll           ></h1><br>
+<h1>All_BAvgAll       = <=All_BAvgAll                 ></h1><br>
+<h1>All_CAvgAll       = <=All_CAvgAll                 ></h1><br>
+<h1>All_DAvgAll       = <=All_DAvgAll                 ></h1><br>
+<h1>FONDTY_AAvgAll    = <=FONDTY_AAvgAll              ></h1><br>
+<h1>FONDTY_BAvgAll    = <=FONDTY_BAvgAll              ></h1><br>
+<h1>FONDTY_CAvgAll    = <=FONDTY_CAvgAll              ></h1><br>
+<h1>FONDTY_DAvgAll    = <=FONDTY_DAvgAll              ></h1><br>
+<h1>AREA_AAvgAll      = <=AREA_AAvgAll                ></h1><br>
+<h1>AREA_BAvgAll      = <=AREA_BAvgAll                ></h1><br>
+<h1>AREA_CAvgAll      = <=AREA_CAvgAll                ></h1><br>
+<h1>AREA_DAvgAll      = <=AREA_DAvgAll                ></h1><br>
+<hr>
+<h1>Info4EVL_1_AAvg  = <=Info4EVL_1_AAvg  ></h1><br>
+<h1>Info4EVL_1_BAvg  = <=Info4EVL_1_BAvg  ></h1><br>
+<h1>Info4EVL_1_CAvg  = <=Info4EVL_1_CAvg  ></h1><br>
+<h1>Info4EVL_2_AAvg  = <=Info4EVL_2_AAvg  ></h1><br>
+<h1>Info4EVL_2_BAvg  = <=Info4EVL_2_BAvg  ></h1><br>
+<h1>Info4EVL_2_CAvg  = <=Info4EVL_2_CAvg  ></h1><br>
+<h1>Info4EVL_3_AAvg  = <=Info4EVL_3_AAvg  ></h1><br>
+<h1>Info4EVL_3_BAvg  = <=Info4EVL_3_BAvg  ></h1><br>
+<h1>Info4EVL_3_CAvg  = <=Info4EVL_3_CAvg  ></h1><br>
+<h1>Info4EVL_4_AAvg  = <=Info4EVL_4_AAvg  ></h1><br>
+<h1>Info4EVL_4_BAvg  = <=Info4EVL_4_BAvg  ></h1><br>
+<h1>Info4EVL_4_CAvg  = <=Info4EVL_4_CAvg  ></h1><br>
+<h1>Info5AAvg_1_AAvg = <=Info5AAvg_1_AAvg ></h1><br>
+<h1>Info5BAvg_1_BAvg = <=Info5BAvg_1_BAvg ></h1><br>
+<h1>Info5CAvg_1_CAvg = <=Info5CAvg_1_CAvg ></h1><br>
+<h1>Info5AAvg_2_AAvg = <=Info5AAvg_2_AAvg ></h1><br>
+<h1>Info5BAvg_2_BAvg = <=Info5BAvg_2_BAvg ></h1><br>
+<h1>Info5CAvg_2_CAvg = <=Info5CAvg_2_CAvg ></h1><br>
+<h1>Info5AAvg_3_AAvg = <=Info5AAvg_3_AAvg ></h1><br>
+<h1>Info5BAvg_3_BAvg = <=Info5BAvg_3_BAvg ></h1><br>
+<h1>Info5CAvg_3_CAvg = <=Info5CAvg_3_CAvg ></h1><br>
+<h1>Info5AAvg_4_AAvg = <=Info5AAvg_4_AAvg ></h1><br>
+<h1>Info5BAvg_4_BAvg = <=Info5BAvg_4_BAvg ></h1><br>
+<h1>Info5CAvg_4_CAvg = <=Info5CAvg_4_CAvg ></h1><br>
+<h1>Info6AAvg_1_AAvg = <=Info6AAvg_1_AAvg ></h1><br>
+<h1>Info6BAvg_1_BAvg = <=Info6BAvg_1_BAvg ></h1><br>
+<h1>Info6CAvg_1_CAvg = <=Info6CAvg_1_CAvg ></h1><br>
+<h1>Info6AAvg_2_AAvg = <=Info6AAvg_2_AAvg ></h1><br>
+<h1>Info6BAvg_2_BAvg = <=Info6BAvg_2_BAvg ></h1><br>
+<h1>Info6CAvg_2_CAvg = <=Info6CAvg_2_CAvg ></h1><br>
+<h1>Info6AAvg_3_AAvg = <=Info6AAvg_3_AAvg ></h1><br>
+<h1>Info6BAvg_3_BAvg = <=Info6BAvg_3_BAvg ></h1><br>
+<h1>Info6CAvg_3_CAvg = <=Info6CAvg_3_CAvg ></h1><br>
+<h1>Info6AAvg_4_AAvg = <=Info6AAvg_4_AAvg ></h1><br>
+<h1>Info6BAvg_4_BAvg = <=Info6BAvg_4_BAvg ></h1><br>
+<h1>Info6CAvg_4_CAvg = <=Info6CAvg_4_CAvg ></h1><br-->
+<!-- for debugging : end -->
+
+ <!-- 2018.01.24. by neo03 -->
+
+		<a href="javascript:window.close();" class="btn_close"><span>창닫기</span></a>
+
+
+	</div>
+	<!-- //popWrap -->
+
+</body>
+</html>
