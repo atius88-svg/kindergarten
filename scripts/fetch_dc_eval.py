@@ -6,7 +6,7 @@
   결과서     /info_html5/cera/search/totalGradeCommentEvl2nd.jsp?flag=commnetGrade&childHouseId={v}&evlIdxTy=01
              → <tr id="evlResult_N"><th>영역</th><td>종합의견</td></tr> × 6  (evlIdxTy가 없으면 빈 표)
 - 대상: dc_portal.json에서 평가완료이고 총평 등급이 없으며 평가연월 2024-07 이후인 곳. 이미 같은 평가연월로 받은 곳은 건너뜀.
-- 결과: {stcode: {"ym": "2025-11", "a": [[영역, 종합의견], …], "t": 받은 날}}
+- 결과: {stcode: {"ym": "2025-11", "a": [[영역, 종합의견], …] 또는 null(결과서 없음), "t": 받은 날}}
 - 보완 권고: 종합의견 안의 '다만, …' 문장(scripts/build.py가 개수를 dc.json에 넣음).
 - 4곳 동시, 100곳마다 저장, --minutes N(넘으면 저장하고 멈춤, 다음 실행이 이어 받음), --limit N, --parse 결과서.html
 키 불필요, GitHub(해외)에서 접속됨.
@@ -99,8 +99,8 @@ def main():
             k = futs.pop(f)
             try:
                 a = f.result()
+                data[k] = {'ym': want[k], 'a': a, 't': today}  # 결과서가 없어도 기록(a=None) → 같은 평가연월이면 다시 안 받음
                 if a:
-                    data[k] = {'ym': want[k], 'a': a, 't': today}
                     ok += 1
                 else:
                     none += 1

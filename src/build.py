@@ -7,7 +7,7 @@ import json, re, shutil
 dc = r('data/dc_seoul.json')
 # 개편 후 평가결과서(src/data/dc_eval.json, scripts/fetch_dc_eval.py) → ev/{id}.json(상세 화면에서 불러옴) + dc.json에 '평가보완'(보완 권고 문장 수) 열
 evp = os.path.join(d, 'data', 'dc_eval.json')
-ev = json.loads(r('data/dc_eval.json')) if os.path.exists(evp) else {}
+ev = {k: v for k, v in (json.loads(r('data/dc_eval.json')) if os.path.exists(evp) else {}).items() if v.get('a')}
 TIP = re.compile(r'^다만|유의하시기 바랍니다|바랍니다\.?$')
 tips = lambda a: sum(1 for _, t in a for x in re.split(r'(?<=[.!?])\s+', t) if TIP.search(x))
 evdir = os.path.join(d, '..', 'ev')
