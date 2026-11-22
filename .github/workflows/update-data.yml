@@ -5,6 +5,11 @@ on:
     - cron: '17 18 3 * *'   # 매월 4일 03:17 (한국시간)
   workflow_dispatch:        # Actions 탭에서 수동 실행
     inputs:
+      only:
+        description: '돌릴 단계(전체 = 정기 실행과 같음. 화면 빌드·커밋은 늘 함)'
+        type: choice
+        default: 전체
+        options: [전체, 유치원만, 어린이집만, AI 정리만, 화면만 다시 빌드]
       cost_force:
         description: '원비를 공시 차수와 상관없이 서울 전체 다시 받기'
         type: boolean
@@ -24,6 +29,8 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      ONLY: ${{ inputs.only || '전체' }}   # 정기 실행에는 입력이 없어 '전체'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -33,6 +40,7 @@ jobs:
           python-version: '3.12'
       - name: 유치원알리미 API에서 받기
         id: kg
+        if: env.ONLY == '전체' || env.ONLY == '유치원만'
         continue-on-error: true
         timeout-minutes: 20
         env:
@@ -40,26 +48,31 @@ jobs:
         run: python3 scripts/fetch_kg.py
       - name: 유치원 원비 받기 (공시 차수가 바뀐 때 서울 전체, 3곳 동시·최대 30분, 남으면 다음 달 이어 받음)
         id: cost
+        if: env.ONLY == '전체' || env.ONLY == '유치원만'
         continue-on-error: true
         timeout-minutes: 40
         run: python3 scripts/fetch_cost.py --minutes 30 ${{ inputs.cost_force && '--force' || '' }}
       - name: 유치원 주소·전화·홈페이지·통학차량 대수·CCTV 받기 (받은 지 25일 넘은 곳, 최대 40분, 남으면 다음 달 이어 받음)
         id: detail
+        if: env.ONLY == '전체' || env.ONLY == '유치원만'
         continue-on-error: true
         timeout-minutes: 50
         run: python3 scripts/fetch_detail.py --days 25 --minutes 40
       - name: 어린이집 포털 화면(운영시간·평가·연장보육) — 받은 지 90일 넘은 곳만, 최대 90분(한 곳 약 4초)
         id: portal
+        if: env.ONLY == '전체' || env.ONLY == '어린이집만'
         continue-on-error: true
         timeout-minutes: 100
         run: python3 scripts/fetch_dc_portal.py --days 90 --minutes 90
       - name: 어린이집 평가결과서(개편 후 평가의 영역별 종합의견) — 새로 평가받은 곳만, 최대 40분
         id: dceval
+        if: env.ONLY == '전체' || env.ONLY == '어린이집만'
         continue-on-error: true
         timeout-minutes: 50
         run: python3 scripts/fetch_dc_eval.py --minutes 40
       - name: 어린이집 평가 AI 정리(Claude Haiku, 새로 받은 결과서만, 최대 35분)
         id: dcai
+        if: env.ONLY == '전체' || env.ONLY == '어린이집만' || env.ONLY == 'AI 정리만'
         continue-on-error: true
         timeout-minutes: 45
         env:
@@ -67,6 +80,7 @@ jobs:
         run: python3 scripts/analyze_dc_eval.py --minutes 35 ${{ inputs.ai_limit && format('--limit {0}', inputs.ai_limit) || '' }}
       - name: 어린이집 API에서 받기 (서울 25개 구, 운영키 만료 2027-11-09)
         id: dc
+        if: env.ONLY == '전체' || env.ONLY == '어린이집만'
         continue-on-error: true
         timeout-minutes: 15
         env:
@@ -123,12 +137,13 @@ jobs:
             커밋=${{ steps.commit.outcome }}
             예약 실행 유지=${{ steps.keepalive.outcome }}
         run: |
+          # 수동 실행에서 고르지 않아 건너뛴 단계(skipped)는 실패로 치지 않는다
           table=$(printf '%s\n' "$RESULT" | grep '=' | sed -E \
             -e 's/=success$/=✅ 성공/' -e 's/=failure$/=❌ 실패/' -e 's/=cancelled$/=❌ 중단(시간 초과 등)/' \
             -e 's/=skipped$/=⏭ 건너뜀/' -e 's/=$/=❌ 실행 안 됨/' -e 's/^(.*)=(.*)$/| \1 | \2 |/')
-          printf '### 데이터 갱신 결과 (%s)\n\n| 단계 | 결과 |\n|---|---|\n%s\n' "$GITHUB_REF_NAME" "$table" >> "$GITHUB_STEP_SUMMARY"
+          printf '### 데이터 갱신 결과 (%s · %s)\n\n| 단계 | 결과 |\n|---|---|\n%s\n' "$GITHUB_REF_NAME" "$ONLY" "$table" >> "$GITHUB_STEP_SUMMARY"
           printf '%s\n' "$table"
-          failed=$(printf '%s\n' "$RESULT" | grep '=' | grep -v '=success$' | cut -d= -f1 | paste -sd, - | sed 's/,/, /g' || true)
+          failed=$(printf '%s\n' "$RESULT" | grep '=' | grep -Ev '=(success|skipped)$' | cut -d= -f1 | paste -sd, - | sed 's/,/, /g' || true)
           if [ -z "$failed" ]; then echo "모든 단계 성공"; exit 0; fi
           body=$(printf '실패한 단계: **%s**\n\n%s\n\n실행 기록(단계별 로그): %s\n\n수집 단계가 실패해도 나머지 결과는 커밋돼요. 실패한 단계는 예전 값을 그대로 쓰고, 대부분 다음 달 실행에서 다시 받아요.' "$failed" "$table" "$RUN_URL")
           title="데이터 자동 갱신 실패 ($GITHUB_REF_NAME)"

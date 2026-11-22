@@ -107,8 +107,17 @@ def main():
 
     def one(k):
         text = '\n'.join(f'[{a}] {t}' for a, t in src[k]['a'])
-        raw, use = call(text, key)
-        return clean(raw), use
+        # 답에 JSON이 없거나 깨졌으면(따옴표 등) 그 자리에서 한 번 더 묻는다. 토큰은 두 번 다 센다.
+        use = {'input_tokens': 0, 'output_tokens': 0}
+        for i in range(2):
+            try:
+                raw, u = call(text, key)
+                for n in use:
+                    use[n] += u.get(n, 0)
+                return clean(raw), use
+            except (ValueError, AttributeError):
+                if i == 1:
+                    raise
 
     def save():
         with open(OUT, 'w', encoding='utf-8') as f:
