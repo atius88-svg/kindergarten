@@ -592,10 +592,10 @@ function dcDescribe(r) {
   const sp = (r.특성 || '').split('|').filter(Boolean);
   const e = dcEval(r);
   if (e) {
-    if (e.cls === 'g') tags.push(['g', e.old ? '평가 모든 영역 충족 (개편평가 전)' : '평가 보완 권고 없음']); else if (e.cls === 'b') tags.push(['b', '평가 전']);
     facts.push(['평가', e.txt, e.note, e.cls]);
   } else facts.push(['평가', '정보 없음', '', '']);
   if (r.특색 && r.특색.length) facts.push(['특색 활동', `<span class="feats">${r.특색.map((t) => `<span class="feat">${esc(t)}</span>`).join('')}</span>`, '평가결과서에서 자동으로 뽑았어요(최대 3개).', '']);
+  (r.특색 || []).forEach((t) => tags.push(['g', t]));  // 특색 활동(평가결과서에서 뽑음)은 장점이라 초록 태그
   sp.forEach((s) => SPEC[s] && tags.push(SPEC[s]));
   if (r.연장반 != null) {
     const night = sp.includes('야간연장형') || sp.includes('24시간');
@@ -934,7 +934,6 @@ async function start() {
         <div class="top"><span class="name">${esc(x.유치원명)} <span class="kind">[${esc(x.설립유형)}]</span></span><span class="right"><span class="meta">${d.toFixed(1)}km</span><button class="cbtn" type="button" data-heart="${esc(x.id)}" aria-pressed="${cmp.includes(x.id)}">${cmp.includes(x.id) ? '✓ 비교중' : '+ 비교'}</button></span></div>
         <div class="badges">${badgeHTML(x)}</div>
         ${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
-        ${x.특색 && x.특색.length ? `<div class="feats card-feats">${x.특색.map((t) => `<span class="feat">${esc(t)}</span>`).join('')}</div>` : ''}
         <div class="more">자세히 보기 ›</div>
       </div>`;
   };
