@@ -10,10 +10,13 @@
     python3 scripts/fetch_cost.py --force         # 차수가 같아도 서울 전체를 처음부터 다시 받음
     python3 scripts/fetch_cost.py --parse 파일.html   # 파서 시험
 
-결과: {"timing": "20262", "basis": "2026년 2학기 (2026. 10. 1.)", "cost": {id: [교육과정 만3,4,5세, 방과후 만3,4,5세]},
-       "retry": [id, …]}   ← retry는 이번 차수 값을 못 받아 예전 값을 이어 쓰는 곳(없으면 키 없음). 다음 실행 때 다시 받는다.
-- 값은 '기본경비 소계(월)' = 수업료·간식비·급식비·교재비 (학부모 부담 고지액, 지원금 제외, 월).
-  차량비·현장학습비 같은 선택경비와 특성화 활동비는 뺀다(기존 성북구 데이터와 같은 기준).
+결과: {"timing": "20262", "basis": "2026년 2학기 (2026. 10. 1.)",
+       "cost": {id: [교육과정 만3,4,5세, 방과후 만3,4,5세, 특성화]}, "retry": [id, …]}
+       ← retry는 이번 차수 값을 못 받아 예전 값을 이어 쓰는 곳(없으면 키 없음). 다음 실행 때 다시 받는다.
+- 앞 6개 값은 '기본경비 소계(월)' = 수업료·간식비·급식비·교재비 (학부모 부담 고지액, 지원금 제외, 월).
+  차량비·현장학습비 같은 선택경비는 뺀다(기존 성북구 데이터와 같은 기준).
+- 7번째 '특성화'(2026-11-22~) = 특성화 활동비 표, 만3·4·5세마다 [월 합계, [[활동영역, 프로그램명, 월 부담금, 주당 횟수], …]].
+  프로그램이 없으면 [0, []], 화면에 표가 없으면 null. build.py가 합계만 index.html에, 프로그램 목록은 kg_sp.json으로 나눈다.
 - 숫자가 없는 칸('-' 등)은 null = 해당 연령반 없음.
 - 공시 차수 확인: 앞에서부터 최대 5곳을 차례로 열어 차수가 보이는 첫 화면을 쓴다(한 곳이 폐원·오류 화면이어도 멈추지 않게).
 - 새 차수 수집은 3곳씩 동시에 받고, 진행 중인 값은 src/data/kg_cost_next.json에 모은다(100곳마다 저장).
@@ -103,22 +106,52 @@ def base_subtotal(table):
     return [None if fee and money(f) is None else v for f, v in zip(fee or [None] * 3, sub)]
 
 
+def special(table):
+    """'특성화 활동비' 표 → 만3·4·5세마다 [월 합계, [[활동영역, 프로그램명, 월 부담금, 주당 횟수], …]].
+    나이 첫 행: [만 N세, 운영수, 영역, 이름, 업체, 주당, 분, 월, 합계(월)], 이어지는 행: [영역, 이름, 업체, 주당, 분, 월],
+    프로그램이 없으면 [만 N세, '해당사항이 없습니다.'] → [0, []]. 표에 없는 나이는 [0, []]."""
+    out, cur = {}, None
+    for row in table['rows']:
+        if not row or row[0] == '구분':
+            continue
+        m = re.fullmatch(r'만\s*(\d)\s*세', row[0])
+        if m:
+            cur = out[int(m.group(1))] = [None, []]
+            if len(row) < 9:  # 해당사항이 없습니다
+                cur[0] = 0
+                cur = None
+                continue
+            cur[0] = money(row[8])
+            row = row[2:8]
+        if cur is None or len(row) < 6:
+            continue
+        w = money(row[5])
+        cur[1].append([row[0], row[1], w or 0, float(row[3]) if re.fullmatch(r'\d+(\.\d+)?', row[3]) else None])
+    res = []
+    for a in (3, 4, 5):
+        t, progs = out.get(a, [0, []])
+        res.append([sum(p[2] for p in progs) if t is None else t, progs])
+    return res
+
+
 def parse(text):
     p = Tables()
     p.feed(text)
-    edu = aft = None
+    edu = aft = sp = None
     for t in p.tables:
         if t['caption'].startswith('교육과정 교육비용'):
             edu = base_subtotal(t)
         elif t['caption'].startswith('방과후 과정 교육비용'):
             aft = base_subtotal(t)
+        elif t['caption'].startswith('특성화 활동비'):
+            sp = special(t)
     if edu is None and aft is None:
         return None, None
     m = re.search(r'<option value="(\d{5})"\s+selected', text)
     b = re.search(r'자료기준일\s*:\s*([^<]+)', text)
     timing = m.group(1) if m else None
     basis = ' '.join(html.unescape(b.group(1)).split()) if b else None
-    return (edu or [None] * 3) + (aft or [None] * 3), (timing, basis)
+    return (edu or [None] * 3) + (aft or [None] * 3) + [sp], (timing, basis)
 
 
 def fetch(code):
@@ -265,7 +298,8 @@ def main():
             if not left:
                 sys.exit('원비: 실패가 너무 많아 새 차수로 바꾸지 않았습니다(접속 차단?).')
     else:  # 차수 그대로: 예전에 못 받은 곳·원비가 없는 곳만 다시
-        todo = sorted(set(old.get('retry', [])) | {k for k in every if k not in old['cost']}, key=int)
+        # 특성화 활동비(7번째 값)가 생기기 전에 받은 곳도 다시 받는다(2026-11 한 번)
+        todo = sorted(set(old.get('retry', [])) | {k for k in every if len(old['cost'].get(k) or []) < 7}, key=int)
         todo = [k for k in todo if k in code_of]
         if not todo:
             print(f'원비: 공시 {timing} 그대로라 건너뜀')
