@@ -90,6 +90,7 @@
   .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-weight: 600; }
   .tag.g { color: var(--good); } .tag.b { color: var(--bad); } .tag.n { color: var(--neu); } .tag.m { color: var(--muted); font-weight: 400; }
+  .tag.f { color: var(--good); background: #e6f4ec; border-color: transparent; }  /* 특색 활동: 연한 초록 바탕·테두리 없음·✨ */
   details { margin-top: 8px; font-size: 13px; }
   summary { cursor: pointer; color: var(--muted); font-size: 12px; }
   .facts { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
@@ -272,7 +273,7 @@
     <details class="guide"><summary>ⓘ 보는 법 · 출처</summary>
       <div class="summary" id="summary"></div>
       <div class="legend">
-        <span><span class="g">초록</span> 학부모에게 좋은 점 · <span class="b">빨강</span> 확인해볼 점 · <span class="n">주황</span> 다른 곳과 다른 점</span>
+        <span><span class="g">초록</span> 학부모에게 좋은 점 · <span class="b">빨강</span> 확인해볼 점 · <span class="n">주황</span> 다른 곳과 다른 점<span class="dc-only"> · ✨ 평가결과서에 나온 특색 활동</span></span>
       </div>
       <div class="icons kg-only"><span>💰 월 비용</span><span>🧒 원아 수</span><span>🏫 한 반 인원</span><span>👩‍🏫 선생님 1명 : 아이</span><span>⏰ 운영시간</span><span>🚌 통학차량</span></div>
       <div class="icons dc-only"><span>⏳ 입소 대기</span><span>🌙 연장보육반</span><span>🧒 현원/정원</span><span>🚌 통학차량</span><span>👩‍🏫 선생님 1명 : 아이</span><span>⭐ 평가</span></div>
@@ -595,7 +596,7 @@ function dcDescribe(r) {
     facts.push(['평가', e.txt, e.note, e.cls]);
   } else facts.push(['평가', '정보 없음', '', '']);
   if (r.특색 && r.특색.length) facts.push(['특색 활동', `<span class="feats">${r.특색.map((t) => `<span class="feat">${esc(t)}</span>`).join('')}</span>`, '평가결과서에서 자동으로 뽑았어요(최대 3개).', '']);
-  (r.특색 || []).forEach((t) => tags.push(['g', t]));  // 특색 활동(평가결과서에서 뽑음)은 장점이라 초록 태그
+  (r.특색 || []).forEach((t) => tags.push(['f', '✨ ' + t]));  // 특색 활동(평가결과서에서 뽑음): 장점 계열이지만 모양으로 구분
   sp.forEach((s) => SPEC[s] && tags.push(SPEC[s]));
   if (r.연장반 != null) {
     const night = sp.includes('야간연장형') || sp.includes('24시간');
