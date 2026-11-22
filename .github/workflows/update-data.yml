@@ -9,6 +9,10 @@ on:
         description: '원비를 공시 차수와 상관없이 서울 전체 다시 받기'
         type: boolean
         default: false
+      ai_limit:
+        description: '어린이집 평가 AI 정리 최대 곳 수(0이면 남은 곳 전부)'
+        type: number
+        default: 0
 
 permissions:
   contents: write   # 데이터 커밋
@@ -54,6 +58,13 @@ jobs:
         continue-on-error: true
         timeout-minutes: 50
         run: python3 scripts/fetch_dc_eval.py --minutes 40
+      - name: 어린이집 평가 AI 정리(Claude Haiku, 새로 받은 결과서만, 최대 30분)
+        id: dcai
+        continue-on-error: true
+        timeout-minutes: 40
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 scripts/analyze_dc_eval.py --minutes 30 --ids 11680000491,11710000177,11680000475,11740000363,11350001057,11350001004,11740000444,11710000616,11350001010,11260000185,11680000387,11530000021,11305000207,11260000085,11500000635,11260000015,11170000022,11530000082,11650000403,11590000137,11560000278,11290000655,11380000038,11470000589,11680000186,11140000099,11410000317,11680000504,11170000196,11290000030
       - name: 어린이집 API에서 받기 (서울 25개 구, 운영키 만료 2027-11-09)
         id: dc
         continue-on-error: true
@@ -104,6 +115,7 @@ jobs:
             유치원 상세정보=${{ steps.detail.outcome }}
             어린이집 포털=${{ steps.portal.outcome }}
             어린이집 평가결과서=${{ steps.dceval.outcome }}
+            어린이집 평가 AI 정리=${{ steps.dcai.outcome }}
             어린이집 API=${{ steps.dc.outcome }}
             index.html 빌드=${{ steps.build.outcome }}
             k/ 페이지 빌드=${{ steps.pages.outcome }}
