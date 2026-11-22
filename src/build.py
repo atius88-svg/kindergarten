@@ -6,8 +6,9 @@ r = lambda p: open(os.path.join(d, p), encoding='utf-8').read().strip()
 import json, re, shutil
 dc = r('data/dc_seoul.json')
 # 개편 후 평가결과서(src/data/dc_eval.json, scripts/fetch_dc_eval.py)에서 학부모에게 쓸모 있는 것만 뽑는다.
-# 종합의견은 대부분 비슷한 칭찬 문장이라 전문은 싣지 않는다(원문은 포털 링크).
+# 종합의견은 대부분 비슷한 칭찬 문장이라 화면에는 보완 권고만 보여 주고, 전문은 눌러야 펼친다.
 #  - 보완 권고: '다만, …' / '…바랍니다.' 문장 → dc.json '평가보완'(개수), dc_tips.json(문장, 상세를 열 때 받음)
+#  - 전문: ev/c{stcode}.json(누를 때 받음)
 #  - 특색: 다른 곳 글에는 드문 활동·인증 키워드 → dc.json '특색'(드문 것부터 최대 3개)
 evp = os.path.join(d, 'data', 'dc_eval.json')
 ev = {k: v for k, v in (json.loads(r('data/dc_eval.json')) if os.path.exists(evp) else {}).items() if v.get('a')}
@@ -52,7 +53,17 @@ for row in DCJ['rows']:
 dc = json.dumps(DCJ, ensure_ascii=False, separators=(',', ':'))
 tips_json = json.dumps({'c' + k: v for k, v in sorted(TIPS.items()) if v}, ensure_ascii=False, separators=(',', ':'))
 open(os.path.join(d, '..', 'dc_tips.json'), 'w', encoding='utf-8').write(tips_json + '\n')
-shutil.rmtree(os.path.join(d, '..', 'ev'), ignore_errors=True)  # 예전 방식(전문 파일) 정리
+# 영역별 종합의견 전문: ev/c{stcode}.json({ym, a}) — 상세에서 '평가결과서 전문 보기'를 누를 때만 받는다
+evdir = os.path.join(d, '..', 'ev')
+os.makedirs(evdir, exist_ok=True)
+for f in os.listdir(evdir):
+    if f.endswith('.json') and f[1:-5] not in ev:
+        os.remove(os.path.join(evdir, f))
+for k, v in ev.items():
+    body = json.dumps({'ym': v['ym'], 'a': v['a']}, ensure_ascii=False, separators=(',', ':'))
+    pth = os.path.join(evdir, f'c{k}.json')
+    if not os.path.exists(pth) or open(pth, encoding='utf-8').read() != body:
+        open(pth, 'w', encoding='utf-8').write(body)
 ev_v = hashlib.md5(tips_json.encode()).hexdigest()[:8]
 open(os.path.join(d, '..', 'dc.json'), 'w', encoding='utf-8').write(dc + '\n')
 ver = hashlib.sha1(dc.encode()).hexdigest()[:10]  # 데이터가 바뀌면 주소가 바뀌어 캐시를 새로 받음

@@ -145,8 +145,13 @@
   .evdoc { margin-top: 6px; font-size: 13px; }
   .evdoc .tip { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: #fff4e5; color: #6b4300; }
   .evdoc .tip b { color: #6b4300 !important; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip { padding: 2px 9px; border-radius: 999px; background: #eef4ff; color: #24456e; font-size: 12.5px; }
+  .feats { display: flex; flex-wrap: wrap; gap: 6px; }
+  .feat { padding: 2px 9px; border-radius: 999px; background: #eef4ff; color: #24456e; font-size: 12.5px; }
+  .evfull { margin-top: 6px; font-size: 13px; }
+  .evfull summary { cursor: pointer; color: var(--fg); font-weight: 600; }
+  .evfull .area { margin: 8px 0 0; line-height: 1.55; }
+  .evfull .area b { display: block; }
+  .evfull mark { background: #ffe6b3; color: inherit; }
   .cbar { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 40; background: var(--fg); color: var(--panel); border-radius: 14px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.25); max-width: 560px; margin: 0 auto; }
   .cbar[hidden] { display: none; }
   .cbar .names { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -498,11 +503,24 @@ function waitOf(r) {
 // 어린이집 평가제는 2024-07-03 개편: A~D 등급제 폐지, 영역별 서술형 결과(예전 등급은 일괄 삭제).
 // 개편 전 평가(총평 문구가 있거나 2024-07 이전)는 '제도 개편 전 평가'로 따로 표시한다.
 const EVAL_NOTE_OLD = '2024년 7월 개편 전 평가제로 받은 평가예요(보육과정·상호작용, 보육환경·운영관리, 건강·안전, 교직원 4개 영역). 개편으로 A~D 등급제가 폐지돼 예전 등급은 삭제됐고, 당시 결과서의 총평 문구를 보여드려요.';
-const EVAL_NOTE_NEW = '2024년 7월 개편된 평가제로 받은 평가예요. A~D 등급 없이 6개 영역별 종합의견(서술)이 나오는데 대부분 비슷한 칭찬 문장이라, 고칠 점으로 적힌 \'다만, …\' 문장(보완 권고)만 보여드려요.';
+const EVAL_NOTE_NEW = '2024년 7월 개편된 평가제로 받은 평가예요. A~D 등급 없이 6개 영역별 종합의견(서술)이 나오는데 대부분 비슷한 칭찬 문장이라, 고칠 점으로 적힌 \'다만, …\' 문장(보완 권고)을 먼저 보여드려요. 전문은 \'영역별 평가 전문 보기\'를 눌러 보세요.';
 const EV_V = '%%EV_V%%';  // dc_tips.json 버전
 // 개편 후 평가의 보완 권고 문장(dc_tips.json: {id: [[영역, 문장]]}) — 보완 권고가 있는 곳 상세를 처음 열 때 한 번 받는다
 let tipsLoad = null;
 const PORTAL_EVAL = (id) => `https://info.childcare.go.kr/info_html5/pnis/search/preview/AppraisaAuthenticationGradeSlPu.jsp?flag=PI&STCODE_POP=${id.slice(1)}`;
+// 평가결과서 전문(ev/{id}.json: {ym, a: [[영역, 종합의견]]}) — '전문 보기'를 처음 펼칠 때 받는다. 보완 권고 문장은 강조
+const isTip = (t) => /^다만|유의하시기 바랍니다|바랍니다\.?$/.test(t);
+async function loadEvFull(det) {
+  if (det.dataset.done) return;
+  det.dataset.done = '1';
+  const box = det.querySelector('.body');
+  try {
+    const res = await fetch(`ev/${det.dataset.full}.json?v=${EV_V}`);
+    if (!res.ok) throw new Error(res.status);
+    const d = await res.json();
+    box.innerHTML = d.a.map(([area, t]) => `<div class="area"><b>${esc(area)}</b>${t.split(/(?<=[.!?])\s+/).map((x) => isTip(x) ? `<mark>${esc(x)}</mark>` : esc(x)).join(' ')}</div>`).join('');
+  } catch (e) { delete det.dataset.done; box.textContent = '불러오지 못했어요. 닫았다가 다시 눌러 주세요.'; }
+}
 async function loadEvDoc(box) {
   try {
     tipsLoad = tipsLoad || fetch(`dc_tips.json?v=${EV_V}`).then((res) => { if (!res.ok) throw new Error(res.status); return res.json(); });
@@ -519,10 +537,11 @@ function dcEval(r) {
   if (old) return { cls: '', old, lab: `개편 전 '${ymTxt(r.평가연월)}`, txt: `<b>제도 개편 전 평가</b>(${r.평가연월})`, note: EVAL_NOTE_OLD };
   const n = r.평가보완;  // 종합의견 속 '다만, …' 보완 권고 수(scripts/fetch_dc_eval.py → build.py), 결과서를 못 받았으면 null
   if (n != null) {
-    const src = ` <a href="${PORTAL_EVAL(r.id)}" target="_blank" rel="noopener">평가결과서 원문</a>`;
+    const src = ` <a href="${PORTAL_EVAL(r.id)}" target="_blank" rel="noopener">포털에서 보기</a>`;
+    const full = `<details class="evfull" data-full="${esc(r.id)}"><summary>영역별 평가 전문 보기 (6개 영역)</summary><div class="body">불러오는 중…</div></details>`;
     return n === 0
-      ? { cls: 'g', old, lab: '보완 권고 없음', txt: `<b>평가 완료</b>(${r.평가연월}) · <b>보완 권고 없음</b>`, note: EVAL_NOTE_NEW + src }
-      : { cls: 'n', old, lab: `보완 권고 ${n}건`, txt: `<b>평가 완료</b>(${r.평가연월}) · <b>보완 권고 ${n}건</b><div class="evdoc" data-ev="${esc(r.id)}">불러오는 중…</div>`, note: EVAL_NOTE_NEW + src };
+      ? { cls: 'g', old, lab: '보완 권고 없음', txt: `<b>평가 완료</b>(${r.평가연월}) · <b>보완 권고 없음</b>${full}`, note: EVAL_NOTE_NEW + src }
+      : { cls: 'n', old, lab: `보완 권고 ${n}건`, txt: `<b>평가 완료</b>(${r.평가연월}) · <b>보완 권고 ${n}건</b><div class="evdoc" data-ev="${esc(r.id)}">불러오는 중…</div>${full}`, note: EVAL_NOTE_NEW + src };
   }
   return { cls: '', old, lab: `'${ymTxt(r.평가연월)}`, txt: `<b>평가 완료</b>(${r.평가연월}) · 개편된 평가제(영역별 서술형 결과)`, note: EVAL_NOTE_NEW };
 }
@@ -552,7 +571,7 @@ function dcDescribe(r) {
     if (e.cls === 'g') tags.push(['g', e.old ? '개편 전 평가 모든 영역 충족' : '평가 보완 권고 없음']); else if (e.cls === 'b') tags.push(['b', '평가 전']);
     facts.push(['평가', e.txt, e.note, e.cls]);
   } else facts.push(['평가', '정보 없음', '', '']);
-  if (r.특색 && r.특색.length) facts.push(['특색 활동', `<span class="chips">${r.특색.map((t) => `<span class="chip">${esc(t)}</span>`).join('')}</span>`, '평가결과서 글에서 다른 어린이집엔 드문 활동·인증을 자동으로 골랐어요(최대 3개).', '']);
+  if (r.특색 && r.특색.length) facts.push(['특색 활동', `<span class="feats">${r.특색.map((t) => `<span class="feat">${esc(t)}</span>`).join('')}</span>`, '평가결과서 글에서 다른 어린이집엔 드문 활동·인증을 자동으로 골랐어요(최대 3개).', '']);
   sp.forEach((s) => SPEC[s] && tags.push(SPEC[s]));
   if (r.연장반 != null) {
     const night = sp.includes('야간연장형') || sp.includes('24시간');
@@ -1027,6 +1046,7 @@ async function start() {
       <ul class="facts full">${dsc.facts.map(([k, v, cmp, c]) => `<li><span class="k">${k}</span><span class="v ${c ? 'c-' + c : ''}">${v}${cmp ? `<span class="cmp">${cmp}</span>` : ''}</span></li>`).join('')}</ul>
       <p class="note">${isDC(r) ? '출처: 공공데이터포털 어린이집 기본정보, 어린이집정보공개포털(평가·연장보육·근속). 입소 대기 순번은 아이사랑에서 확인하세요.' : '출처: 유치원알리미 2026년 정보공시. 설명회 일정·특성화 프로그램은 유치원에 직접 확인하세요.'}</p>`;
     $('d-body').querySelectorAll('.evdoc[data-ev]').forEach(loadEvDoc);
+    $('d-body').querySelectorAll('details[data-full]').forEach((det) => det.addEventListener('toggle', () => det.open && loadEvFull(det)));
     $('d-heart').addEventListener('click', () => toggleCmp(id));
     $('d-share').addEventListener('click', async () => {
       // 공유는 기관별 미리보기 주소 s/{id}.html로(카톡은 주소 뒤 #k…를 안 봐서 지도 주소로는 이름이 안 뜸). 열면 바로 이 상세로 옴
