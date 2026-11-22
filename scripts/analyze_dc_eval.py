@@ -44,7 +44,7 @@ PROMPT = f"""다음은 한 어린이집의 정부 평가결과서(6개 영역 �
 
 
 def call(text, key):
-    body = json.dumps({'model': MODEL, 'max_tokens': 500,
+    body = json.dumps({'model': MODEL, 'max_tokens': 4000,
                        'messages': [{'role': 'user', 'content': PROMPT + text}]}).encode()
     for i in range(4):
         try:
@@ -52,12 +52,17 @@ def call(text, key):
                 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json'})
             with urllib.request.urlopen(req, timeout=90) as r:
                 d = json.load(r)
-            return ''.join(c.get('text', '') for c in d.get('content', [])), d.get('usage', {})
+            txt = ''.join(c.get('text', '') for c in d.get('content', []) if c.get('type') == 'text')
+            if '{' not in txt:
+                raise ValueError(f"JSON 없음: stop={d.get('stop_reason')} blocks={[c.get('type') for c in d.get('content', [])]} text={txt[:200]!r}")
+            return txt, d.get('usage', {})
         except urllib.error.HTTPError as e:
             if e.code in (429, 500, 502, 503, 529) and i < 3:
                 time.sleep(5 * (i + 1))
                 continue
             raise RuntimeError(f'HTTP {e.code}: {e.read()[:300]!r}')
+        except ValueError:
+            raise
         except Exception:
             if i == 3:
                 raise
