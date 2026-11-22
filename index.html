@@ -64,6 +64,7 @@
   .guide > div { margin-top: 8px; }
   .mapsum { position: absolute; left: 10px; bottom: 10px; z-index: 20; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.94); color: #1d2420; font-size: 12.5px; box-shadow: 0 1px 6px rgba(0,0,0,.2); pointer-events: none; white-space: nowrap; }
   .mapsum:empty { display: none; }
+  .maplegend { margin-bottom: 8px; }
   .summary b { color: var(--fg); }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
   .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-right: 4px; }
@@ -209,6 +210,13 @@
   <div class="mapbox"><div id="map"></div><div class="mapsum" id="mapsum"></div><button type="button" id="research" hidden>↻ 이 지역에서 다시 찾기</button></div>
   <aside class="side">
     <header>
+      <div class="legend maplegend">
+        <span><i class="dot" style="background:var(--pub)"></i>국공립</span>
+        <span class="kg-only"><i class="dot" style="background:var(--pri)"></i>사립</span>
+        <span class="dc-only"><i class="dot" style="background:var(--pri)"></i>민간</span>
+        <span class="dc-only"><i class="dot" style="background:#e08a00"></i>가정</span>
+        <span class="dc-only"><i class="dot" style="background:#8a5cc2"></i>직장·법인</span>
+      </div>
       <form class="find" id="find" role="search" autocomplete="off"><input id="find-q" type="search" placeholder="🔍 유치원·어린이집 이름으로 찾기" enterkeyhint="search" aria-label="유치원·어린이집 이름 검색"><div class="find-res" id="find-res" hidden></div></form>
       <div class="controls">
         <button class="primary" id="me" type="button">📍 내 위치</button>
@@ -261,14 +269,9 @@
       </details>
     </header>
     <div class="list" id="list"></div>
-    <details class="guide"><summary>ⓘ 지도 보는 법 · 출처</summary>
+    <details class="guide"><summary>ⓘ 보는 법 · 출처</summary>
       <div class="summary" id="summary"></div>
       <div class="legend">
-        <span><i class="dot" style="background:var(--pub)"></i>국공립</span>
-        <span class="kg-only"><i class="dot" style="background:var(--pri)"></i>사립</span>
-        <span class="dc-only"><i class="dot" style="background:var(--pri)"></i>민간</span>
-        <span class="dc-only"><i class="dot" style="background:#e08a00"></i>가정</span>
-        <span class="dc-only"><i class="dot" style="background:#8a5cc2"></i>직장·법인</span>
         <span><span class="g">초록</span> 학부모에게 좋은 점 · <span class="b">빨강</span> 확인해볼 점 · <span class="n">주황</span> 다른 곳과 다른 점</span>
       </div>
       <div class="icons kg-only"><span>💰 월 비용</span><span>🧒 원아 수</span><span>🏫 한 반 인원</span><span>👩‍🏫 선생님 1명 : 아이</span><span>⏰ 운영시간</span><span>🚌 통학차량</span></div>
