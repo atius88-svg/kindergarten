@@ -59,6 +59,11 @@
   select, button { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); }
   button.primary { background: var(--fg); color: var(--panel); border-color: var(--fg); cursor: pointer; }
   .summary { color: var(--muted); }
+  .guide { margin: 8px 16px 16px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+  .guide summary { cursor: pointer; color: var(--muted); }
+  .guide > div { margin-top: 8px; }
+  .mapsum { position: absolute; left: 10px; bottom: 10px; z-index: 20; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.94); color: #1d2420; font-size: 12.5px; box-shadow: 0 1px 6px rgba(0,0,0,.2); pointer-events: none; white-space: nowrap; }
+  .mapsum:empty { display: none; }
   .summary b { color: var(--fg); }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
   .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-right: 4px; }
@@ -201,13 +206,12 @@
   <div class="mode" role="group" aria-label="유치원 또는 어린이집"><button type="button" data-mode="kg" aria-pressed="true">유치원</button><button type="button" data-mode="dc" aria-pressed="false">어린이집</button></div>
 </header>
 <div class="app">
-  <div class="mapbox"><div id="map"></div><button type="button" id="research" hidden>↻ 이 지역에서 다시 찾기</button></div>
+  <div class="mapbox"><div id="map"></div><div class="mapsum" id="mapsum"></div><button type="button" id="research" hidden>↻ 이 지역에서 다시 찾기</button></div>
   <aside class="side">
     <header>
       <form class="find" id="find" role="search" autocomplete="off"><input id="find-q" type="search" placeholder="🔍 유치원·어린이집 이름으로 찾기" enterkeyhint="search" aria-label="유치원·어린이집 이름 검색"><div class="find-res" id="find-res" hidden></div></form>
       <div class="controls">
         <button class="primary" id="me" type="button">📍 내 위치</button>
-        <button id="home" type="button" aria-expanded="false" aria-controls="home-box">🏠 우리 집</button>
         <select id="gu" aria-label="구 선택"></select>
         <select id="r" aria-label="반경">
           <option value="1">1km</option><option value="2" selected>2km</option><option value="3">3km</option><option value="5">5km</option>
@@ -222,15 +226,18 @@
           <option value="">전체</option><option value="국공립">국공립</option><option value="사립">사립</option>
         </select>
       </div>
-      <div class="home-box" id="home-box" hidden>
+      <details class="cond" id="cond"><summary>⚙️ 우리 집 설정하기 <small id="cond-n">설정 안 함</small></summary>
+        <div class="cond-grid">
+          <div class="cond-row"><div class="line">🏠 우리 집</div>
+      <div class="home-box" id="home-box">
         <div class="home-cur" id="home-cur"></div>
         <form class="home-form" id="home-form"><input id="home-q" type="search" placeholder="주소나 아파트 이름" enterkeyhint="search" aria-label="우리 집 주소 검색"><button class="primary" type="submit">찾기</button></form>
         <div class="home-res" id="home-res"></div>
         <div class="home-acts"><button type="button" id="home-here">📍 지금 기준 위치를 우리 집으로</button><button type="button" id="home-del" hidden>삭제</button></div>
         <p class="home-hint">우리 집은 이 휴대폰(브라우저)에만 저장되고, 다음에 열 때 여기서 시작해요.</p>
       </div>
-      <details class="cond" id="cond"><summary>⚙️ 우리 집 조건 <small id="cond-n">설정 안 함</small></summary>
-        <div class="cond-grid">
+          </div>
+          <div class="cond-row"><div class="line"><b>조건</b></div></div>
           <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-eval"> ⭐ 평가 받은 곳만</label></div>
           <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-ext"> 🌙 연장보육반(19:30 이후) 있는 곳만</label><small>어린이집 기본 운영은 대부분 07:30~19:30이에요.</small></div>
           <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-night"> 🌃 야간연장형(밤늦게까지) 만</label></div>
@@ -252,6 +259,9 @@
           <button class="cond-reset" type="button" id="f-reset">조건 모두 지우기</button>
         </div>
       </details>
+    </header>
+    <div class="list" id="list"></div>
+    <details class="guide"><summary>ⓘ 지도 보는 법 · 출처</summary>
       <div class="summary" id="summary"></div>
       <div class="legend">
         <span><i class="dot" style="background:var(--pub)"></i>국공립</span>
@@ -262,11 +272,10 @@
         <span><span class="g">초록</span> 학부모에게 좋은 점 · <span class="b">빨강</span> 확인해볼 점 · <span class="n">주황</span> 다른 곳과 다른 점</span>
       </div>
       <div class="icons kg-only"><span>💰 월 비용</span><span>🧒 원아 수</span><span>🏫 한 반 인원</span><span>👩‍🏫 선생님 1명 : 아이</span><span>⏰ 운영시간</span><span>🚌 통학차량</span></div>
-      <div class="icons dc-only"><span>⭐ 평가</span><span>🌙 연장보육반</span><span>🧒 현원/정원</span><span>👩‍🏫 선생님 1명 : 아이</span><span>📹 CCTV</span><span>🚌 통학차량</span></div>
+      <div class="icons dc-only"><span>⏳ 입소 대기</span><span>🌙 연장보육반</span><span>🧒 현원/정원</span><span>🚌 통학차량</span><span>👩‍🏫 선생님 1명 : 아이</span><span>⭐ 평가</span></div>
       <div class="legend kg-only">지도를 누르면 그곳이 기준 위치가 됩니다. 출처: 유치원알리미 2026년 정보공시</div>
       <div class="legend dc-only">지도를 누르면 그곳이 기준 위치가 됩니다. 서울 25개 구 어린이집. 출처: 어린이집정보공개포털·공공데이터포털</div>
-    </header>
-    <div class="list" id="list"></div>
+    </details>
   </aside>
 </div>
 <div class="sheet" id="detail" hidden><div class="panel">
@@ -558,8 +567,6 @@ function dcEval(r) {
 }
 function dcBadges(r) {
   const out = [];
-  const e = dcEval(r);
-  if (e) out.push([e.cls, ICON.star + '평가', e.lab, e.old ? '2024년 7월 평가제 개편 이전 평가(당시 총평 문구)' : '어린이집 평가제 결과']);
   const w = waitOf(r);
   if (w) out.push([w.cls, ICON.wait + `${w.who ? w.who.replace('만 ', '') + ' ' : ''}대기 ${w.v}명`, w.lab, `입소 대기 신청 아동 수${w.who ? ` (${w.who})` : ' (전체 나이)'} · 서울 상위 25%는 ${WAIT_P75[w.i]}명 이상 · 중복 신청 포함`]);
   if (r.연장반 != null) out.push(r.연장반 > 0 ? ['g', ICON.moon + `연장반 ${r.연장반}개`, `${r.연장아동}명`, '19:30 이후 연장보육반 · 이용 아동 수'] : ['b', ICON.moon + '연장반', '없음', '연장보육반']);
@@ -569,6 +576,8 @@ function dcBadges(r) {
   else if (r.차량운영여부 === '미운영') out.push(['bus-off', ICON.bus + '없음', '', '통학차량 없음']);
   const ts = headCmp(r, '교사1인당원아');
   if (ts) out.push([ts.cls, ICON.tch + `1:${ts.v}`, ts.lab, `선생님 1명당 아이 · 서울 ${r.유형} 평균 ${ts.a}명`]);
+  const e = dcEval(r);
+  if (e) out.push([e.cls, ICON.star + '평가', e.lab, e.old ? '2024년 7월 평가제 개편 이전 평가(당시 총평 문구)' : '어린이집 평가제 결과']);
   return out;
 }
 const SPEC = { 야간연장형: ['g', '밤늦게까지(야간연장)'], '24시간': ['g', '24시간 보육'], 시간제보육: ['n', '시간제 보육'], 장애아통합: ['n', '장애아 통합'], 영아전담: ['n', '영아 전담'] };
@@ -599,7 +608,7 @@ function dcDescribe(r) {
     if (w && w.cls === 'b') tags.push(['b', '대기가 많아요']); else if (tot === 0) tags.push(['g', '입소 대기 없음']);
     const by = r.대기.slice(0, 7).map((v, i) => [WAIT_LAB[i], v]).filter(([, v]) => v > 0).map(([l, v]) => `${l} ${v}명`).join(' · ');
     facts.push(['입소 대기', tot ? `<b>${tot}명</b>이 입소를 기다리고 있어요.${by ? `<br><small>${by}</small>` : ''}` : '지금 입소를 기다리는 아이가 <b>없어요.</b>',
-      '한 아이가 여러 어린이집에 신청할 수 있어서 실제 경쟁보다 많게 보여요.', w ? w.cls : '']);
+      '', w ? w.cls : '']);
   }
   if (r.연령별) {
     const rows = r.연령별.map(([n, kids], i) => ({ l: DC_AGE_LAB[i], n, kids, max: DC_AGE_MAX[i], i })).filter((x) => x.n > 0 || x.kids > 0);
@@ -627,7 +636,7 @@ function dcDescribe(r) {
   }
   facts.push(['운영 시간', r.운영시간 ? `<b>${esc(r.운영시간)}</b>` : '정보 없음', '서울 어린이집은 대부분 07:30~19:30 기본 운영이에요.', '']);
   facts.push(['시설', `보육실 <b>${r.보육실}개</b> · 놀이터 <b>${r.놀이터 ? r.놀이터 + '곳' : '없음'}</b> · CCTV <b>${r.CCTV ?? '-'}대</b>`, r.놀이터 ? '' : '바깥 놀이는 근처 공원을 이용하는지 물어보세요.', r.CCTV === 0 ? 'b' : '']);
-  facts.push(['통학 차량', r.차량운영여부 === '운영' ? '<b>운영해요.</b> 노선은 어린이집에 확인하세요.' : '<b>운영하지 않아요.</b> 직접 등하원해야 해요.', '', '']);
+  facts.push(['통학 차량', r.차량운영여부 === '운영' ? '<b>운영해요.</b> 노선은 어린이집에 확인하세요.' : '<b>운영하지 않아요.</b>', '', '']);
   facts.push(['연락처', `${esc(r.주소)}${r.전화 ? `<br><a href="tel:${esc(r.전화)}"><b>${esc(r.전화)}</b></a>` : ''}`, '', '']);
   const order = { g: 0, b: 1, n: 2 };
   tags.sort((a, b) => order[a[0]] - order[b[0]]);
@@ -719,7 +728,7 @@ function describe(r) {
   }
   const dt = DET[r.id];  // 휴원·공시 전 행은 없음
   const nBus = dt && dt[3] > 0 ? ` (<b>${dt[3]}대</b>)` : '';
-  facts.push(['통학 차량', r.차량운영여부 === '운영' ? `<b>운영해요</b>${nBus}. 노선은 원에 확인하세요.` : r.차량운영여부 === '미운영' ? '<b>운영하지 않아요.</b> 직접 등하원해야 해요.' : '정보 없음', '', '']);
+  facts.push(['통학 차량', r.차량운영여부 === '운영' ? `<b>운영해요</b>${nBus}. 노선은 원에 확인하세요.` : r.차량운영여부 === '미운영' ? '<b>운영하지 않아요.</b>' : '정보 없음', '', '']);
   if (dt && dt[4] != null) facts.push(['CCTV', dt[4] === 0 ? '설치한 CCTV가 <b>없다</b>고 공시했어요.' : `<b>${dt[4]}대</b> 설치했어요.`, dt[4] === 0 ? '공시 값이라 실제와 다를 수 있어요. 유치원에 확인해 보세요.' : '', dt[4] === 0 ? 'b' : '']);
   if (dt) {
     const web = /^https?:\/\//.test(dt[2] || '') ? `<br><a href="${esc(dt[2])}" target="_blank" rel="noopener"><b>홈페이지</b></a>` : '';
@@ -950,6 +959,7 @@ async function start() {
     const pub = near.filter((o) => o.x.유형 === '국공립').length;
     const mix = dcMode ? DC_TYPES.map((ty) => `${ty} ${near.filter((o) => o.x.유형 === ty).length}`).join(', ') : `국공립 ${pub}, 사립 ${near.length - pub}`;
     $('summary').innerHTML = `반경 <b>${r}km</b> 안에 ${NOUN()} <b>${near.length}곳</b> (${mix})` + (nc ? ` · 우리 집 조건에 맞는 곳 <b>${shown.length}곳</b>` : '');
+    $('mapsum').innerHTML = `반경 ${r}km · ${NOUN()} <b>${near.length}곳</b>` + (nc ? ` · 조건 맞는 곳 <b>${shown.length}곳</b>` : '');
     drawCondHints();
     S.dist = Object.fromEntries(near.map((o) => [o.x.id, o.d]));
     S.shown = shown; S.listN = 0;
@@ -1158,11 +1168,12 @@ async function start() {
   };
   const goHome = () => { const h = HOME.get(); if (!h) return; S.lat = h.lat; S.lng = h.lng; $('gu').value = ''; if (location.hash) location.hash = ''; render(true); };
   const saveHome = (lat, lng, label) => { HOME.set({ lat, lng, label }); drawHome(); goHome(); toggleHome(false); };
+  // 우리 집은 '우리 집 설정하기' 안에 있다. 정하거나 이동하면 설정 칸을 닫고 지도로
   const toggleHome = (open) => {
-    $('home-box').hidden = !open; $('home').setAttribute('aria-expanded', open);
-    if (open) { $('home-res').innerHTML = ''; drawHome(); if (!HOME.get()) setTimeout(() => $('home-q').focus(), 0); }
+    $('home-res').innerHTML = '';
+    if (open) drawHome(); else $('cond').open = false;
   };
-  $('home').addEventListener('click', () => toggleHome($('home-box').hidden));
+  $('cond').addEventListener('toggle', () => { if ($('cond').open) toggleHome(true); });
   $('home-here').addEventListener('click', () => {
     const g = $('gu').value;
     saveHome(S.lat, S.lng, g ? `${g} 가운데` : '지도에서 고른 곳');
