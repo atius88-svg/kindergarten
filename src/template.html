@@ -162,6 +162,7 @@
   .evdoc .tip b { color: #6b4300 !important; }
   .feats { display: flex; flex-wrap: wrap; gap: 6px; }
   .card-feats { margin-top: 8px; }
+  .qa { margin: 2px 0; } .qa .q { color: var(--muted); font-size: 12.5px; margin-right: 4px; } .muted { color: var(--muted); }
   .feat { padding: 2px 9px; border-radius: 999px; background: #eef4ff; color: #24456e; font-size: 12.5px; }
   .evfull { margin-top: 6px; font-size: 13px; }
   .evfull summary { cursor: pointer; color: var(--fg); font-weight: 600; }
@@ -595,7 +596,13 @@ function dcDescribe(r) {
   if (e) {
     facts.push(['평가', e.txt, e.note, e.cls]);
   } else facts.push(['평가', '정보 없음', '', '']);
-  if (r.특색 && r.특색.length) facts.push(['특색 활동', `<span class="feats">${r.특색.map((t) => `<span class="feat">${esc(t)}</span>`).join('')}</span>`, '평가결과서에서 자동으로 뽑았어요(최대 3개).', '']);
+  if (r.평가4) {  // 평가결과서를 AI로 정리한 4가지(scripts/analyze_dc_eval.py)
+    const [freq, kinds, meal, parent, dev] = r.평가4;
+    const none = '<span class="muted">언급 없음</span>', list = (xs) => xs.length ? xs.map(esc).join(' · ') : none;
+    const out = freq === '없음' ? none : freq === '있음' ? (kinds.length ? kinds.map(esc).join(' · ') : '있음') : `<b>${esc(freq)}</b>${kinds.length ? ' · ' + kinds.map(esc).join(' · ') : ''}`;
+    const qa = [['바깥에 자주 나가나요?', out], ['밥은 잘 나오나요?', list(meal)], ['부모가 들여다볼 수 있나요?', list(parent)], ['발달 지원이 있나요?', list(dev)]];
+    facts.push(['평가로 본 생활', qa.map(([q, a]) => `<div class="qa"><span class="q">${q}</span> ${a}</div>`).join(''), '평가결과서를 AI(Claude)로 정리했어요. 결과서에 없는 내용은 \'언급 없음\'이에요.', '']);
+  } else if (r.특색 && r.특색.length) facts.push(['특색 활동', `<span class="feats">${r.특색.map((t) => `<span class="feat">${esc(t)}</span>`).join('')}</span>`, '평가결과서에서 자동으로 뽑았어요(최대 3개).', '']);
   (r.특색 || []).forEach((t) => tags.push(['f', '✨ ' + t]));  // 특색 활동(평가결과서에서 뽑음): 장점 계열이지만 모양으로 구분
   sp.forEach((s) => SPEC[s] && tags.push(SPEC[s]));
   if (r.연장반 != null) {

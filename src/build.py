@@ -42,14 +42,37 @@ def tips_of(a):
                 out.append([area, re.sub(r'^다만,?\s*', '', x)])
     return out
 TIPS = {k: tips_of(v['a']) for k, v in ev.items()}
+# AI 4칸 정리(src/data/dc_eval_ai.json, scripts/analyze_dc_eval.py) — 있으면 '평가4' 열과 특색 태그를 이걸로
+aip = os.path.join(d, 'data', 'dc_eval_ai.json')
+AI = json.loads(r('data/dc_eval_ai.json')) if os.path.exists(aip) else {}
+PLAB = {'참여수업': '부모 참여수업', '급식 모니터링': '부모 급식 모니터링', '아빠 참여': '아빠 참여수업', '쿠킹클래스': '부모 쿠킹클래스',
+        '가족 프로그램': '가족 프로그램', '현장학습 도우미': '부모 현장학습 도우미', '부모교육': '부모교육'}
+def ai_tags(o):
+    t = []
+    if o['dev']:
+        t.append('발달 지원')
+    if o['freq'] in ('매주', '매월'):
+        t.append(f"{o['freq']} {o['kinds'][0] if o['kinds'] else '바깥 활동'}")
+    for x in ['아빠 참여', '쿠킹클래스', '가족 프로그램', '참여수업', '급식 모니터링', '현장학습 도우미', '부모교육']:
+        if x in o['parent']:
+            t.append(PLAB[x]); break
+    for x in ['저염 인증', '우수급식소', '전담 영양사']:
+        if x in o['meal']:
+            t.append(x); break
+    return t[:3]
 DCJ = json.loads(dc)
-DCJ['cols'] += ['평가보완', '특색']
+DCJ['cols'] += ['평가보완', '특색', '평가4']
+n_ai = 0
 for row in DCJ['rows']:
     k = row[0][1:]
-    if k in ev:
-        row += [len(TIPS[k]), [n for n, pat in FEAT if re.search(pat, full[k])][:3]]
+    a = AI.get(k)
+    if k in ev and a and a.get('ym') == ev[k]['ym']:
+        o = a['o']; n_ai += 1
+        row += [len(TIPS[k]), ai_tags(o), [o['freq'], o['kinds'], o['meal'], o['parent'], o['dev']]]
+    elif k in ev:
+        row += [len(TIPS[k]), [n for n, pat in FEAT if re.search(pat, full[k])][:3], None]
     else:
-        row += [None, None]
+        row += [None, None, None]
 dc = json.dumps(DCJ, ensure_ascii=False, separators=(',', ':'))
 tips_json = json.dumps({'c' + k: v for k, v in sorted(TIPS.items()) if v}, ensure_ascii=False, separators=(',', ':'))
 open(os.path.join(d, '..', 'dc_tips.json'), 'w', encoding='utf-8').write(tips_json + '\n')
@@ -82,4 +105,4 @@ h = (r('template.html').replace('%%NOSHARE%%', json.dumps(noshare)).replace('%%S
      .replace('%%COST%%', r('data/kg_cost_seoul.json')).replace('%%DC_URL%%', f'dc.json?v={ver}')
      .replace('%%RCRT%%', r('data/kg_rcrt.json')).replace('%%DET%%', det).replace('%%EV_V%%', ev_v))
 open(os.path.join(d, '..', 'index.html'), 'w', encoding='utf-8').write(h + '\n' if not h.endswith('\n') else h)
-print('index.html', len(h), '/ dc.json', len(dc), '/ 공유 주소 없는 곳', len(noshare), '/ 평가결과서', len(ev))
+print('index.html', len(h), '/ dc.json', len(dc), '/ 공유 주소 없는 곳', len(noshare), '/ 평가결과서', len(ev), '/ AI 정리', n_ai)

@@ -44,7 +44,7 @@ PROMPT = f"""다음은 한 어린이집의 정부 평가결과서(6개 영역 �
 
 
 def call(text, key):
-    body = json.dumps({'model': MODEL, 'max_tokens': 500, 'temperature': 0,
+    body = json.dumps({'model': MODEL, 'max_tokens': 500,
                        'messages': [{'role': 'user', 'content': PROMPT + text}]}).encode()
     for i in range(4):
         try:
