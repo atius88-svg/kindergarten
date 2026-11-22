@@ -173,6 +173,11 @@
   .evdoc { margin-top: 6px; font-size: 13px; }
   .evdoc .tip { margin: 8px 0 0; padding: 8px 12px; border-radius: 0 8px 8px 0; border-left: 2px solid var(--neu); background: var(--bg); color: var(--fg); }
   .evdoc .tip b { color: var(--fg) !important; font-weight: 500; }
+  .srcnote { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .srcnote b { display: block; font-weight: 500; color: var(--fg); margin-bottom: 2px; }
+  .srcnote div { display: grid; grid-template-columns: 11em 1fr; gap: 8px; }
+  .srcnote span { color: var(--fg); }
+  .srcnote p { margin: 6px 0 0; }
   .splist { margin-top: 8px; border-top: 1px solid var(--line); }
   .splist > div { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
   .splist small { display: block; font-size: 11px; color: var(--muted); }
@@ -452,7 +457,7 @@ function badges(r) {
   if (r.상태) out.push(['n', r.상태 === '휴원' ? '지금 휴원' : '공시 전', RCRT.r[r.id] ? `${RCRT.aid}학년도 모집` : '', `${STATE_TXT[r.상태] || ''}. ${RCRT.aid}학년도 원아를 모집해요.`]);
   const cc = costCmp(r);
   if (cc) out.push([cc.cls, ICON.won + (cc.none ? '' : cc.total === 0 ? '0원' : won(cc.total)), cc.lab, cc.avg != null ? `월 비용 · ${r.구} ${r.유형} 평균 월 ${won(Math.round(cc.avg))}` : '월 비용']);
-  if (cc && !cc.none && cc.sp && cc.sp.v > 0) out.push(['', ICON.plus + `특성화 ${won(cc.sp.v)}`, '', `특성화 활동 ${cc.sp.n}개 · 월 학부모 부담 (기본 원비와 별도)`]);
+  if (cc && !cc.none && cc.sp && cc.sp.v > 0) out.push(['', ICON.plus + `특성화비 ${won(cc.sp.v)}`, '', `특성화 활동 ${cc.sp.n}개 · 월 학부모 부담 (기본 원비와 별도)`]);
   if (r.원아수 != null) {
     const { m, sd } = SIZE_AVG[r.유형];
     const z = (r.원아수 - m) / sd;
@@ -595,6 +600,24 @@ async function loadEvDoc(box) {
 }
 // 유치원 특성화 활동 프로그램 목록(kg_sp.json: {id: [[[영역, 이름, 월 부담금, 주당 횟수]] × 만3·4·5]}) — 상세를 처음 열 때 한 번 받는다
 const SP_V = '7f31bb3f';
+// 항목별 자료 기준일(build.py) — 상세 맨 아래 '자료 기준'
+const META = {"kg_pb": null, "kg_t": null, "det": "2026-11-21", "dc_t": null, "ptl": ["2026-11-20", "2026-11-21"]};
+const mdTxt = (d) => d ? `${+d.slice(5, 7)}월 ${+d.slice(8, 10)}일` : '';
+const pbTxt = (p) => /^\d{5}$/.test(p || '') ? `${p.slice(0, 4)}년 ${p[4]}차 공시` : '';
+function srcNote(r) {
+  const L = [];
+  if (isDC(r)) {
+    if (META.dc_t) L.push(['반·아이·정원·대기·선생님', `${mdTxt(META.dc_t)} 받음`]);
+    if (META.ptl) L.push(['운영시간·평가·연장보육', META.ptl[0] === META.ptl[1] ? `${mdTxt(META.ptl[0])} 확인` : (META.ptl[0].slice(0, 7) === META.ptl[1].slice(0, 7) ? `${mdTxt(META.ptl[0])}~${+META.ptl[1].slice(8, 10)}일 확인` : `${mdTxt(META.ptl[0])}~${mdTxt(META.ptl[1])} 확인`)]);
+    if (r.평가연월) L.push(['평가', `${r.평가연월.replace('-', '년 ')}월 평가`]);
+    return { L, src: '출처: 어린이집정보공개포털·공공데이터포털. 입소 대기 순번은 아이사랑에서 확인하세요.' };
+  }
+  if (COST_BASIS) L.push(['원비·특성화비', COSTD.basis.replace(/\s*\((\d{4})\. (\d+)\. (\d+)\.\)/, (m, y, a, b) => ` 공시(${+a}월 ${+b}일 기준)`)]);
+  if (META.kg_pb || META.kg_t) L.push(['반·원아·선생님', [pbTxt(META.kg_pb), META.kg_t ? `${mdTxt(META.kg_t)} 받음` : ''].filter(Boolean).join(' · ')]);
+  if (RCRT.r[r.id]) L.push(['내년 빈자리', RCRT.basis.replace(' 유치원 모집요강', ' 모집요강').replace(/\(유보통합포털, (\d{4})-(\d\d)-(\d\d) 수집\)/, (m, y, a, b) => `(${+a}월 ${+b}일 수집)`)]);
+  if (DET[r.id] && META.det) L.push(['연락처·통학차량·CCTV', `${mdTxt(META.det)} 확인`]);
+  return { L, src: '출처: 유치원알리미 정보공시·유보통합포털. 설명회 일정은 유치원에 직접 확인하세요.' };
+}
 let spLoad = null;
 async function loadSpDoc(box) {
   try {
@@ -1145,7 +1168,7 @@ async function start() {
         <a href="https://map.kakao.com/link/to/${encodeURIComponent(r.유치원명)},${r.위도},${r.경도}" target="_blank" rel="noopener">${ICON.route}길찾기</a>
       </div>
       <ul class="facts full">${dsc.facts.map(([k, v, cmp, c]) => `<li><span class="k">${k}</span><span class="v ${c ? 'c-' + c : ''}">${v}${cmp ? `<span class="cmp">${cmp}</span>` : ''}</span></li>`).join('')}</ul>
-      <p class="note">${isDC(r) ? '출처: 공공데이터포털 어린이집 기본정보, 어린이집정보공개포털(평가·연장보육·근속). 입소 대기 순번은 아이사랑에서 확인하세요.' : '출처: 유치원알리미 2026년 정보공시. 설명회 일정·특성화 프로그램은 유치원에 직접 확인하세요.'}</p>`;
+      ${(({ L, src }) => `<div class="srcnote"><b>자료 기준</b>${L.map(([k, v]) => `<div><span>${k}</span>${esc(v)}</div>`).join('')}<p>${src}</p></div>`)(srcNote(r))}`;
     $('d-body').querySelectorAll('.evdoc[data-ev]').forEach(loadEvDoc);
     $('d-body').querySelectorAll('.spdoc[data-sp]').forEach(loadSpDoc);
     $('d-body').querySelectorAll('details[data-full]').forEach((det) => det.addEventListener('toggle', () => det.open && loadEvFull(det)));

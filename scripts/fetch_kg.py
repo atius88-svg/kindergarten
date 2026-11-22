@@ -252,7 +252,10 @@ def main():
         return
 
     with open(DATA, 'w', encoding='utf-8') as f:
-        json.dump({'cols': cols, 'rows': [[r.get(c) for c in cols] for r in rows]}, f, ensure_ascii=False, separators=(',', ':'))
+        # pb = 가장 최근 공시 차수(basicInfo2 pbnttmng, 예 '20262'), t = 받은 날 → 화면 상세 '자료 기준'
+        pb = max(str(x.get('pbnttmng') or '') for x in raw['basicInfo2'])
+        json.dump({'cols': cols, 'rows': [[r.get(c) for c in cols] for r in rows], 'pb': pb, 't': datetime.date.today().isoformat()},
+                  f, ensure_ascii=False, separators=(',', ':'))
     with open(IDS, 'w', encoding='utf-8') as f:
         json.dump(ids, f, ensure_ascii=False, indent=0, sort_keys=True)
     print(f'완료: {len(rows)}곳 (기존 {len(old_rows)}곳)')

@@ -159,7 +159,9 @@ def main():
         return
 
     with open(DATA, 'w', encoding='utf-8') as f:
-        json.dump({'cols': cols, 'rows': [[r.get(c) for c in cols] for r in rows]}, f, ensure_ascii=False, separators=(',', ':'))
+        # t = 받은 날 → 화면 상세 '자료 기준'
+        json.dump({'cols': cols, 'rows': [[r.get(c) for c in cols] for r in rows], 't': time.strftime('%Y-%m-%d')},
+                  f, ensure_ascii=False, separators=(',', ':'))
     print(f'완료: {len(rows)}곳 (기존 {len(old_rows)}곳)')
 
 
