@@ -105,7 +105,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A src/data index.html dc.json dc_tips.json k s ev
+          git add -A src/data index.html dc.json dc_tips.json kg_sp.json k s ev
           # sitemap.xml은 기관별 페이지 색인을 허용했을 때만 생김(build_pages.py NOINDEX=False)
           if [ -e sitemap.xml ] || git ls-files --error-unmatch sitemap.xml >/dev/null 2>&1; then git add -A sitemap.xml; fi
           if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi

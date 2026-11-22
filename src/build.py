@@ -101,8 +101,20 @@ all_ids = [str(x[kg['cols'].index('id')]) for x in kg['rows']] + [x[0] for x in 
 noshare = [i for i in all_ids if not os.path.exists(os.path.join(sdir, f'{i}.html'))]
 man = os.path.join(sdir, 'images.json')
 share_v = hashlib.md5(open(man, 'rb').read()).hexdigest()[:6] if os.path.exists(man) else '0'
+# 원비: 앞 6개 값 + 특성화 합계 [만3,4,5](7번째)만 index.html에, 특성화 프로그램 목록은 kg_sp.json(상세를 열 때 받음)
+costd = json.loads(r('data/kg_cost_seoul.json'))
+sp_list = {}
+for k, v in costd['cost'].items():
+    sp = v[6] if len(v) > 6 else None
+    v[6:] = [[[a[0], len(a[1])] for a in sp]] if sp else []  # [[월 합계, 프로그램 수] × 만3·4·5]
+    if sp and any(a[1] for a in sp):
+        sp_list[k] = [[[p[0], p[1], p[2], p[3]] for p in a[1]] for a in sp]
+cost_json = json.dumps(costd, ensure_ascii=False, separators=(',', ':'))
+sp_json = json.dumps(dict(sorted(sp_list.items(), key=lambda x: int(x[0]))), ensure_ascii=False, separators=(',', ':'))
+open(os.path.join(d, '..', 'kg_sp.json'), 'w', encoding='utf-8').write(sp_json + '\n')
+sp_v = hashlib.md5(sp_json.encode()).hexdigest()[:8]
 h = (r('template.html').replace('%%NOSHARE%%', json.dumps(noshare)).replace('%%SHARE_V%%', share_v).replace('%%DATA%%', r('data/kg_seoul.json.txt'))
-     .replace('%%COST%%', r('data/kg_cost_seoul.json')).replace('%%DC_URL%%', f'dc.json?v={ver}')
+     .replace('%%COST%%', cost_json).replace('%%SP_V%%', sp_v).replace('%%DC_URL%%', f'dc.json?v={ver}')
      .replace('%%RCRT%%', r('data/kg_rcrt.json')).replace('%%DET%%', det).replace('%%EV_V%%', ev_v))
 open(os.path.join(d, '..', 'index.html'), 'w', encoding='utf-8').write(h + '\n' if not h.endswith('\n') else h)
-print('index.html', len(h), '/ dc.json', len(dc), '/ 공유 주소 없는 곳', len(noshare), '/ 평가결과서', len(ev), '/ AI 정리', n_ai)
+print('index.html', len(h), '/ 특성화 목록', len(sp_list), '/ dc.json', len(dc), '/ 공유 주소 없는 곳', len(noshare), '/ 평가결과서', len(ev), '/ AI 정리', n_ai)

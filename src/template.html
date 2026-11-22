@@ -173,6 +173,10 @@
   .evdoc { margin-top: 6px; font-size: 13px; }
   .evdoc .tip { margin: 8px 0 0; padding: 8px 12px; border-radius: 0 8px 8px 0; border-left: 2px solid var(--neu); background: var(--bg); color: var(--fg); }
   .evdoc .tip b { color: var(--fg) !important; font-weight: 500; }
+  .splist { margin-top: 8px; border-top: 1px solid var(--line); }
+  .splist > div { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  .splist small { display: block; font-size: 11px; color: var(--muted); }
+  .splist b { font-weight: 500; white-space: nowrap; }
   .feats { display: flex; flex-wrap: wrap; gap: 6px; }
   .card-feats { margin-top: 8px; }
   .qa-box { display: grid; gap: 6px; margin-top: 2px; }
@@ -448,6 +452,7 @@ function badges(r) {
   if (r.상태) out.push(['n', r.상태 === '휴원' ? '지금 휴원' : '공시 전', RCRT.r[r.id] ? `${RCRT.aid}학년도 모집` : '', `${STATE_TXT[r.상태] || ''}. ${RCRT.aid}학년도 원아를 모집해요.`]);
   const cc = costCmp(r);
   if (cc) out.push([cc.cls, ICON.won + (cc.none ? '' : cc.total === 0 ? '0원' : won(cc.total)), cc.lab, cc.avg != null ? `월 비용 · ${r.구} ${r.유형} 평균 월 ${won(Math.round(cc.avg))}` : '월 비용']);
+  if (cc && !cc.none && cc.sp && cc.sp.v > 0) out.push(['', ICON.plus + `특성화 ${won(cc.sp.v)}`, '', `특성화 활동 ${cc.sp.n}개 · 월 학부모 부담 (기본 원비와 별도)`]);
   if (r.원아수 != null) {
     const { m, sd } = SIZE_AVG[r.유형];
     const z = (r.원아수 - m) / sd;
@@ -476,7 +481,7 @@ function badges(r) {
 }
 const BUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 11h16M8 21v-4M16 21v-4"/><circle cx="8" cy="14" r=".5"/><circle cx="16" cy="14" r=".5"/></svg>';
 const NOBUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M3 3l18 18"/></svg>';
-// 원비: 학부모 부담 고지액(지원금 제외, 월). [교육과정 만3·4·5세, 방과후 만3·4·5세], null = 해당 연령반 없음
+// 원비: 학부모 부담 고지액(지원금 제외, 월). [교육과정 만3·4·5세, 방과후 만3·4·5세, 특성화 [[월 합계, 프로그램 수] × 만3·4·5]], null = 해당 연령반 없음
 const COSTD = %%COST%%;  // {timing, basis, cost: {id: [...]}} — 서울 전체, scripts/fetch_cost.py
 const COST = COSTD.cost;
 const COST_BASIS = COSTD.basis ? COSTD.basis.replace(/\s*\(.*\)/, '') : '';
@@ -490,7 +495,8 @@ function costOf(r) {
   const a = +(document.getElementById('age').value || 0);
   if (c[a] == null) return { none: true, age: a + 3 };
   const edu = c[a], aft = c[a + 3] || 0;
-  return { edu, aft, total: edu + aft, age: a + 3 };
+  const sp = c[6] ? { v: c[6][a][0], n: c[6][a][1] } : null;  // 특성화 활동비(기본 원비와 따로 보여 줌)
+  return { edu, aft, total: edu + aft, age: a + 3, sp };
 }
 const COST_AVG = {};
 function costAvg(type, a, gu) {  // gu 없으면 서울 전체
@@ -586,6 +592,27 @@ async function loadEvDoc(box) {
     const tips = (await tipsLoad)[box.dataset.ev] || [];
     box.innerHTML = `<div class="tip"><b>보완 권고</b>${tips.map(([a, x]) => `<div>· <b>${esc(a)}</b>: ${esc(x)}</div>`).join('')}</div>`;
   } catch (e) { tipsLoad = null; box.textContent = '보완 권고 내용을 불러오지 못했어요. 아래 영역별 평가 전문에서 확인해 주세요.'; }
+}
+// 유치원 특성화 활동 프로그램 목록(kg_sp.json: {id: [[[영역, 이름, 월 부담금, 주당 횟수]] × 만3·4·5]}) — 상세를 처음 열 때 한 번 받는다
+const SP_V = '%%SP_V%%';
+let spLoad = null;
+async function loadSpDoc(box) {
+  try {
+    spLoad = spLoad || fetch(`kg_sp.json?v=${SP_V}`).then((res) => { if (!res.ok) throw new Error(res.status); return res.json(); });
+    const list = ((await spLoad)[box.dataset.sp] || [])[+box.dataset.a] || [];
+    const rows = list.map(([area, name, w, f]) => `<div><span>${esc(name)}<small>${esc(area)}${f ? ` · 주 ${f}회` : ''}</small></span><b>${w ? won(w) : '0원'}</b></div>`).join('');
+    const areas = [...new Set(list.map((x) => x[0]))].join(' · ');
+    box.innerHTML = list.length ? `<span class="cmp">${esc(areas)}</span><details class="evfull"><summary>프로그램별 비용 보기</summary><div class="splist">${rows}</div></details>` : '';
+  } catch (e) { spLoad = null; box.textContent = '프로그램 목록을 불러오지 못했어요.'; }
+}
+const SP_AVG = {};
+function spAvgTxt(r, a) {  // 같은 구·같은 유형에서 특성화 활동비를 받는 곳의 평균
+  const key = `${r.구}|${r.유형}|${a}`;
+  if (!(key in SP_AVG)) {
+    const v = ROWS.filter((x) => x.구 === r.구 && x.유형 === r.유형 && COST[x.id] && COST[x.id][6] && COST[x.id][6][a][0] > 0).map((x) => COST[x.id][6][a][0]);
+    SP_AVG[key] = v.length >= 3 ? v.reduce((s, n) => s + n, 0) / v.length : null;
+  }
+  return SP_AVG[key] != null ? `${r.구} ${r.유형} 중 받는 곳 평균 월 ${won(Math.round(SP_AVG[key]))}` : '공시 기준';
 }
 function dcEval(r) {
   if (r.평가완료 == null) return null;
@@ -703,7 +730,11 @@ function describe(r) {
   const cc = costCmp(r);
   if (cc && !cc.none) {
     facts.push([`한 달 비용<br>(만 ${cc.age}세)`, cc.total === 0 ? '교육비·방과후비 모두 <b>0원</b>이에요.' : `교육비 <b>${won(cc.edu)}</b> + 방과후 <b>${won(cc.aft)}</b> = 월 <b>${won(cc.total)}</b>`,
-      `${r.구} ${r.유형} 평균은 월 ${won(Math.round(cc.avg || 0))}이에요. 정부 지원금을 뺀 학부모 부담 고지액(${COST_BASIS} 공시)이고, 특성화 활동·차량·현장학습 같은 선택 비용은 빠져 있어요.`, cc.cls]);
+      `${r.구} ${r.유형} 평균은 월 ${won(Math.round(cc.avg || 0))}이에요. 정부 지원금을 뺀 학부모 부담 고지액(${COST_BASIS} 공시)이고, 차량·현장학습 같은 선택 비용과 특성화 활동비는 빠져 있어요.`, cc.cls]);
+    if (cc.sp) facts.push([`특성화 활동<br>(만 ${cc.age}세)`,
+      !cc.sp.n ? '특성화 활동이 없어요.'
+        : `${cc.sp.n}개 프로그램 · 월 <b>${cc.sp.v ? won(cc.sp.v) : '0원'}</b>${cc.sp.v ? '' : '(학부모 부담 없음)'}<div class="spdoc" data-sp="${esc(r.id)}" data-a="${cc.age - 3}">불러오는 중…</div>`,
+      cc.sp.v ? `기본 원비와 따로 내는 비용이에요(${spAvgTxt(r, cc.age - 3)}). 유치원이 공시한 금액이라 참여 방식은 유치원에 확인해 보세요.` : '', '']);
   } else if (cc && cc.none) {
     facts.push(['한 달 비용', `만 ${cc.age}세 반이 없어요.`, '', '']);
   } else if (!r.상태) {
@@ -1069,6 +1100,7 @@ async function start() {
     ] : [
       ['유형', (r) => esc(r.설립유형)],
       [`월 비용<br>(만 ${age}세)`, (r) => { const c = costOf(r); return !c ? '정보 없음' : c.none ? '반 없음' : won(c.total); }, (r) => { const c = costOf(r); return c && !c.none ? -c.total : null; }],
+      ['특성화 활동', (r) => { const c = costOf(r); return !c || c.none || !c.sp ? '-' : !c.sp.n ? '없음' : `${c.sp.v ? won(c.sp.v) : '0원'}<br><small>${c.sp.n}개</small>`; }],
       ['한 반', (r) => r.학급당원아 != null ? Math.round(r.학급당원아) + '명' : '-', (r) => r.학급당원아 != null ? -r.학급당원아 : null],
       ['선생님:아이', (r) => r.교사1인당원아 != null ? '1:' + Math.round(r.교사1인당원아) + (r.데이터주의 ? '*' : '') : '-', (r) => r.교사1인당원아 != null && !r.데이터주의 ? -r.교사1인당원아 : null],
       ['운영시간', (r) => esc(r.운영시간 || '-'), (r) => closeMin(r)],
@@ -1115,6 +1147,7 @@ async function start() {
       <ul class="facts full">${dsc.facts.map(([k, v, cmp, c]) => `<li><span class="k">${k}</span><span class="v ${c ? 'c-' + c : ''}">${v}${cmp ? `<span class="cmp">${cmp}</span>` : ''}</span></li>`).join('')}</ul>
       <p class="note">${isDC(r) ? '출처: 공공데이터포털 어린이집 기본정보, 어린이집정보공개포털(평가·연장보육·근속). 입소 대기 순번은 아이사랑에서 확인하세요.' : '출처: 유치원알리미 2026년 정보공시. 설명회 일정·특성화 프로그램은 유치원에 직접 확인하세요.'}</p>`;
     $('d-body').querySelectorAll('.evdoc[data-ev]').forEach(loadEvDoc);
+    $('d-body').querySelectorAll('.spdoc[data-sp]').forEach(loadSpDoc);
     $('d-body').querySelectorAll('details[data-full]').forEach((det) => det.addEventListener('toggle', () => det.open && loadEvFull(det)));
     $('d-heart').addEventListener('click', () => toggleCmp(id));
     $('d-share').addEventListener('click', async () => {
