@@ -23,80 +23,87 @@
 <style>
   :root { --bg:#f7f8f6; --panel:#fff; --fg:#1d2420; --muted:#69736d; --line:#e2e6e3; --pub:#d4483b; --pri:#2f6fd0; --good:#1e8a4c; --bad:#c23a2e; --neu:#c27a10; }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
   body { display: flex; flex-direction: column; }
   .app { display: grid; grid-template-columns: minmax(0, 1fr) 420px; flex: 1; min-height: 0; }
   /* 맨 위 바: 서비스 이름 + 유치원/어린이집 전환 */
-  .topbar { --acc: #ffc94a; position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: #1f3a32; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+  .topbar { --acc: #ffc94a; position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #1f3a32; color: #fff; }
   body[data-mode="dc"] .topbar { --acc: #8be0bd; background: #2b2f4a; }
   .topbar::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--acc); opacity: .9; }
   .brand { display: flex; align-items: center; gap: 8px; margin: 0; font-size: inherit; min-width: 0; }
   .brand a { display: flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; min-width: 0; }
   .brand svg { flex: none; width: 34px; height: 34px; }
   .brand .words { display: flex; flex-direction: column; line-height: 1; min-width: 0; }
-  .brand .b1 { font: 600 11px/1 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; letter-spacing: .28em; color: rgba(255,255,255,.72); margin-bottom: 3px; }
+  .brand .b1 { font: 500 11px/1 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; letter-spacing: .04em; color: rgba(255,255,255,.72); margin-bottom: 4px; }
   .brand .b2 { font-family: "Jua", -apple-system, "Apple SD Gothic Neo", sans-serif; font-weight: 400; font-size: 24px; color: var(--acc); white-space: nowrap; }
-  .topbar .mode { flex: none; display: grid; grid-template-columns: 1fr 1fr; background: rgba(255,255,255,.12); border: 0; border-radius: 999px; padding: 3px; gap: 2px; }
-  .topbar .mode button { border: 0; border-radius: 999px; padding: 7px 14px; font: 600 14px/1.2 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: transparent; color: rgba(255,255,255,.78); cursor: pointer; white-space: nowrap; }
-  .topbar .mode button[aria-pressed="true"] { background: var(--acc); color: #1d2420; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .topbar .mode { flex: none; display: grid; grid-template-columns: 1fr 1fr; background: rgba(255,255,255,.12); border: 0; border-radius: 999px; padding: 4px; gap: 4px; }
+  .topbar .mode button { border: 0; border-radius: 999px; padding: 8px 16px; font: 500 14px/1.2 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: transparent; color: rgba(255,255,255,.78); cursor: pointer; white-space: nowrap; }
+  .topbar .mode button[aria-pressed="true"] { background: var(--acc); color: #1d2420; }
   .topbar .mode button:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
   #map { width: 100%; height: 100%; min-height: 320px; }
   .mapbox { position: relative; min-height: 0; }
-  #research { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 20; border: 0; border-radius: 999px; padding: 9px 16px; font: 700 14px/1.2 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: #fff; color: #1d2420; box-shadow: 0 2px 10px rgba(0,0,0,.28); cursor: pointer; white-space: nowrap; }
+  #research { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 20; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 8px 16px; font: 500 14px/1.2 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: #fff; color: #1d2420; box-shadow: 0 2px 8px rgba(0,0,0,.16); cursor: pointer; white-space: nowrap; }
   #research:active { transform: translateX(-50%) scale(.97); }
   .side { display: flex; flex-direction: column; border-left: 1px solid var(--line); background: var(--panel); min-height: 0; }
-  .side header { padding: 16px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+  .side header { padding: 16px; border-bottom: 1px solid var(--line); display: grid; gap: 12px; }
   .side h1 { font-size: 18px; margin: 0; }
-  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .find { position: relative; margin-bottom: 8px; }
-  .find input { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--fg); }
+  .controls { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+  .controls > * { grid-column: span 2; min-width: 0; height: 36px; }
+  .controls > #age, .controls > #dcage, .controls > #type { grid-column: span 3; }
+  .find { position: relative; margin: 0; }
+  .find > .ic { position: absolute; left: 12px; top: 12px; color: var(--muted); pointer-events: none; }
+  .find input { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; height: 40px; padding: 8px 12px 8px 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--fg); }
   .find-res { display: grid; gap: 2px; margin-top: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); overflow: hidden; }
   .find-res[hidden] { display: none; }
   .find-res button { display: grid; text-align: left; gap: 1px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--fg); font: inherit; cursor: pointer; }
   .find-res button:last-child { border-bottom: 0; }
   .find-res small { color: var(--muted); font-size: 12px; }
   .find-res .none { padding: 8px 12px; color: var(--muted); font-size: 13px; }
-  select, button { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); }
+  select, button { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--fg); }
+  button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
   button.primary { background: var(--fg); color: var(--panel); border-color: var(--fg); cursor: pointer; }
   .summary { color: var(--muted); }
   .guide { margin: 8px 16px 16px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
   .guide summary { cursor: pointer; color: var(--muted); }
   .guide > div { margin-top: 8px; }
-  .mapsum { position: absolute; left: 10px; bottom: 10px; z-index: 20; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.94); color: #1d2420; font-size: 12.5px; box-shadow: 0 1px 6px rgba(0,0,0,.2); pointer-events: none; white-space: nowrap; }
+  .mapsum { position: absolute; left: 12px; bottom: 12px; z-index: 20; padding: 4px 12px; border-radius: 999px; background: rgba(255,255,255,.94); color: #1d2420; font-size: 12px; font-variant-numeric: tabular-nums; box-shadow: 0 1px 4px rgba(0,0,0,.12); pointer-events: none; white-space: nowrap; }
   .mapsum:empty { display: none; }
-  .maplegend { margin-bottom: 8px; }
+  .maplegend { margin: 0; }
   .summary b { color: var(--fg); }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
-  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-right: 4px; }
-  .g { color: var(--good); font-weight: 600; } .b { color: var(--bad); font-weight: 600; } .n { color: var(--neu); font-weight: 600; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: 0; margin-right: 4px; }
+  .g { color: var(--good); font-weight: 500; } .b { color: var(--bad); font-weight: 500; } .n { color: var(--neu); font-weight: 500; }
   .list { overflow: auto; flex: 1; padding-bottom: 76px; }
-  .item { padding: 12px 16px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .item { padding: 16px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background-color .15s ease-out; }
   .item:hover, .item.on { background: var(--bg); }
+  .item:hover .badge, .item.on .badge { background: var(--panel); border-color: var(--line); }  /* 카드 바탕이 회색이 되면 배지는 흰 바탕으로 뒤집어 계속 보이게 */
   .item .top { display: flex; justify-content: space-between; gap: 8px; }
   .item .name { font-weight: 600; }
   .item .name .kind { font-weight: 400; font-size: 12px; color: var(--muted); }
-  .item .meta { color: var(--muted); font-size: 12px; }
-  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-size: 12px; font-variant-numeric: tabular-nums; }
-  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); }
+  .item .meta { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: 6px; background: var(--bg); color: var(--fg); border: 1px solid transparent; }
   .badge small { font-size: 11px; color: var(--muted); }
-  .badge.g small { color: var(--good); font-weight: 600; } .badge.b small { color: var(--bad); font-weight: 600; } .badge.n small { color: var(--neu); font-weight: 600; }
-  .badge.bus-on { background: #e6f4ec; border-color: #b9e0c8; color: var(--good); font-weight: 600; }
-  .badge.bus-off { background: #fbeaea; border-color: #efc4c0; color: var(--bad); font-weight: 600; }
-  .badge svg { width: 14px; height: 14px; flex: none; }
-  .badge .em { font-size: 13px; line-height: 1; }
+  .badge.g small { color: var(--good); font-weight: 500; } .badge.b small { color: var(--bad); font-weight: 500; } .badge.n small { color: var(--neu); font-weight: 500; }
+  .badge .ic { color: var(--muted); }
+  .badge.bus-on { }
+  .badge.bus-off { background: transparent; border-color: var(--line); color: var(--muted); }
+  .ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+  .badge .ic { width: 14px; height: 14px; vertical-align: -2px; }
   .icons { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
-  .icons span { display: inline-flex; align-items: center; gap: 3px; }
-  .icons svg { width: 14px; height: 14px; }
-  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-weight: 600; }
+  .icons span { display: inline-flex; align-items: center; gap: 4px; }
+  .icons .ic { width: 14px; height: 14px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-weight: 500; }
   .tag.g { color: var(--good); } .tag.b { color: var(--bad); } .tag.n { color: var(--neu); } .tag.m { color: var(--muted); font-weight: 400; }
-  .tag.f { color: var(--good); background: #e6f4ec; border-color: transparent; }  /* 특색 활동: 연한 초록 바탕·테두리 없음·✨ */
+  .tag.f { color: var(--good); background: #e6f4ec; border-color: transparent; }  /* 특색 활동(평가결과서): 연한 초록 바탕·테두리 없음 */
   details { margin-top: 8px; font-size: 13px; }
   summary { cursor: pointer; color: var(--muted); font-size: 12px; }
   .facts { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
   .facts li { display: grid; grid-template-columns: 6.5em 1fr; gap: 8px; line-height: 1.45; }
   .facts .k { color: var(--muted); font-size: 12px; padding-top: 1px; }
-  .facts .v b { font-weight: 600; }
+  .facts .v b { font-weight: 500; }
   .facts .cmp { display: block; color: var(--muted); font-size: 12px; }
   .facts .v.c-g b { color: var(--good); } .facts .v.c-b b { color: var(--bad); } .facts .v.c-n b { color: var(--neu); }
   .kmark { position: relative; width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); cursor: pointer; transition: transform .12s; }
@@ -104,20 +111,21 @@
   .kmark.out { width: 10px; height: 10px; border-width: 1.5px; opacity: .45; box-shadow: none; }
   .kmark.out .klab { display: none; }
   .kmark.sel { transform: scale(1.45); z-index: 3; box-shadow: 0 0 0 3px var(--fg), 0 2px 6px rgba(0,0,0,.4); }
-  .kmark .klab { display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); white-space: nowrap; font: 600 11px/1.2 system-ui, sans-serif; color: #1d2420; background: rgba(255,255,255,.92); border: 1px solid rgba(0,0,0,.15); border-radius: 4px; padding: 1px 4px; pointer-events: none; }
+  .kmark .klab { display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); white-space: nowrap; font: 500 11px/1.2 system-ui, sans-serif; color: #1d2420; background: rgba(255,255,255,.92); border: 1px solid rgba(0,0,0,.15); border-radius: 4px; padding: 1px 4px; pointer-events: none; }
   .kmark.sel .klab { top: 15px; font-size: 8px; }
   #map.labels .kmark:not(.out) .klab, .kmark.sel .klab { display: block; }
   .agetbl { border-collapse: collapse; margin-top: 4px; font-size: 13px; width: 100%; }
   .agetbl th, .agetbl td { padding: 3px 6px; border-bottom: 1px solid var(--line); text-align: right; font-weight: normal; }
   .agetbl th:first-child { text-align: left; }
   .agetbl tr:first-child th { color: var(--muted); font-size: 12px; }
-  .agetbl td.g { color: var(--good); font-weight: 600; } .agetbl td.b { color: var(--bad); font-weight: 600; }
+  .agetbl td.g { color: var(--good); font-weight: 500; } .agetbl td.b { color: var(--bad); font-weight: 500; }
+  .agetbl { font-variant-numeric: tabular-nums; }
   .tip { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: 12px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.15); transform: translateY(-28px); }
   .err { padding: 24px; color: var(--bad); }
   .home-box { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 13px; }
   .home-box[hidden] { display: none; }
   .home-cur { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .home-cur b { font-weight: 600; }
+  .home-cur b { font-weight: 500; }
   .home-form { display: flex; gap: 6px; }
   .home-form input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); }
   .home-res { display: grid; gap: 4px; }
@@ -126,16 +134,19 @@
   .home-acts { display: flex; flex-wrap: wrap; gap: 6px; }
   .home-acts button { cursor: pointer; font-size: 13px; }
   .home-hint { margin: 0; color: var(--muted); font-size: 12px; }
-  .hmark { font-size: 22px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); transform: translateY(-4px); pointer-events: none; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip { font: inherit; font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
+  .hmark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: #1d2420; color: #fff; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); transform: translateY(-4px); pointer-events: none; }
+  .hmark .ic { width: 16px; height: 16px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
   .chip[aria-pressed="true"] { background: var(--fg); color: var(--panel); border-color: var(--fg); }
   .item .top { align-items: flex-start; }
   .item .right { display: flex; align-items: center; gap: 6px; flex: none; }
-  .cbtn { font: inherit; font-size: 12px; font-weight: 600; border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 999px; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
-  .cbtn[aria-pressed="true"] { background: #e8f0fe; border-color: #a9c1f5; color: #2251c9; }
-  .cond { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
-  .cond summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+  .cbtn { font: inherit; font-size: 12px; font-weight: 500; border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 6px; height: 28px; padding: 0 8px; gap: 4px; cursor: pointer; white-space: nowrap; transition: background-color .15s ease-out, color .15s ease-out; }
+  .cbtn .ic { width: 14px; height: 14px; }
+  .cbtn[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: var(--panel); }
+  .cond { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+  .cond summary { cursor: pointer; font-weight: 500; font-size: 14px; }
+  .cond summary .ic { color: var(--muted); margin-right: 4px; }
   .cond summary small { font-weight: 400; color: var(--muted); }
   .cond-grid { display: grid; gap: 10px; margin-top: 10px; }
   .cond-row { display: grid; gap: 2px; font-size: 13px; }
@@ -144,50 +155,52 @@
   .cond-row small { color: var(--muted); font-size: 12px; }
   .cond-reset { justify-self: start; font: inherit; font-size: 12px; background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 0; }
   .more { margin-top: 6px; font-size: 12px; color: var(--muted); }
-  .more-btn { display: block; width: calc(100% - 32px); margin: 12px 16px; padding: 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--fg); font: inherit; font-weight: 600; cursor: pointer; }
+  .more-btn { display: block; width: calc(100% - 32px); margin: 12px 16px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--fg); font: inherit; font-weight: 500; cursor: pointer; }
   .sheet { position: fixed; inset: 0; z-index: 50; background: rgba(20, 24, 22, .45); display: flex; justify-content: flex-end; }
   .sheet[hidden] { display: none; }
   .sheet .panel { background: var(--panel); width: min(480px, 100%); height: 100%; overflow: auto; display: flex; flex-direction: column; }
-  .sheet .bar { position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 12px; display: flex; align-items: center; gap: 8px; z-index: 1; }
+  .sheet .bar { position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--line); padding: 8px 12px; display: flex; align-items: center; gap: 8px; z-index: 1; }
   .sheet .bar b { font-size: 16px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sheet .body { padding: 16px; display: grid; gap: 14px; }
-  .iconbtn { font: inherit; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 10px; cursor: pointer; color: var(--fg); }
+  .sheet .body { padding: 16px; display: grid; gap: 16px; }
+  .iconbtn { font: inherit; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; width: 36px; height: 36px; padding: 0; cursor: pointer; color: var(--fg); }
   .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .actions a, .actions button { font: inherit; font-size: 13px; text-align: center; text-decoration: none; color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 4px; background: var(--panel); cursor: pointer; }
-  .actions .on { background: #e8f0fe; border-color: #a9c1f5; color: #2251c9; font-weight: 600; }
+  .actions a, .actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; font: inherit; font-size: 13px; text-decoration: none; color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 0 4px; background: var(--panel); cursor: pointer; }
+  .actions .ic { color: var(--muted); }
+  .actions .on { background: var(--fg); border-color: var(--fg); color: var(--panel); font-weight: 500; }
+  .actions .on .ic { color: inherit; }
   .d-sub { color: var(--muted); font-size: 13px; }
   .facts.full li { grid-template-columns: 7em 1fr; }
   .evdoc { margin-top: 6px; font-size: 13px; }
-  .evdoc .tip { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: #fff4e5; color: #6b4300; }
-  .evdoc .tip b { color: #6b4300 !important; }
+  .evdoc .tip { margin: 8px 0 0; padding: 8px 12px; border-radius: 0 8px 8px 0; border-left: 2px solid var(--neu); background: var(--bg); color: var(--fg); }
+  .evdoc .tip b { color: var(--fg) !important; font-weight: 500; }
   .feats { display: flex; flex-wrap: wrap; gap: 6px; }
   .card-feats { margin-top: 8px; }
   .qa-box { display: grid; gap: 6px; margin-top: 2px; }
   .qa { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
-  .qa .q { font-size: 12.5px; color: var(--muted); }
+  .qa .q { font-size: 12px; color: var(--muted); }
   .qa .a { display: flex; flex-wrap: wrap; gap: 4px; }
   .qa .a.none { color: var(--muted); font-size: 13px; }
-  .qa .pill { padding: 2px 10px; border-radius: 999px; background: #e6f4ec; color: var(--good); font-size: 13px; font-weight: 600; }
-  .qa .pill.hot { background: var(--good); color: #fff; }
+  .qa .pill { padding: 2px 8px; border-radius: 6px; background: var(--bg); color: var(--fg); font-size: 13px; }
+  .qa .pill.hot { color: var(--good); font-weight: 500; }
   .muted { color: var(--muted); }
-  .feat { padding: 2px 9px; border-radius: 999px; background: #eef4ff; color: #24456e; font-size: 12.5px; }
+  .feat { padding: 2px 8px; border-radius: 6px; background: var(--bg); color: var(--fg); font-size: 12px; }
   .evfull { margin-top: 6px; font-size: 13px; }
-  .evfull summary { cursor: pointer; color: var(--fg); font-weight: 600; }
+  .evfull summary { cursor: pointer; color: var(--fg); font-weight: 500; }
   .evfull .area { margin: 8px 0 0; line-height: 1.55; }
   .evfull .area b { display: block; }
   .evfull mark { background: #ffe6b3; color: inherit; }
-  .cbar { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 40; background: var(--fg); color: var(--panel); border-radius: 14px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.25); max-width: 560px; margin: 0 auto; }
+  .cbar { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 40; background: var(--fg); color: var(--panel); border-radius: 12px; padding: 8px 8px 8px 16px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.18); max-width: 560px; margin: 0 auto; }
   .cbar[hidden] { display: none; }
   .cbar .names { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cbar button { font: inherit; border: 0; border-radius: 10px; padding: 8px 12px; cursor: pointer; }
-  .cbar .go { background: #fff; color: var(--fg); font-weight: 600; }
+  .cbar button { font: inherit; border: 0; border-radius: 8px; height: 36px; padding: 0 12px; cursor: pointer; }
+  .cbar .go { background: #fff; color: var(--fg); font-weight: 500; }
   .cbar .go:disabled { opacity: .45; cursor: default; }
   .cbar .clr { background: transparent; color: #b8c2bc; }
   .ctable { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; table-layout: fixed; }
   .ctable th, .ctable td { border-bottom: 1px solid var(--line); padding: 8px 4px; text-align: center; vertical-align: top; word-break: keep-all; }
   .ctable th:first-child, .ctable td:first-child { text-align: left; color: var(--muted); width: 5.5em; font-weight: 400; }
-  .ctable thead th { font-weight: 600; font-size: 13px; }
-  .ctable .best { color: var(--good); font-weight: 700; }
+  .ctable thead th { font-weight: 500; font-size: 13px; }
+  .ctable .best { color: var(--good); font-weight: 600; }
   .ctable .x { display: block; margin: 4px auto 0; font-size: 11px; color: var(--muted); border: 0; background: none; cursor: pointer; }
   .note { font-size: 12px; color: var(--muted); line-height: 1.5; }
   body[data-mode="dc"] .kg-only, body[data-mode="kg"] .dc-only { display: none !important; }
@@ -216,7 +229,7 @@
   <div class="mode" role="group" aria-label="유치원 또는 어린이집"><button type="button" data-mode="kg" aria-pressed="true">유치원</button><button type="button" data-mode="dc" aria-pressed="false">어린이집</button></div>
 </header>
 <div class="app">
-  <div class="mapbox"><div id="map"></div><div class="mapsum" id="mapsum"></div><button type="button" id="research" hidden>↻ 이 지역에서 다시 찾기</button></div>
+  <div class="mapbox"><div id="map"></div><div class="mapsum" id="mapsum"></div><button type="button" id="research" hidden><i data-ic="redo"></i>이 지역에서 다시 찾기</button></div>
   <aside class="side">
     <header>
       <div class="legend maplegend">
@@ -226,9 +239,9 @@
         <span class="dc-only"><i class="dot" style="background:#e08a00"></i>가정</span>
         <span class="dc-only"><i class="dot" style="background:#8a5cc2"></i>직장·법인</span>
       </div>
-      <form class="find" id="find" role="search" autocomplete="off"><input id="find-q" type="search" placeholder="🔍 유치원·어린이집 이름으로 찾기" enterkeyhint="search" aria-label="유치원·어린이집 이름 검색"><div class="find-res" id="find-res" hidden></div></form>
+      <form class="find" id="find" role="search" autocomplete="off"><i data-ic="search" class="find-ic"></i><input id="find-q" type="search" placeholder="이름으로 찾기" enterkeyhint="search" aria-label="유치원·어린이집 이름 검색"><div class="find-res" id="find-res" hidden></div></form>
       <div class="controls">
-        <button class="primary" id="me" type="button">📍 내 위치</button>
+        <button class="primary" id="me" type="button"><i data-ic="locate"></i>내 위치</button>
         <select id="gu" aria-label="구 선택"></select>
         <select id="r" aria-label="반경">
           <option value="1">1km</option><option value="2" selected>2km</option><option value="3">3km</option><option value="5">5km</option>
@@ -243,59 +256,59 @@
           <option value="">전체</option><option value="국공립">국공립</option><option value="사립">사립</option>
         </select>
       </div>
-      <details class="cond" id="cond"><summary>⚙️ 우리 집 설정하기 <small id="cond-n">설정 안 함</small></summary>
+      <details class="cond" id="cond"><summary><i data-ic="home"></i>우리 집·조건 <small id="cond-n">설정 안 함</small></summary>
         <div class="cond-grid">
-          <div class="cond-row"><div class="line">🏠 우리 집</div>
+          <div class="cond-row"><div class="line"><b>우리 집</b></div>
       <div class="home-box" id="home-box">
         <div class="home-cur" id="home-cur"></div>
         <form class="home-form" id="home-form"><input id="home-q" type="search" placeholder="주소나 아파트 이름" enterkeyhint="search" aria-label="우리 집 주소 검색"><button class="primary" type="submit">찾기</button></form>
         <div class="home-res" id="home-res"></div>
-        <div class="home-acts"><button type="button" id="home-here">📍 지금 기준 위치를 우리 집으로</button><button type="button" id="home-del" hidden>삭제</button></div>
+        <div class="home-acts"><button type="button" id="home-here">지금 기준 위치를 우리 집으로</button><button type="button" id="home-del" hidden>삭제</button></div>
         <p class="home-hint">우리 집은 이 휴대폰(브라우저)에만 저장되고, 다음에 열 때 여기서 시작해요.</p>
       </div>
           </div>
           <div class="cond-row"><div class="line"><b>조건</b></div></div>
-          <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-eval"> ⭐ 평가 받은 곳만</label></div>
-          <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-ext"> 🌙 연장보육반(19:30 이후) 있는 곳만</label><small>어린이집 기본 운영은 대부분 07:30~19:30이에요.</small></div>
-          <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-night"> 🌃 야간연장형(밤늦게까지) 만</label></div>
-          <div class="cond-row"><label class="line"><input type="checkbox" id="f-room"> 🪑 자리 여유 있는 곳만 (정원의 90% 미만)</label><small class="dc-only">정원 대비 현원 기준이에요.</small><small class="kg-only">고른 나이 반(없으면 혼합반) 기준이에요.</small></div>
-          <div class="cond-row dc-only"><div class="line">⏳ 입소 대기 <select id="f-wait" aria-label="입소 대기 상한">
+          <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-eval"> 평가 받은 곳만</label></div>
+          <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-ext"> 연장보육반(19:30 이후) 있는 곳만</label><small>어린이집 기본 운영은 대부분 07:30~19:30이에요.</small></div>
+          <div class="cond-row dc-only"><label class="line"><input type="checkbox" id="f-night"> 야간연장형(밤늦게까지) 만</label></div>
+          <div class="cond-row"><label class="line"><input type="checkbox" id="f-room"> 자리 여유 있는 곳만 (정원의 90% 미만)</label><small class="dc-only">정원 대비 현원 기준이에요.</small><small class="kg-only">고른 나이 반(없으면 혼합반) 기준이에요.</small></div>
+          <div class="cond-row dc-only"><div class="line">입소 대기 <select id="f-wait" aria-label="입소 대기 상한">
             <option value="">상관없음</option><option value="0">없는 곳</option><option value="5">5명</option><option value="10">10명</option><option value="20">20명</option><option value="50">50명</option>
           </select> 이하</div><small>위에서 고른 나이(전체면 모든 나이 합) 기준이에요.</small></div>
-          <div class="cond-row kg-only"><label class="line"><input type="checkbox" id="f-next"> 🎒 내년 자리 있을 것 같은 곳만</label><small>내년 모집요강 정원 − 올라올 아이로 추정해요(1자리 이상).</small></div>
-          <div class="cond-row kg-only"><div class="line">🌙 저녁 <select id="f-close" aria-label="운영 종료 시간">
+          <div class="cond-row kg-only"><label class="line"><input type="checkbox" id="f-next"> 내년 자리 있을 것 같은 곳만</label><small>내년 모집요강 정원 − 올라올 아이로 추정해요(1자리 이상).</small></div>
+          <div class="cond-row kg-only"><div class="line">저녁 <select id="f-close" aria-label="운영 종료 시간">
             <option value="">상관없음</option><option value="1080">6시</option><option value="1110">6시 반</option><option value="1140">7시</option><option value="1170">7시 반</option><option value="1200">8시</option><option value="1260">9시</option>
           </select> 까지 맡아주는 곳</div><small id="f-close-avg"></small></div>
-          <div class="cond-row kg-only"><div class="line">💰 한 달 원비 <select id="f-cost" aria-label="원비 상한">
+          <div class="cond-row kg-only"><div class="line">한 달 원비 <select id="f-cost" aria-label="원비 상한">
             <option value="">상관없음</option><option value="0">무상(0원)</option><option value="50000">5만원</option><option value="100000">10만원</option><option value="150000">15만원</option><option value="200000">20만원</option><option value="250000">25만원</option><option value="300000">30만원</option><option value="400000">40만원</option>
           </select> 이하</div><small id="f-cost-avg"></small></div>
-          <div class="cond-row kg-only"><div class="line">🏫 한 반 <select id="f-cls" aria-label="한 반 인원 상한">
+          <div class="cond-row kg-only"><div class="line">한 반 <select id="f-cls" aria-label="한 반 인원 상한">
             <option value="">상관없음</option><option value="10">10명</option><option value="12">12명</option><option value="15">15명</option><option value="18">18명</option><option value="20">20명</option><option value="25">25명</option>
           </select> 이하</div><small id="f-cls-avg"></small></div>
-          <div class="cond-row"><label class="line"><input type="checkbox" id="f-bus"> 🚌 통학차량 있는 곳만</label></div>
+          <div class="cond-row"><label class="line"><input type="checkbox" id="f-bus"> 통학차량 있는 곳만</label></div>
           <button class="cond-reset" type="button" id="f-reset">조건 모두 지우기</button>
         </div>
       </details>
     </header>
     <div class="list" id="list"></div>
-    <details class="guide"><summary>ⓘ 보는 법 · 출처</summary>
+    <details class="guide"><summary>보는 법 · 출처</summary>
       <div class="summary" id="summary"></div>
       <div class="legend">
-        <span><span class="g">초록</span> 학부모에게 좋은 점 · <span class="b">빨강</span> 확인해볼 점 · <span class="n">주황</span> 다른 곳과 다른 점<span class="dc-only"> · ✨ 평가결과서에 나온 특색 활동</span></span>
+        <span><span class="g">초록</span> 학부모에게 좋은 점 · <span class="b">빨강</span> 확인해볼 점 · <span class="n">주황</span> 다른 곳과 다른 점<span class="dc-only"> · 연한 초록 칩은 평가결과서에 나온 특색 활동</span></span>
       </div>
-      <div class="icons kg-only"><span>💰 월 비용</span><span>🧒 원아 수</span><span>🏫 한 반 인원</span><span>👩‍🏫 선생님 1명 : 아이</span><span>⏰ 운영시간</span><span>🚌 통학차량</span></div>
-      <div class="icons dc-only"><span>⏳ 입소 대기</span><span>🌙 연장보육반</span><span>🧒 현원/정원</span><span>🚌 통학차량</span><span>👩‍🏫 선생님 1명 : 아이</span><span>⭐ 평가</span></div>
+      <div class="icons kg-only"><span><i data-ic="won"></i>월 비용</span><span><i data-ic="kids"></i>원아 수</span><span><i data-ic="cls"></i>한 반 인원</span><span><i data-ic="tch"></i>선생님 1명 : 아이</span><span><i data-ic="clock"></i>운영시간</span><span><i data-ic="bus"></i>통학차량</span></div>
+      <div class="icons dc-only"><span><i data-ic="wait"></i>입소 대기</span><span><i data-ic="moon"></i>연장보육반</span><span><i data-ic="kids"></i>현원/정원</span><span><i data-ic="bus"></i>통학차량</span><span><i data-ic="tch"></i>선생님 1명 : 아이</span><span><i data-ic="star"></i>평가</span></div>
       <div class="legend kg-only">지도를 누르면 그곳이 기준 위치가 됩니다. 출처: 유치원알리미 2026년 정보공시</div>
       <div class="legend dc-only">지도를 누르면 그곳이 기준 위치가 됩니다. 서울 25개 구 어린이집. 출처: 어린이집정보공개포털·공공데이터포털</div>
     </details>
   </aside>
 </div>
 <div class="sheet" id="detail" hidden><div class="panel">
-  <div class="bar"><button class="iconbtn" type="button" id="d-back" aria-label="닫기">←</button><b id="d-title"></b></div>
+  <div class="bar"><button class="iconbtn" type="button" id="d-back" aria-label="닫기"><i data-ic="back"></i></button><b id="d-title"></b></div>
   <div class="body" id="d-body"></div>
 </div></div>
 <div class="sheet" id="cmp" hidden><div class="panel">
-  <div class="bar"><button class="iconbtn" type="button" id="c-back" aria-label="닫기">←</button><b id="c-title">유치원 비교</b></div>
+  <div class="bar"><button class="iconbtn" type="button" id="c-back" aria-label="닫기"><i data-ic="back"></i></button><b id="c-title">유치원 비교</b></div>
   <div class="body" id="c-body"></div>
 </div></div>
 <div class="cbar" id="cbar"><span class="names" id="c-names"></span><button class="clr" type="button" id="c-clear" hidden>비우기</button><button class="go" type="button" id="c-go">비교하기</button></div>
@@ -366,14 +379,27 @@ const SIZE_AVG = {};
 });
 // 한 반 인원·선생님당 아이 수: 같은 유형 서울 평균보다 1명 이상 적으면 유리(g), 1명 이상 많으면 불리(b)
 const ICON = {
-  won: '<span class="em" aria-hidden="true">💰</span>',
-  kids: '<span class="em" aria-hidden="true">🧒</span>',
-  cls: '<span class="em" aria-hidden="true">🏫</span>',
-  tch: '<span class="em" aria-hidden="true">👩‍🏫</span>',
-  clock: '<span class="em" aria-hidden="true">⏰</span>',
-  bus: '<span class="em" aria-hidden="true">🚌</span>',
-  seat: '<span class="em" aria-hidden="true">🪑</span>',
-  next: '<span class="em" aria-hidden="true">🎒</span>'
+  won: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>',
+  kids: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  cls: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 22v-4a2 2 0 1 0-4 0v4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M18 5v17"/><path d="m4 6 8-4 8 4"/><path d="M6 5v17"/><circle cx="12" cy="9" r="2"/></svg>',
+  tch: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>',
+  clock: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+  bus: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>',
+  seat: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z"/><path d="M5 18v2"/><path d="M19 18v2"/></svg>',
+  next: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 10h8"/><path d="M8 18h8"/><path d="M8 22v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>',
+  star: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>',
+  moon: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
+  cam: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>',
+  wait: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>',
+  locate: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/></svg>',
+  home: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  search: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+  redo: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>',
+  link: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+  route: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>',
+  check: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+  plus: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+  back: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>'
 };
 const AGE_LAB = ['만 3세', '만 4세', '만 5세', '혼합반', '특수반'];
 // 고른 나이의 반 현황: 연령별 = [[반 수, 정원, 원아] × (만3, 만4, 만5, 혼합, 특수)]
@@ -519,7 +545,8 @@ function initDC(DC) {
   const tot = w.map((r) => r.대기[7]).sort((a, b) => a - b);
   WAIT_MED = tot.length ? tot[Math.floor(tot.length / 2)] : null;
 }
-Object.assign(ICON, { star: '<span class="em" aria-hidden="true">⭐</span>', moon: '<span class="em" aria-hidden="true">🌙</span>', cam: '<span class="em" aria-hidden="true">📹</span>', wait: '<span class="em" aria-hidden="true">⏳</span>' });
+// 정적 마크업의 아이콘 자리(<i data-ic="…">)를 같은 선 아이콘으로 채운다
+document.querySelectorAll('[data-ic]').forEach((el) => { el.outerHTML = ICON[el.dataset.ic] || ''; });
 const ymTxt = (s) => s ? `${s.slice(2, 4)}.${s.slice(5, 7)}` : '';
 // 입소 대기 아동 수: 대기 = [만0~5세, 6세 이상, 총계] (API ew_cnt). 한 아이가 여러 곳에 신청하므로 '내 순번'이 아니라 '신청 수'.
 const WAIT_LAB = ['만 0세', '만 1세', '만 2세', '만 3세', '만 4세', '만 5세', '6세 이상', '전체'];
@@ -557,7 +584,7 @@ async function loadEvDoc(box) {
   try {
     tipsLoad = tipsLoad || fetch(`dc_tips.json?v=${EV_V}`).then((res) => { if (!res.ok) throw new Error(res.status); return res.json(); });
     const tips = (await tipsLoad)[box.dataset.ev] || [];
-    box.innerHTML = `<div class="tip"><b>⚠️ 보완 권고</b>${tips.map(([a, x]) => `<div>· <b>${esc(a)}</b>: ${esc(x)}</div>`).join('')}</div>`;
+    box.innerHTML = `<div class="tip"><b>보완 권고</b>${tips.map(([a, x]) => `<div>· <b>${esc(a)}</b>: ${esc(x)}</div>`).join('')}</div>`;
   } catch (e) { tipsLoad = null; box.textContent = '보완 권고 내용을 불러오지 못했어요. 아래 영역별 평가 전문에서 확인해 주세요.'; }
 }
 function dcEval(r) {
@@ -609,10 +636,10 @@ function dcDescribe(r) {
     const none = '<span class="a none">결과서에 언급 없음</span>';
     const out = freq === '없음' ? none : `<span class="a">${['매주', '매월'].includes(freq) ? pills([freq], 'hot') : freq === '정기적' ? pills(['정기적'], 'hot') : ''}${pills(kinds)}</span>`;
     const ans = (xs) => xs.length ? `<span class="a">${pills(xs)}</span>` : none;
-    const qa = [['🌳', '바깥 활동은 무엇이 있나요?', out], ['🍚', '급식은 어떻게 나오나요?', ans(meal)], ['👨‍👩‍👧', '부모가 참여할 수 있나요?', ans(parent)], ['🩺', '전문기관 지원이 있나요?', ans(dev)]];
-    facts.push(['평가로 본 생활', `<div class="qa-box">${qa.map(([ic, q, a]) => `<div class="qa"><span class="q">${ic} ${q}</span>${a}</div>`).join('')}</div>`, '평가결과서를 AI(Claude)로 정리했어요.', '']);
+    const qa = [['', '바깥 활동은 무엇이 있나요?', out], ['', '급식은 어떻게 나오나요?', ans(meal)], ['', '부모가 참여할 수 있나요?', ans(parent)], ['', '전문기관 지원이 있나요?', ans(dev)]];
+    facts.push(['평가로 본 생활', `<div class="qa-box">${qa.map(([ic, q, a]) => `<div class="qa"><span class="q">${q}</span>${a}</div>`).join('')}</div>`, '평가결과서를 AI(Claude)로 정리했어요.', '']);
   } else if (r.특색 && r.특색.length) facts.push(['특색 활동', `<span class="feats">${r.특색.map((t) => `<span class="feat">${esc(t)}</span>`).join('')}</span>`, '평가결과서에서 자동으로 뽑았어요(최대 3개).', '']);
-  (r.특색 || []).forEach((t) => tags.push(['f', '✨ ' + t]));  // 특색 활동(평가결과서에서 뽑음): 장점 계열이지만 모양으로 구분
+  (r.특색 || []).forEach((t) => tags.push(['f', t]));  // 특색 활동(평가결과서에서 뽑음): 장점 계열이지만 모양으로 구분
   sp.forEach((s) => SPEC[s] && tags.push(SPEC[s]));
   if (r.연장반 != null) {
     const night = sp.includes('야간연장형') || sp.includes('24시간');
@@ -873,7 +900,7 @@ async function start() {
   const center = new kakao.maps.CustomOverlay({ content: '<div style="width:14px;height:14px;border-radius:50%;background:#1d2420;border:3px solid #fff;box-shadow:0 0 0 2px #1d2420"></div>', yAnchor: 0.5, zIndex: 5 });
   center.setMap(map);
   const tip = new kakao.maps.CustomOverlay({ yAnchor: 1, zIndex: 10 });
-  const homeMark = new kakao.maps.CustomOverlay({ content: '<div class="hmark" aria-hidden="true">🏠</div>', yAnchor: 1, zIndex: 6 });
+  const homeMark = new kakao.maps.CustomOverlay({ content: '<div class="hmark" aria-hidden="true">' + ICON.home + '</div>', yAnchor: 1, zIndex: 6 });
 
   // 마커: 유치원마다 색 점 하나 (CustomOverlay). 지도를 가까이(레벨 5 이하) 보면 이름표가 붙는다.
   const shortName = (n) => n.replace(/초등학교병설유치원$/, '초 병설').replace(/(유치원|어린이집)(분원)?$/, '$2').trim() || n;
@@ -948,7 +975,7 @@ async function start() {
     const dsc = describe(x);
     return `
       <div class="item" data-id="${esc(x.id)}">
-        <div class="top"><span class="name">${esc(x.유치원명)} <span class="kind">[${esc(x.설립유형)}]</span></span><span class="right"><span class="meta">${d.toFixed(1)}km</span><button class="cbtn" type="button" data-heart="${esc(x.id)}" aria-pressed="${cmp.includes(x.id)}">${cmp.includes(x.id) ? '✓ 비교중' : '+ 비교'}</button></span></div>
+        <div class="top"><span class="name">${esc(x.유치원명)} <span class="kind">[${esc(x.설립유형)}]</span></span><span class="right"><span class="meta">${d.toFixed(1)}km</span><button class="cbtn" type="button" data-heart="${esc(x.id)}" aria-pressed="${cmp.includes(x.id)}">${cmp.includes(x.id) ? ICON.check + '비교중' : ICON.plus + '비교'}</button></span></div>
         <div class="badges">${badgeHTML(x)}</div>
         ${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
         <div class="more">자세히 보기 ›</div>
@@ -1006,7 +1033,7 @@ async function start() {
     if (v.includes(id)) v = v.filter((x) => x !== id);
     else { if (v.length >= 3) { flash('비교함은 3곳까지 담을 수 있어요.'); return; } v.push(id); }
     store.set(v);
-    document.querySelectorAll(`[data-heart="${id}"]`).forEach((b) => { b.setAttribute('aria-pressed', v.includes(id)); b.textContent = v.includes(id) ? '✓ 비교중' : '+ 비교'; });
+    document.querySelectorAll(`[data-heart="${id}"]`).forEach((b) => { b.setAttribute('aria-pressed', v.includes(id)); b.innerHTML = v.includes(id) ? ICON.check + '비교중' : ICON.plus + '비교'; });
     if (!$('detail').hidden && S.open === id) openDetail(id, true);
     drawCbar();
   }
@@ -1015,8 +1042,8 @@ async function start() {
     $('cbar').hidden = !$('cmp').hidden;
     $('c-clear').hidden = v.length === 0;
     $('c-go').disabled = v.length < 2;
-    $('c-names').textContent = v.length === 0 ? "⚖️ 비교함 0/3 · 카드의 '+ 비교'로 담아보세요"
-      : `⚖️ ${v.length}/3 · ` + v.map((id) => byId(id).유치원명.replace(/(유치원|어린이집)$/, '').trim()).join(', ') + (v.length < 2 ? ' · 1곳 더 담으면 비교돼요' : '');
+    $('c-names').textContent = v.length === 0 ? "비교함 0/3 · 카드의 '비교'를 눌러 담아 보세요"
+      : `비교함 ${v.length}/3 · ` + v.map((id) => byId(id).유치원명.replace(/(유치원|어린이집)$/, '').trim()).join(', ') + (v.length < 2 ? ' · 1곳 더 담으면 비교돼요' : '');
   }
   function flash(msg) { $('c-names').textContent = msg; $('cbar').hidden = false; setTimeout(drawCbar, 1800); }
   $('c-clear').addEventListener('click', () => { store.set([]); render(false); });
@@ -1030,7 +1057,7 @@ async function start() {
       ['유형', (r) => esc(r.설립유형)],
       ['평가', (r) => { const e = dcEval(r); return e ? (e.cls === 'b' ? '아직 없음' : e.lab.startsWith("'") ? '완료 ' + e.lab : e.lab) : '-'; }, (r) => { const e = dcEval(r); return e ? { g: 2, '': 2, n: 1, b: 0 }[e.cls] : null; }],
       ['연장보육반', (r) => r.연장반 != null ? (r.연장반 ? `${r.연장반}개 · ${r.연장아동}명` : '없음') : '-', (r) => r.연장반],
-      ['야간연장', (r) => /야간연장형|24시간/.test(r.특성 || '') ? '🌃 있음' : '-'],
+      ['야간연장', (r) => /야간연장형|24시간/.test(r.특성 || '') ? '있음' : '-'],
       ['현원/정원', (r) => `${r.원아수}/${r.정원}명<br><small>${r.충원율}%</small>`, (r) => -r.충원율],
       [`입소 대기${$('dcage').value !== '' ? `<br>(만 ${$('dcage').value}세)` : ''}`, (r) => { const w = waitOf(r); return w ? w.v + '명' : '-'; }, (r) => { const w = waitOf(r); return w ? -w.v : null; }],
       ['선생님:아이', (r) => r.교사1인당원아 != null ? '1:' + Math.round(r.교사1인당원아) : '-', (r) => r.교사1인당원아 != null ? -Math.round(r.교사1인당원아) : null],
@@ -1038,14 +1065,14 @@ async function start() {
       ['새 선생님', (r) => r['1년미만비율'] != null ? r['1년미만비율'] + '%' : '-', (r) => r['1년미만비율'] != null ? -r['1년미만비율'] : null],
       ['CCTV', (r) => r.CCTV != null ? r.CCTV + '대' : '-', (r) => r.CCTV],
       ['놀이터', (r) => r.놀이터 ? r.놀이터 + '곳' : '없음'],
-      ['통학차량', (r) => r.차량운영여부 === '운영' ? '🚌 있음' : '없음']
+      ['통학차량', (r) => r.차량운영여부 === '운영' ? '있음' : '없음']
     ] : [
       ['유형', (r) => esc(r.설립유형)],
       [`월 비용<br>(만 ${age}세)`, (r) => { const c = costOf(r); return !c ? '정보 없음' : c.none ? '반 없음' : won(c.total); }, (r) => { const c = costOf(r); return c && !c.none ? -c.total : null; }],
       ['한 반', (r) => r.학급당원아 != null ? Math.round(r.학급당원아) + '명' : '-', (r) => r.학급당원아 != null ? -r.학급당원아 : null],
       ['선생님:아이', (r) => r.교사1인당원아 != null ? '1:' + Math.round(r.교사1인당원아) + (r.데이터주의 ? '*' : '') : '-', (r) => r.교사1인당원아 != null && !r.데이터주의 ? -r.교사1인당원아 : null],
       ['운영시간', (r) => esc(r.운영시간 || '-'), (r) => closeMin(r)],
-      ['통학차량', (r) => r.차량운영여부 === '운영' ? '🚌 있음' : r.차량운영여부 === '미운영' ? '없음' : '-'],
+      ['통학차량', (r) => r.차량운영여부 === '운영' ? '있음' : r.차량운영여부 === '미운영' ? '없음' : '-'],
       ['원아 수', (r) => r.원아수 != null ? r.원아수 + '명' : '-'],
       ['4년+ 근속', (r) => r['4년이상비율'] != null ? r['4년이상비율'] + '%' : '-', (r) => r['4년이상비율']],
       ['새 선생님', (r) => r['1년미만비율'] != null ? r['1년미만비율'] + '%' : '-', (r) => r['1년미만비율'] != null ? -r['1년미만비율'] : null],
@@ -1081,9 +1108,9 @@ async function start() {
       <div class="badges">${badgeHTML(r)}</div>
       ${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
       <div class="actions">
-        <button type="button" id="d-heart" class="${inCmp ? 'on' : ''}">${inCmp ? '✓ 비교함에 담김' : '+ 비교함에 담기'}</button>
-        <button type="button" id="d-share">🔗 공유</button>
-        <a href="https://map.kakao.com/link/to/${encodeURIComponent(r.유치원명)},${r.위도},${r.경도}" target="_blank" rel="noopener">🧭 길찾기</a>
+        <button type="button" id="d-heart" class="${inCmp ? 'on' : ''}">${inCmp ? ICON.check + '비교함에 담김' : ICON.plus + '비교함에 담기'}</button>
+        <button type="button" id="d-share">${ICON.link}공유</button>
+        <a href="https://map.kakao.com/link/to/${encodeURIComponent(r.유치원명)},${r.위도},${r.경도}" target="_blank" rel="noopener">${ICON.route}길찾기</a>
       </div>
       <ul class="facts full">${dsc.facts.map(([k, v, cmp, c]) => `<li><span class="k">${k}</span><span class="v ${c ? 'c-' + c : ''}">${v}${cmp ? `<span class="cmp">${cmp}</span>` : ''}</span></li>`).join('')}</ul>
       <p class="note">${isDC(r) ? '출처: 공공데이터포털 어린이집 기본정보, 어린이집정보공개포털(평가·연장보육·근속). 입소 대기 순번은 아이사랑에서 확인하세요.' : '출처: 유치원알리미 2026년 정보공시. 설명회 일정·특성화 프로그램은 유치원에 직접 확인하세요.'}</p>`;
@@ -1096,7 +1123,7 @@ async function start() {
       const url = NOSHARE.has(r.id) ? location.href : new URL(`s/${r.id}.html?v=${SHARE_V}`, location.href).href;
       const title = `${r.유치원명} | 우리 동네 ${isDC(r) ? '어린이집' : '유치원'}`;
       try { if (navigator.share) { await navigator.share({ title, url }); return; } } catch (e) { return; }
-      try { await navigator.clipboard.writeText(url); $('d-share').textContent = '✅ 복사됨'; } catch (e) { prompt('이 주소를 복사하세요', url); }
+      try { await navigator.clipboard.writeText(url); $('d-share').innerHTML = ICON.check + '주소 복사됨'; } catch (e) { prompt('이 주소를 복사하세요', url); }
     });
     $('detail').hidden = false;
     $('detail').querySelector('.panel').scrollTop = 0;
@@ -1171,7 +1198,7 @@ async function start() {
       { enableHighAccuracy: true, timeout: 8000 }
     );
   });
-  // 🏠 우리 집: 주소·아파트 이름 검색 또는 지금 기준 위치로 저장 (localStorage 'kg-home')
+  // 우리 집: 주소·아파트 이름 검색 또는 지금 기준 위치로 저장 (localStorage 'kg-home')
   const geo = kakao.maps.services ? new kakao.maps.services.Geocoder() : null;
   const places = kakao.maps.services ? new kakao.maps.services.Places() : null;
   const drawHome = () => {
@@ -1179,10 +1206,10 @@ async function start() {
     homeMark.setMap(null);
     if (h) { homeMark.setPosition(new kakao.maps.LatLng(h.lat, h.lng)); homeMark.setMap(map); }
     $('home-cur').innerHTML = h
-      ? `<span>🏠 <b>${esc(h.label)}</b></span><button type="button" class="primary" id="home-go">여기로</button>`
+      ? `<span><b>${esc(h.label)}</b></span><button type="button" class="primary" id="home-go">여기로</button>`
       : '<span>우리 집을 저장해 두면 열 때마다 그 주변을 보여 줘요.</span>';
     $('home-del').hidden = !h;
-    $('home-here').textContent = h ? '📍 지금 기준 위치로 바꾸기' : '📍 지금 기준 위치를 우리 집으로';
+    $('home-here').textContent = h ? '지금 기준 위치로 바꾸기' : '지금 기준 위치를 우리 집으로';
     if (h) $('home-go').addEventListener('click', () => { goHome(); toggleHome(false); });
   };
   const goHome = () => { const h = HOME.get(); if (!h) return; S.lat = h.lat; S.lng = h.lng; $('gu').value = ''; if (location.hash) location.hash = ''; render(true); };
