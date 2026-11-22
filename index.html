@@ -48,6 +48,14 @@
   .side header { padding: 16px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
   .side h1 { font-size: 18px; margin: 0; }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .find { position: relative; margin-bottom: 8px; }
+  .find input { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--fg); }
+  .find-res { display: grid; gap: 2px; margin-top: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); overflow: hidden; }
+  .find-res[hidden] { display: none; }
+  .find-res button { display: grid; text-align: left; gap: 1px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--fg); font: inherit; cursor: pointer; }
+  .find-res button:last-child { border-bottom: 0; }
+  .find-res small { color: var(--muted); font-size: 12px; }
+  .find-res .none { padding: 8px 12px; color: var(--muted); font-size: 13px; }
   select, button { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); }
   button.primary { background: var(--fg); color: var(--panel); border-color: var(--fg); cursor: pointer; }
   .summary { color: var(--muted); }
@@ -146,6 +154,7 @@
   .evdoc .tip { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: #fff4e5; color: #6b4300; }
   .evdoc .tip b { color: #6b4300 !important; }
   .feats { display: flex; flex-wrap: wrap; gap: 6px; }
+  .card-feats { margin-top: 8px; }
   .feat { padding: 2px 9px; border-radius: 999px; background: #eef4ff; color: #24456e; font-size: 12.5px; }
   .evfull { margin-top: 6px; font-size: 13px; }
   .evfull summary { cursor: pointer; color: var(--fg); font-weight: 600; }
@@ -195,6 +204,7 @@
   <div class="mapbox"><div id="map"></div><button type="button" id="research" hidden>↻ 이 지역에서 다시 찾기</button></div>
   <aside class="side">
     <header>
+      <form class="find" id="find" role="search" autocomplete="off"><input id="find-q" type="search" placeholder="🔍 유치원·어린이집 이름으로 찾기" enterkeyhint="search" aria-label="유치원·어린이집 이름 검색"><div class="find-res" id="find-res" hidden></div></form>
       <div class="controls">
         <button class="primary" id="me" type="button">📍 내 위치</button>
         <button id="home" type="button" aria-expanded="false" aria-controls="home-box">🏠 우리 집</button>
@@ -455,7 +465,7 @@ function costCmp(r) {
   return { ...c, cls, lab, avg };
 }
 
-const busBadge = (r) => r.차량운영여부 === '운영'
+const busBadge = (r) => isDC(r) ? '' : r.차량운영여부 === '운영'
   ? `<span class="badge bus-on">${ICON.bus}차량</span>`
   : r.차량운영여부 === '미운영' ? `<span class="badge bus-off">${ICON.bus}없음</span>` : '';
 
@@ -502,8 +512,8 @@ function waitOf(r) {
 }
 // 어린이집 평가제는 2024-07-03 개편: A~D 등급제 폐지, 영역별 서술형 결과(예전 등급은 일괄 삭제).
 // 개편 전 평가(총평 문구가 있거나 2024-07 이전)는 '제도 개편 전 평가'로 따로 표시한다.
-const EVAL_NOTE_OLD = '2024년 7월 개편 전 평가제로 받은 평가예요(보육과정·상호작용, 보육환경·운영관리, 건강·안전, 교직원 4개 영역). 개편으로 A~D 등급제가 폐지돼 예전 등급은 삭제됐고, 당시 결과서의 총평 문구를 보여드려요.';
-const EVAL_NOTE_NEW = '2024년 7월 개편된 평가제로 받은 평가예요. A~D 등급 없이 6개 영역별 종합의견(서술)이 나오는데 대부분 비슷한 칭찬 문장이라, 고칠 점으로 적힌 \'다만, …\' 문장(보완 권고)을 먼저 보여드려요. 전문은 \'영역별 평가 전문 보기\'를 눌러 보세요.';
+const EVAL_NOTE_OLD = '2024년 7월 평가제 개편 이전에 받은 평가예요(4개 영역). A~D 등급은 개편 때 삭제돼 당시 총평 문구를 보여드려요.';
+const EVAL_NOTE_NEW = '2024년 7월 개편된 평가제로 받은 평가예요. A~D 등급은 없어요.';
 const EV_V = '13fdc2ab';  // dc_tips.json 버전
 // 개편 후 평가의 보완 권고 문장(dc_tips.json: {id: [[영역, 문장]]}) — 보완 권고가 있는 곳 상세를 처음 열 때 한 번 받는다
 let tipsLoad = null;
@@ -518,7 +528,8 @@ async function loadEvFull(det) {
     const res = await fetch(`ev/${det.dataset.full}.json?v=${EV_V}`);
     if (!res.ok) throw new Error(res.status);
     const d = await res.json();
-    box.innerHTML = d.a.map(([area, t]) => `<div class="area"><b>${esc(area)}</b>${t.split(/(?<=[.!?])\s+/).map((x) => isTip(x) ? `<mark>${esc(x)}</mark>` : esc(x)).join(' ')}</div>`).join('');
+    box.innerHTML = d.a.map(([area, t]) => `<div class="area"><b>${esc(area)}</b>${t.split(/(?<=[.!?])\s+/).map((x) => isTip(x) ? `<mark>${esc(x)}</mark>` : esc(x)).join(' ')}</div>`).join('')
+      + `<div class="area"><a href="${PORTAL_EVAL(det.dataset.full)}" target="_blank" rel="noopener">포털에서 보기 ›</a></div>`;
   } catch (e) { delete det.dataset.done; box.textContent = '불러오지 못했어요. 닫았다가 다시 눌러 주세요.'; }
 }
 async function loadEvDoc(box) {
@@ -526,37 +537,38 @@ async function loadEvDoc(box) {
     tipsLoad = tipsLoad || fetch(`dc_tips.json?v=${EV_V}`).then((res) => { if (!res.ok) throw new Error(res.status); return res.json(); });
     const tips = (await tipsLoad)[box.dataset.ev] || [];
     box.innerHTML = `<div class="tip"><b>⚠️ 보완 권고</b>${tips.map(([a, x]) => `<div>· <b>${esc(a)}</b>: ${esc(x)}</div>`).join('')}</div>`;
-  } catch (e) { tipsLoad = null; box.textContent = '보완 권고 내용을 불러오지 못했어요. 아래 평가결과서 원문에서 확인해 주세요.'; }
+  } catch (e) { tipsLoad = null; box.textContent = '보완 권고 내용을 불러오지 못했어요. 아래 영역별 평가 전문에서 확인해 주세요.'; }
 }
 function dcEval(r) {
   if (r.평가완료 == null) return null;
   if (!r.평가완료) return { cls: 'b', lab: '아직 없음', txt: '아직 평가를 받지 않았어요. 새로 문을 연 곳일 수 있어요.', note: EVAL_NOTE_NEW };
   const old = r.평가 === 'A' || r.평가 === 'B' || (r.평가연월 || '9999') < '2024-07';
-  if (r.평가 === 'A') return { cls: 'g', old, lab: '개편 전 충족', txt: `<b>제도 개편 전 평가</b>(${r.평가연월}) · 총평 “<b>모든 영역 충족</b>”`, note: EVAL_NOTE_OLD };
-  if (r.평가 === 'B') return { cls: 'n', old, lab: '개편 전 일부 보완', txt: `<b>제도 개편 전 평가</b>(${r.평가연월}) · 총평 “<b>대부분 충족</b>”, 일부 보완할 점이 있었어요.`, note: EVAL_NOTE_OLD };
-  if (old) return { cls: '', old, lab: `개편 전 '${ymTxt(r.평가연월)}`, txt: `<b>제도 개편 전 평가</b>(${r.평가연월})`, note: EVAL_NOTE_OLD };
+  if (r.평가 === 'A') return { cls: 'g', old, lab: '충족 (개편평가 전)', txt: `<b>평가 완료</b>(${r.평가연월}) (개편평가 전) · 총평 “<b>모든 영역 충족</b>”`, note: EVAL_NOTE_OLD };
+  if (r.평가 === 'B') return { cls: 'n', old, lab: '일부 보완 (개편평가 전)', txt: `<b>평가 완료</b>(${r.평가연월}) (개편평가 전) · 총평 “<b>대부분 충족</b>”, 일부 보완할 점이 있었어요.`, note: EVAL_NOTE_OLD };
+  if (old) return { cls: '', old, lab: `'${ymTxt(r.평가연월)} (개편평가 전)`, txt: `<b>평가 완료</b>(${r.평가연월}) (개편평가 전)`, note: EVAL_NOTE_OLD };
   const n = r.평가보완;  // 종합의견 속 '다만, …' 보완 권고 수(scripts/fetch_dc_eval.py → build.py), 결과서를 못 받았으면 null
   if (n != null) {
-    const src = ` <a href="${PORTAL_EVAL(r.id)}" target="_blank" rel="noopener">포털에서 보기</a>`;
-    const full = `<details class="evfull" data-full="${esc(r.id)}"><summary>영역별 평가 전문 보기 (6개 영역)</summary><div class="body">불러오는 중…</div></details>`;
+    // 순서: 평가 완료 줄 → (보완 권고) → 설명 → ▶ 영역별 평가 전문 보기(펼친 끝에 '포털에서 보기')
+    const tail = `<span class="cmp">${EVAL_NOTE_NEW}</span><details class="evfull" data-full="${esc(r.id)}"><summary>영역별 평가 전문 보기</summary><div class="body">불러오는 중…</div></details>`;
     return n === 0
-      ? { cls: 'g', old, lab: '보완 권고 없음', txt: `<b>평가 완료</b>(${r.평가연월}) · <b>보완 권고 없음</b>${full}`, note: EVAL_NOTE_NEW + src }
-      : { cls: 'n', old, lab: `보완 권고 ${n}건`, txt: `<b>평가 완료</b>(${r.평가연월}) · <b>보완 권고 ${n}건</b><div class="evdoc" data-ev="${esc(r.id)}">불러오는 중…</div>${full}`, note: EVAL_NOTE_NEW + src };
+      ? { cls: 'g', old, lab: '보완 권고 없음', txt: `<b>평가 완료</b>(${r.평가연월}) · <b>보완 권고 없음</b>${tail}`, note: '' }
+      : { cls: 'n', old, lab: `보완 권고 ${n}건`, txt: `<b>평가 완료</b>(${r.평가연월}) · <b>보완 권고 ${n}건</b><div class="evdoc" data-ev="${esc(r.id)}">불러오는 중…</div>${tail}`, note: '' };
   }
-  return { cls: '', old, lab: `'${ymTxt(r.평가연월)}`, txt: `<b>평가 완료</b>(${r.평가연월}) · 개편된 평가제(영역별 서술형 결과)`, note: EVAL_NOTE_NEW };
+  return { cls: '', old, lab: `'${ymTxt(r.평가연월)}`, txt: `<b>평가 완료</b>(${r.평가연월})`, note: EVAL_NOTE_NEW };
 }
 function dcBadges(r) {
   const out = [];
   const e = dcEval(r);
-  if (e) out.push([e.cls, ICON.star + '평가', e.lab, e.old ? '2024년 7월 개편 전 평가제로 받은 평가(당시 총평 문구)' : '어린이집 평가제 결과']);
+  if (e) out.push([e.cls, ICON.star + '평가', e.lab, e.old ? '2024년 7월 평가제 개편 이전 평가(당시 총평 문구)' : '어린이집 평가제 결과']);
   const w = waitOf(r);
   if (w) out.push([w.cls, ICON.wait + `${w.who ? w.who.replace('만 ', '') + ' ' : ''}대기 ${w.v}명`, w.lab, `입소 대기 신청 아동 수${w.who ? ` (${w.who})` : ' (전체 나이)'} · 서울 상위 25%는 ${WAIT_P75[w.i]}명 이상 · 중복 신청 포함`]);
   if (r.연장반 != null) out.push(r.연장반 > 0 ? ['g', ICON.moon + `연장반 ${r.연장반}개`, `${r.연장아동}명`, '19:30 이후 연장보육반 · 이용 아동 수'] : ['b', ICON.moon + '연장반', '없음', '연장보육반']);
   const f = r.충원율;
   out.push([f >= 95 ? 'b' : f < 70 ? 'g' : '', ICON.kids + `${r.원아수}/${r.정원}명`, f >= 95 ? '꽉 참' : f < 70 ? '여유' : `${f}%`, '현원/정원 · 꽉 찬 곳은 대기가 있을 가능성이 높아요']);
+  if (r.차량운영여부 === '운영') out.push(['bus-on', ICON.bus + '차량', '', '통학차량 운영']);
+  else if (r.차량운영여부 === '미운영') out.push(['bus-off', ICON.bus + '없음', '', '통학차량 없음']);
   const ts = headCmp(r, '교사1인당원아');
   if (ts) out.push([ts.cls, ICON.tch + `1:${ts.v}`, ts.lab, `선생님 1명당 아이 · 서울 ${r.유형} 평균 ${ts.a}명`]);
-  if (r.CCTV != null) out.push([r.CCTV ? '' : 'b', ICON.cam + (r.CCTV ? `${r.CCTV}대` : '없음'), '', 'CCTV']);
   return out;
 }
 const SPEC = { 야간연장형: ['g', '밤늦게까지(야간연장)'], '24시간': ['g', '24시간 보육'], 시간제보육: ['n', '시간제 보육'], 장애아통합: ['n', '장애아 통합'], 영아전담: ['n', '영아 전담'] };
@@ -568,26 +580,26 @@ function dcDescribe(r) {
   const sp = (r.특성 || '').split('|').filter(Boolean);
   const e = dcEval(r);
   if (e) {
-    if (e.cls === 'g') tags.push(['g', e.old ? '개편 전 평가 모든 영역 충족' : '평가 보완 권고 없음']); else if (e.cls === 'b') tags.push(['b', '평가 전']);
+    if (e.cls === 'g') tags.push(['g', e.old ? '평가 모든 영역 충족 (개편평가 전)' : '평가 보완 권고 없음']); else if (e.cls === 'b') tags.push(['b', '평가 전']);
     facts.push(['평가', e.txt, e.note, e.cls]);
   } else facts.push(['평가', '정보 없음', '', '']);
-  if (r.특색 && r.특색.length) facts.push(['특색 활동', `<span class="feats">${r.특색.map((t) => `<span class="feat">${esc(t)}</span>`).join('')}</span>`, '평가결과서 글에서 다른 어린이집엔 드문 활동·인증을 자동으로 골랐어요(최대 3개).', '']);
+  if (r.특색 && r.특색.length) facts.push(['특색 활동', `<span class="feats">${r.특색.map((t) => `<span class="feat">${esc(t)}</span>`).join('')}</span>`, '평가결과서에서 자동으로 뽑았어요(최대 3개).', '']);
   sp.forEach((s) => SPEC[s] && tags.push(SPEC[s]));
   if (r.연장반 != null) {
     const night = sp.includes('야간연장형') || sp.includes('24시간');
     facts.push(['연장보육', r.연장반 > 0 ? `저녁 7시 반 이후 <b>연장보육반 ${r.연장반}개</b>를 운영하고, 지금 <b>${r.연장아동}명</b>이 이용해요.${night ? ' 밤늦게까지 맡아주는 <b>야간연장형</b>이에요.' : ''}` : '연장보육반을 운영하지 않아요.',
-      '기본 운영은 07:30~19:30이고, 그 이후는 연장보육반을 신청해서 이용해요.', r.연장반 > 0 ? 'g' : 'b']);
+      '기본 운영은 07:30~19:30이에요.', r.연장반 > 0 ? 'g' : 'b']);
   }
   const f = r.충원율;
   if (f >= 95) tags.push(['b', '자리 거의 없음']);
   facts.push(['자리·대기', `정원 ${r.정원}명 중 <b>${r.원아수}명</b>이 다녀요(${f}%). ${f >= 95 ? '거의 꽉 차서 <b>대기가 있을 가능성이 높아요.</b>' : f < 70 ? '자리에 <b>여유가 있는 편</b>이에요.' : ''}`,
-    '내 순번은 공개되지 않아요. 아이사랑(childcare.go.kr)에 로그인해 입소대기를 신청하면 내 순번을 볼 수 있어요.', f >= 95 ? 'b' : f < 70 ? 'g' : '']);
+    '내 순번은 아이사랑(childcare.go.kr)에서 확인할 수 있어요.', f >= 95 ? 'b' : f < 70 ? 'g' : '']);
   if (r.대기) {
     const tot = r.대기[7], w = waitOf(r);
     if (w && w.cls === 'b') tags.push(['b', '대기가 많아요']); else if (tot === 0) tags.push(['g', '입소 대기 없음']);
     const by = r.대기.slice(0, 7).map((v, i) => [WAIT_LAB[i], v]).filter(([, v]) => v > 0).map(([l, v]) => `${l} ${v}명`).join(' · ');
     facts.push(['입소 대기', tot ? `<b>${tot}명</b>이 입소를 기다리고 있어요.${by ? `<br><small>${by}</small>` : ''}` : '지금 입소를 기다리는 아이가 <b>없어요.</b>',
-      `한 아이가 여러 어린이집에 신청할 수 있어서 실제 경쟁보다 많게 보여요. 나이는 아이의 지금 나이라, 만 0세 대기에는 미리 신청해 둔 경우가 많아요. 서울 어린이집 전체 대기 중앙값은 ${WAIT_MED}명이에요.`, w ? w.cls : '']);
+      '한 아이가 여러 어린이집에 신청할 수 있어서 실제 경쟁보다 많게 보여요.', w ? w.cls : '']);
   }
   if (r.연령별) {
     const rows = r.연령별.map(([n, kids], i) => ({ l: DC_AGE_LAB[i], n, kids, max: DC_AGE_MAX[i], i })).filter((x) => x.n > 0 || x.kids > 0);
@@ -910,6 +922,7 @@ async function start() {
         <div class="top"><span class="name">${esc(x.유치원명)} <span class="kind">[${esc(x.설립유형)}]</span></span><span class="right"><span class="meta">${d.toFixed(1)}km</span><button class="cbtn" type="button" data-heart="${esc(x.id)}" aria-pressed="${cmp.includes(x.id)}">${cmp.includes(x.id) ? '✓ 비교중' : '+ 비교'}</button></span></div>
         <div class="badges">${badgeHTML(x)}</div>
         ${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
+        ${x.특색 && x.특색.length ? `<div class="feats card-feats">${x.특색.map((t) => `<span class="feat">${esc(t)}</span>`).join('')}</div>` : ''}
         <div class="more">자세히 보기 ›</div>
       </div>`;
   };
@@ -1177,6 +1190,35 @@ async function start() {
     });
   });
   drawHome();
+
+  // ---------- 이름 검색: 서울 유치원·어린이집 전체에서 찾아 그곳으로 ----------
+  const norm = (t) => (t || '').replace(/\s+/g, '').toLowerCase();
+  let findT = null;
+  async function findDraw() {
+    const q = norm($('find-q').value), box = $('find-res');
+    if (q.length < 1) { box.hidden = true; return; }
+    if (!DROWS.length) { try { await loadDC(); } catch (e) {} }
+    const hit = (r) => { const n = norm(r.유치원명), i = n.indexOf(q); return i < 0 ? null : { r, sc: (i === 0 ? 0 : 1) * 1000 + (isDC(r) === (MODE === 'dc') ? 0 : 100) + n.length }; };
+    const res = [...ROWS, ...DROWS].map(hit).filter(Boolean).sort((a, b) => a.sc - b.sc).slice(0, 8).map((h) => h.r);
+    box.hidden = false;
+    box.innerHTML = res.length
+      ? res.map((r) => `<button type="button" data-id="${esc(r.id)}"><span>${esc(r.유치원명)}</span><small>${esc(r.구)} · ${esc(r.설립유형)} ${isDC(r) ? '어린이집' : '유치원'}</small></button>`).join('')
+      : '<div class="none">찾지 못했어요. 이름 일부만 넣어 보세요(서울만 있어요).</div>';
+  }
+  $('find-q').addEventListener('input', () => { clearTimeout(findT); findT = setTimeout(findDraw, 150); });
+  $('find').addEventListener('submit', (e) => { e.preventDefault(); const b = $('find-res').querySelector('button'); if (b) b.click(); });
+  $('find-res').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-id]'); if (!b) return;
+    const r = byId(b.dataset.id); if (!r) return;
+    $('find-res').hidden = true; $('find-q').value = ''; $('find-q').blur();
+    await setMode(isDC(r) ? 'dc' : 'kg', true);
+    S.lat = r.위도; S.lng = r.경도;
+    $('gu').value = [...$('gu').options].some((o) => o.value === r.구) ? r.구 : '';
+    render(true);
+    select(r.id, false);
+    openDetail(r.id);
+  });
+  document.addEventListener('click', (e) => { if (!e.target.closest('#find')) $('find-res').hidden = true; });
 
   render(true);
   route();
