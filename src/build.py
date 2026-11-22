@@ -113,8 +113,15 @@ cost_json = json.dumps(costd, ensure_ascii=False, separators=(',', ':'))
 sp_json = json.dumps(dict(sorted(sp_list.items(), key=lambda x: int(x[0]))), ensure_ascii=False, separators=(',', ':'))
 open(os.path.join(d, '..', 'kg_sp.json'), 'w', encoding='utf-8').write(sp_json + '\n')
 sp_v = hashlib.md5(sp_json.encode()).hexdigest()[:8]
+# 항목별 자료 기준일(상세 맨 아래 '자료 기준') — 값이 없으면 그 줄은 화면에서 빠짐
+kgm = json.loads(r('data/kg_seoul.json.txt'))
+dcm = json.loads(r('data/dc_seoul.json'))
+ptl = sorted(v['t'] for v in json.loads(r('data/dc_portal.json')).values() if v.get('t'))
+dts = sorted(v['t'] for v in json.loads(r('data/kg_detail.json')).values() if v.get('t'))
+meta = json.dumps({'kg_pb': kgm.get('pb'), 'kg_t': kgm.get('t'), 'det': dts[-1] if dts else None,
+                   'dc_t': dcm.get('t'), 'ptl': [ptl[0], ptl[-1]] if ptl else None}, ensure_ascii=False)
 h = (r('template.html').replace('%%NOSHARE%%', json.dumps(noshare)).replace('%%SHARE_V%%', share_v).replace('%%DATA%%', r('data/kg_seoul.json.txt'))
-     .replace('%%COST%%', cost_json).replace('%%SP_V%%', sp_v).replace('%%DC_URL%%', f'dc.json?v={ver}')
+     .replace('%%COST%%', cost_json).replace('%%SP_V%%', sp_v).replace('%%META%%', meta).replace('%%DC_URL%%', f'dc.json?v={ver}')
      .replace('%%RCRT%%', r('data/kg_rcrt.json')).replace('%%DET%%', det).replace('%%EV_V%%', ev_v))
 open(os.path.join(d, '..', 'index.html'), 'w', encoding='utf-8').write(h + '\n' if not h.endswith('\n') else h)
 print('index.html', len(h), '/ 특성화 목록', len(sp_list), '/ dc.json', len(dc), '/ 공유 주소 없는 곳', len(noshare), '/ 평가결과서', len(ev), '/ AI 정리', n_ai)
