@@ -575,7 +575,7 @@ function dcBadges(r) {
   if (w) out.push([w.cls, ICON.wait + `${w.who ? w.who.replace('만 ', '') + ' ' : ''}대기 ${w.v}명`, w.lab, `입소 대기 신청 아동 수${w.who ? ` (${w.who})` : ' (전체 나이)'} · 서울 상위 25%는 ${WAIT_P75[w.i]}명 이상 · 중복 신청 포함`]);
   if (r.연장반 != null) out.push(r.연장반 > 0 ? ['g', ICON.moon + `연장반 ${r.연장반}개`, `${r.연장아동}명`, '19:30 이후 연장보육반 · 이용 아동 수'] : ['b', ICON.moon + '연장반', '없음', '연장보육반']);
   const f = r.충원율;
-  out.push([f >= 95 ? 'b' : f < 70 ? 'g' : '', ICON.kids + `${r.원아수}/${r.정원}명`, f >= 95 ? '꽉 참' : f < 70 ? '여유' : `${f}%`, '현원/정원 · 꽉 찬 곳은 대기가 있을 가능성이 높아요']);
+  out.push([f >= 95 ? 'b' : f < 70 ? 'g' : '', ICON.kids + `${r.원아수}/${r.정원}명`, f >= 95 ? '꽉 참' : f < 70 ? '여유' : '', '현원/정원 · 꽉 찬 곳은 대기가 있을 가능성이 높아요']);
   if (r.차량운영여부 === '운영') out.push(['bus-on', ICON.bus + '차량', '', '통학차량 운영']);
   else if (r.차량운영여부 === '미운영') out.push(['bus-off', ICON.bus + '없음', '', '통학차량 없음']);
   const ts = headCmp(r, '교사1인당원아');
