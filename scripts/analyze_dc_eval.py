@@ -7,7 +7,7 @@
   ④ 발달 지원이 있나요?      dev(발달 검사·전문기관 연계)
 각 칸에 근거 문장(ev)을 같이 저장해 검증할 수 있게 한다. 정해진 값 밖의 답은 버린다.
 - 결과: {stcode: {"ym": 평가연월, "o": {"freq", "kinds", "meal", "parent", "dev", "ev": {칸: 근거}}, "m": 모델, "t": 날}}
-- 이미 같은 평가연월로 정리한 곳은 건너뜀. 4곳 동시. --limit N, --minutes N, --ids a,b(시험용). env ANTHROPIC_API_KEY(없으면 아무것도 안 하고 끝).
+- 이미 같은 평가연월로 정리한 곳은 건너뜀. 6곳 동시. --limit N, --minutes N, --ids a,b(시험용). env ANTHROPIC_API_KEY(없으면 아무것도 안 하고 끝).
 - 비용(2026-11): Haiku 5.5 입력 100만 토큰당 0.10달러·출력 0.50달러 → 전체 2,157곳 약 1달러, 이후 매달 새로 평가받은 곳만.
 """
 import datetime, json, os, re, sys, time, urllib.request
@@ -115,7 +115,7 @@ def main():
             json.dump(dict(sorted(data.items())), f, ensure_ascii=False, separators=(',', ':'))
 
     left = 0
-    with ThreadPoolExecutor(4) as ex:
+    with ThreadPoolExecutor(6) as ex:
         it, futs = iter(todo), {}
 
         def submit():
@@ -126,7 +126,7 @@ def main():
                     continue
                 futs[ex.submit(one, k)] = k
                 return
-        for _ in range(4):
+        for _ in range(6):
             submit()
         while futs:
             f = next(as_completed(futs))

@@ -52,7 +52,7 @@ def ai_tags(o):
     if o['dev']:
         t.append('발달 지원')
     if o['freq'] in ('매주', '매월'):
-        t.append(f"{o['freq']} {o['kinds'][0] if o['kinds'] else '바깥 활동'}")
+        t.append(f"{o['freq']} {o['kinds'][0] if len(o['kinds']) == 1 else '바깥 활동'}")  # 종류가 여럿이면 어느 게 그 빈도인지 몰라 '바깥 활동'
     for x in ['아빠 참여', '쿠킹클래스', '가족 프로그램', '참여수업', '급식 모니터링', '현장학습 도우미', '부모교육']:
         if x in o['parent']:
             t.append(PLAB[x]); break
