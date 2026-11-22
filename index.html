@@ -457,7 +457,7 @@ function badges(r) {
   const st = seatOf(r);
   if (st && !st.none && st.cap) out.push([seatCls(st.pct), ICON.seat + `${st.mix ? '혼합' : '만' + st.age + '세'} ${st.kids}/${st.cap}`, seatLab(st.pct), `${st.mix ? `만 ${st.age}세 반이 따로 없어 혼합반 기준` : `만 ${st.age}세 반 ${st.n}개`} · 다니는 아이/정원`]);
   const nx = nextOf(r);
-  if (nx && nx.v != null) out.push([nextCls(nx.v), ICON.next + `내년 ${nx.v ? '약 ' + nx.v + '자리' : '자리 없음'}`, '추정', `내년 만 ${nx.age}세 정원 ${nx.cap}명 − 올라올 아이 ${nx.up}명 (${RCRT.aid}학년도 모집요강 기준 추정)`]);
+  if (nx && nx.v != null) out.push([nextCls(nx.v), ICON.next + `내년 빈자리 ${nx.v ? nx.v + '자리' : '없음'}`, '추정', `내년 만 ${nx.age}세 정원 ${nx.cap}명 − 올라올 아이 ${nx.up}명 (${RCRT.aid}학년도 모집요강 기준 추정)`]);
   else if (nx && nx.none) out.push(['b', ICON.next + `내년 만${nx.age}세 반 없음`, '', `${RCRT.aid}학년도 모집요강 기준`]);
   const cs = headCmp(r, '학급당원아');
   if (cs) out.push([cs.cls, ICON.cls + `반 ${cs.v}명`, cs.lab, `한 반 인원 · 서울 ${r.유형} 평균 ${cs.a}명`]);
