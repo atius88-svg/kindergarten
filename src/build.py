@@ -5,28 +5,55 @@ d = os.path.dirname(os.path.abspath(__file__))
 r = lambda p: open(os.path.join(d, p), encoding='utf-8').read().strip()
 import json, re, shutil
 dc = r('data/dc_seoul.json')
-# 개편 후 평가결과서(src/data/dc_eval.json, scripts/fetch_dc_eval.py) → ev/{id}.json(상세 화면에서 불러옴) + dc.json에 '평가보완'(보완 권고 문장 수) 열
+# 개편 후 평가결과서(src/data/dc_eval.json, scripts/fetch_dc_eval.py)에서 학부모에게 쓸모 있는 것만 뽑는다.
+# 종합의견은 대부분 비슷한 칭찬 문장이라 전문은 싣지 않는다(원문은 포털 링크).
+#  - 보완 권고: '다만, …' / '…바랍니다.' 문장 → dc.json '평가보완'(개수), dc_tips.json(문장, 상세를 열 때 받음)
+#  - 특색: 다른 곳 글에는 드문 활동·인증 키워드 → dc.json '특색'(드문 것부터 최대 3개)
 evp = os.path.join(d, 'data', 'dc_eval.json')
 ev = {k: v for k, v in (json.loads(r('data/dc_eval.json')) if os.path.exists(evp) else {}).items() if v.get('a')}
 TIP = re.compile(r'^다만|유의하시기 바랍니다|바랍니다\.?$')
-tips = lambda a: sum(1 for _, t in a for x in re.split(r'(?<=[.!?])\s+', t) if TIP.search(x))
-evdir = os.path.join(d, '..', 'ev')
-os.makedirs(evdir, exist_ok=True)
-for f in os.listdir(evdir):  # 결과서가 없어진 곳 정리
-    if f.endswith('.json') and f[1:-5] not in ev:
-        os.remove(os.path.join(evdir, f))
-for k, v in ev.items():
-    body = json.dumps({'ym': v['ym'], 'a': v['a']}, ensure_ascii=False, separators=(',', ':'))
-    pth = os.path.join(evdir, f'c{k}.json')
-    if not os.path.exists(pth) or open(pth, encoding='utf-8').read() != body:
-        open(pth, 'w', encoding='utf-8').write(body)
+FEAT = [  # (표시, 찾을 표현)
+    ('실내공기 우수시설', r'실내공기 ?우수'),
+    ('안심 공간 인증', r'안심 ?공간'),
+    ('장애아 통합보육', r'장애아 ?통합|통합보육'),
+    ('다문화 어린이집', r'다문화 ?지정|다문화 ?(?:가정|아동|영유아)'),
+    ('AI 식사 분석', r'(?:인공지능|AI)[^.]{0,8}(?:식사|식사량)'),
+    ('미술관·박물관 나들이', r'미술관|박물관'),
+    ('전통놀이·절기', r'전통 ?놀이|절기|세시'),
+    ('도서관 연계', r'도서관'),
+    ('부모 급식 모니터링', r'부모[^.]{0,15}모니터링'),
+    ('물놀이', r'물놀이'),
+    ('요리 활동', r'요리'),
+    ('우수 급식소', r'우수 ?급식소|빛나는 급식소|바른 급식|든든 ?급식'),
+    ('저염 급식', r'저염'),
+    ('숲 놀이', r'숲(?:에서|으로|놀이|체험|산책|길|속)|유아숲'),
+    ('생태 체험', r'생태|곤충[^.]{0,10}(?:관찰|탐색|키우)|동물을? (?:키우|기르|돌보)'),
+    ('텃밭 가꾸기', r'텃밭'),
+]
+full = {k: ' '.join(t for _, t in v['a']) for k, v in ev.items()}
+freq = {name: sum(1 for t in full.values() if re.search(pat, t)) for name, pat in FEAT}
+FEAT.sort(key=lambda f: freq[f[0]])
+def tips_of(a):
+    out = []
+    for area, t in a:
+        for x in re.split(r'(?<=[.!?])\s+', t):
+            if TIP.search(x):
+                out.append([area, re.sub(r'^다만,?\s*', '', x)])
+    return out
+TIPS = {k: tips_of(v['a']) for k, v in ev.items()}
 DCJ = json.loads(dc)
-DCJ['cols'].append('평가보완')
+DCJ['cols'] += ['평가보완', '특색']
 for row in DCJ['rows']:
-    e = ev.get(row[0][1:])
-    row.append(tips(e['a']) if e else None)
+    k = row[0][1:]
+    if k in ev:
+        row += [len(TIPS[k]), [n for n, pat in FEAT if re.search(pat, full[k])][:3]]
+    else:
+        row += [None, None]
 dc = json.dumps(DCJ, ensure_ascii=False, separators=(',', ':'))
-ev_v = hashlib.md5(json.dumps(ev, sort_keys=True).encode()).hexdigest()[:6]
+tips_json = json.dumps({'c' + k: v for k, v in sorted(TIPS.items()) if v}, ensure_ascii=False, separators=(',', ':'))
+open(os.path.join(d, '..', 'dc_tips.json'), 'w', encoding='utf-8').write(tips_json + '\n')
+shutil.rmtree(os.path.join(d, '..', 'ev'), ignore_errors=True)  # 예전 방식(전문 파일) 정리
+ev_v = hashlib.md5(tips_json.encode()).hexdigest()[:8]
 open(os.path.join(d, '..', 'dc.json'), 'w', encoding='utf-8').write(dc + '\n')
 ver = hashlib.sha1(dc.encode()).hexdigest()[:10]  # 데이터가 바뀌면 주소가 바뀌어 캐시를 새로 받음
 import json
