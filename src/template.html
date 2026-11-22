@@ -636,7 +636,7 @@ function dcDescribe(r) {
     const none = '<span class="a none">결과서에 언급 없음</span>';
     const out = freq === '없음' ? none : `<span class="a">${['매주', '매월'].includes(freq) ? pills([freq], 'hot') : freq === '정기적' ? pills(['정기적'], 'hot') : ''}${pills(kinds)}</span>`;
     const ans = (xs) => xs.length ? `<span class="a">${pills(xs)}</span>` : none;
-    const qa = [['', '바깥 활동은 무엇이 있나요?', out], ['', '급식은 어떻게 나오나요?', ans(meal)], ['', '부모가 참여할 수 있나요?', ans(parent)], ['', '전문기관 지원이 있나요?', ans(dev)]];
+    const qa = [['', '바깥 활동은 무엇이 있나요?', out], ['', '급식은 어떻게 나오나요?', ans(meal)], ['', '부모가 참여할 수 있나요?', ans(parent)], ['', '발달 전문기관 지원이 있나요?', ans(dev)]];
     facts.push(['평가로 본 생활', `<div class="qa-box">${qa.map(([ic, q, a]) => `<div class="qa"><span class="q">${q}</span>${a}</div>`).join('')}</div>`, '평가결과서를 AI(Claude)로 정리했어요.', '']);
   } else if (r.특색 && r.특색.length) facts.push(['특색 활동', `<span class="feats">${r.특색.map((t) => `<span class="feat">${esc(t)}</span>`).join('')}</span>`, '평가결과서에서 자동으로 뽑았어요(최대 3개).', '']);
   (r.특색 || []).forEach((t) => tags.push(['f', t]));  // 특색 활동(평가결과서에서 뽑음): 장점 계열이지만 모양으로 구분
