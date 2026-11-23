@@ -64,6 +64,11 @@
   button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
   button.primary { background: var(--fg); color: var(--panel); border-color: var(--fg); cursor: pointer; }
   .summary { color: var(--muted); }
+  .intro { position: relative; margin: 8px 16px 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg2, #f6f7f5); font-size: 13px; line-height: 1.6; }
+  .intro ol { margin: 6px 0 10px; padding-left: 18px; }
+  .intro li b, .intro > b { font-weight: 600; }
+  .intro-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .intro-x { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border: 0; background: none; font-size: 18px; color: var(--muted); cursor: pointer; justify-content: center; }
   .guide { margin: 8px 16px 16px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
   .guide summary { cursor: pointer; color: var(--muted); }
   .guide > div { margin-top: 8px; }
@@ -299,6 +304,16 @@
         </div>
       </details>
     </header>
+    <div class="intro" id="intro" hidden>
+      <button type="button" class="intro-x" id="intro-x" aria-label="안내 닫기">×</button>
+      <b>처음 오셨나요?</b>
+      <ol>
+        <li><b>위치</b>를 정하면 반경 안 <span class="noun">유치원</span>을 가까운 순으로 보여 줘요.</li>
+        <li><b>아이 나이</b>를 고르면 그 나이 반 기준으로 비용·자리를 비교해요.</li>
+        <li>카드를 누르면 자세히, <b>비교</b>를 누르면 3곳까지 나란히 봐요.</li>
+      </ol>
+      <div class="intro-btns"><button type="button" class="primary" id="intro-me"><i data-ic="locate"></i>내 위치로 보기</button><button type="button" id="intro-home"><i data-ic="home"></i>우리 집 정하기</button></div>
+    </div>
     <div class="list" id="list"></div>
     <details class="guide"><summary>보는 법 · 출처</summary>
       <div class="summary" id="summary"></div>
@@ -914,6 +929,8 @@ function loadCond() {
   } catch (e) {}
 }
 
+const SEOUL = { lat: 37.5665, lng: 126.978 };
+const inSeoul = (lat, lng) => lat > 37.41 && lat < 37.72 && lng > 126.76 && lng < 127.19;
 function guCenter(gu) {
   const rs = cur().filter((r) => r.구 === gu);
   return { lat: rs.reduce((a, r) => a + r.위도, 0) / rs.length, lng: rs.reduce((a, r) => a + r.경도, 0) / rs.length };
@@ -927,18 +944,19 @@ async function start() {
     const gus = [...new Set(cur().map((r) => r.구))].sort((a, b) => a.localeCompare(b, 'ko'));
     const g = $('gu').value;
     $('gu').innerHTML = '<option value="">구 선택</option>' + gus.map((x) => `<option>${esc(x)}</option>`).join('');
-    $('gu').value = gus.includes(g) ? g : (g ? '성북구' : '');
+    $('gu').value = gus.includes(g) ? g : '';
     const types = MODE === 'dc' ? DC_TYPES : ['국공립', '사립'];
     $('type').innerHTML = '<option value="">전체</option>' + types.map((x) => `<option>${x}</option>`).join('');
     document.body.dataset.mode = MODE;
     $('brand-noun').textContent = NOUN();
+    document.querySelectorAll('#intro .noun').forEach((el) => { el.textContent = NOUN(); });
     document.querySelector('.brand a').setAttribute('aria-label', `우리동네 ${NOUN()} 처음 화면`);
     $('c-title').textContent = `${NOUN()} 비교`;
     document.querySelectorAll('.mode button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mode === MODE));
   };
-  $('gu').innerHTML = '<option>성북구</option>'; $('gu').value = '성북구';
   fillSelects();
-  Object.assign(S, guCenter('성북구'));
+  // 처음 위치: 우리 집 → (위치 권한을 이미 허용한 사람은) 내 위치 → 서울 중심(서울시청). 처음부터 위치 권한을 묻지는 않는다.
+  Object.assign(S, SEOUL);
   loadCond();
   const HOME = {
     get() { try { const h = JSON.parse(localStorage.getItem('kg-home') || 'null'); return h && isFinite(h.lat) && isFinite(h.lng) ? h : null; } catch (e) { return null; } },
@@ -1336,6 +1354,28 @@ async function start() {
   render(true);
   route();
   S.routed = true;
+
+  // 처음 온 사람 안내: 우리 집을 안 정했고 닫은 적이 없으면 목록 위에 (localStorage 'kg-intro')
+  const intro = (() => { try { return !localStorage.getItem('kg-intro'); } catch (e) { return false; } })();
+  const closeIntro = () => { $('intro').hidden = true; try { localStorage.setItem('kg-intro', '1'); } catch (e) {} };
+  if (intro && !HOME.get()) {
+    $('intro').hidden = false;
+  }
+  $('intro-x').addEventListener('click', closeIntro);
+  $('intro-me').addEventListener('click', () => { closeIntro(); $('me').click(); });
+  $('intro-home').addEventListener('click', () => { closeIntro(); $('cond').open = true; $('cond').scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+
+  // 위치 권한을 이미 허용한 사람은 우리 집이 없을 때 내 위치에서 시작(서울 안일 때만). 권한을 새로 묻지는 않는다.
+  if (!HOME.get() && !location.hash && navigator.permissions && navigator.geolocation) {
+    navigator.permissions.query({ name: 'geolocation' }).then((st) => {
+      if (st.state !== 'granted') return;
+      navigator.geolocation.getCurrentPosition((p) => {
+        const { latitude: lat, longitude: lng } = p.coords;
+        if (!inSeoul(lat, lng) || location.hash || S.lat !== SEOUL.lat || S.lng !== SEOUL.lng) return;  // 그사이 사용자가 옮겼으면 그대로
+        S.lat = lat; S.lng = lng; $('gu').value = ''; render(true);
+      }, () => {}, { timeout: 8000, maximumAge: 600000 });
+    }).catch(() => {});
+  }
 }
 
 // 카카오맵 SDK 로드
