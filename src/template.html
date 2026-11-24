@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>우리 동네 유치원 지도</title>
+<title>킨더맵 — 우리동네 유치원·어린이집 지도</title>
 <meta name="description" content="서울 유치원·어린이집의 원비, 한 반 인원, 내년 예상 빈자리, 입소 대기, 평가를 지도에서 한눈에 비교해요. 유치원알리미·어린이집정보공개포털 공시 자료 기준.">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="우리동네 유치원·어린이집">
-<meta property="og:title" content="우리동네 유치원·어린이집 — 서울 원비·빈자리 비교 지도">
+<meta property="og:site_name" content="킨더맵">
+<meta property="og:title" content="킨더맵 — 서울 유치원·어린이집 원비·빈자리 비교 지도">
 <meta property="og:description" content="원비, 한 반 인원, 내년 예상 빈자리, 입소 대기를 지도에서 비교해요.">
 <meta property="og:url" content="https://kindermap.kr/">
 <meta property="og:image" content="https://kindermap.kr/og.png">
@@ -37,7 +37,7 @@
   .brand a { display: flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; min-width: 0; }
   .brand svg { flex: none; width: 34px; height: 34px; }
   .brand .words { display: flex; flex-direction: column; line-height: 1; min-width: 0; }
-  .brand .b1 { font: 500 11px/1 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; letter-spacing: .04em; color: rgba(255,255,255,.72); margin-bottom: 4px; }
+  .brand .b1 { font: 500 11px/1 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; letter-spacing: -.02em; white-space: nowrap; color: rgba(255,255,255,.72); margin-bottom: 4px; }
   .brand .b2 { font-family: "Jua", -apple-system, "Apple SD Gothic Neo", sans-serif; font-weight: 400; font-size: 24px; color: var(--acc); white-space: nowrap; }
   .topbar .mode { flex: none; display: grid; grid-template-columns: 1fr 1fr; background: rgba(255,255,255,.12); border: 0; border-radius: 999px; padding: 4px; gap: 4px; }
   .topbar .mode button { border: 0; border-radius: 999px; padding: 8px 16px; font: 500 14px/1.2 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: transparent; color: rgba(255,255,255,.78); cursor: pointer; white-space: nowrap; }
@@ -170,7 +170,7 @@
   .sheet .bar { --acc: #ffc94a; position: sticky; top: 0; background: #1f3a32; color: #fff; padding: 10px 12px 13px; display: flex; align-items: center; gap: 10px; z-index: 1; }
   body[data-mode="dc"] .sheet .bar { --acc: #8be0bd; background: #2b2f4a; }
   .sheet .bar::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--acc); opacity: .9; }
-  .sheet .bar b { font-family: "Jua", -apple-system, "Apple SD Gothic Neo", sans-serif; font-weight: 400; font-size: 20px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sheet .bar b { font-family: "Jua", -apple-system, "Apple SD Gothic Neo", sans-serif; font-weight: 400; font-size: 20px; line-height: 1.25; flex: 1; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: keep-all; }  /* 이름은 여기 한 번만 보이므로 길면 두 줄까지 */
   .sheet .bar .iconbtn { background: rgba(255,255,255,.12); border-color: transparent; color: #fff; }
   .sheet .body { padding: 16px; display: grid; gap: 16px; }
   .iconbtn { font: inherit; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; width: 36px; height: 36px; padding: 0; cursor: pointer; color: var(--fg); }
@@ -179,7 +179,7 @@
   .actions .ic { color: var(--muted); }
   .actions .on { background: var(--fg); border-color: var(--fg); color: var(--panel); font-weight: 500; }
   .actions .on .ic { color: inherit; }
-  .d-sub { color: var(--muted); font-size: 13px; }
+  .d-sub { color: var(--muted); font-size: 13px; margin-bottom: -4px; }
   .facts.full li { grid-template-columns: 7em 1fr; }
   .evdoc { margin-top: 6px; font-size: 13px; }
   .evdoc .tip { margin: 8px 0 0; padding: 8px 12px; border-radius: 0 8px 8px 0; border-left: 2px solid var(--neu); background: var(--bg); color: var(--fg); }
@@ -242,9 +242,9 @@
 </head>
 <body data-mode="kg">
 <header class="topbar">
-  <h1 class="brand"><a href="./" aria-label="우리동네 유치원 처음 화면">
+  <h1 class="brand"><a href="./" aria-label="킨더맵 처음 화면">
     <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M5 19 20 6l15 13" fill="none" stroke="var(--acc)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 17v15a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V17" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="20" cy="24" r="4.5" fill="var(--acc)"/></svg>
-    <span class="words"><span class="b1">우리동네</span><span class="b2" id="brand-noun">유치원</span></span>
+    <span class="words"><span class="b1">우리동네 유치원/어린이집</span><span class="b2">킨더맵</span><span id="brand-noun" hidden></span></span>
   </a></h1>
   <div class="mode" role="group" aria-label="유치원 또는 어린이집"><button type="button" data-mode="kg" aria-pressed="true">유치원</button><button type="button" data-mode="dc" aria-pressed="false">어린이집</button></div>
 </header>
@@ -956,7 +956,6 @@ async function start() {
     document.body.dataset.mode = MODE;
     $('brand-noun').textContent = NOUN();
     document.querySelectorAll('#intro .noun').forEach((el) => { el.textContent = NOUN(); });
-    document.querySelector('.brand a').setAttribute('aria-label', `우리동네 ${NOUN()} 처음 화면`);
     $('c-title').textContent = `${NOUN()} 비교`;
     document.querySelectorAll('.mode button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mode === MODE));
   };
@@ -1170,7 +1169,7 @@ async function start() {
       <p class="note">초록 굵은 글씨가 항목별로 가장 유리한 곳이에요. ${MODE === 'dc' ? '입소 대기는 신청 수라 한 아이가 여러 곳에 들어 있을 수 있어요. 대기가 적고 자리가 여유 있을수록 유리하게 표시했어요.</p>' : ''}<p class="note kg-only">원비는 지원금을 뺀 학부모 부담 고지액(${COST_BASIS} 공시)이에요. * 표시는 공시 교사 수가 적어 정확하지 않을 수 있어요.</p>`;
     $('c-body').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { toggleCmp(b.dataset.rm); openCompare(); }));
     $('cmp').hidden = false; $('cbar').hidden = true;
-    document.title = `${NOUN()} 비교 | 우리 동네 ${NOUN()}`;
+    document.title = `${NOUN()} 비교 | 킨더맵`;
   }
 
   // ---------- 상세 화면 ----------
@@ -1183,7 +1182,7 @@ async function start() {
     const d = S.dist && S.dist[id] != null ? `기준 위치에서 ${S.dist[id].toFixed(1)}km · ` : '';
     $('d-title').textContent = r.유치원명;
     $('d-body').innerHTML = `
-      <div><div style="font-size:20px;font-weight:700">${esc(r.유치원명)}</div><div class="d-sub">${d}${esc(r.구)} · ${esc(r.설립유형)}</div></div>
+      <div class="d-sub">${d}${esc(r.구)} · ${esc(r.설립유형)}</div>
       <div class="badges">${badgeHTML(r)}</div>
       ${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
       <div class="actions">
@@ -1201,19 +1200,19 @@ async function start() {
       // 공유는 기관별 미리보기 주소 s/{id}.html로(카톡은 주소 뒤 #k…를 안 봐서 지도 주소로는 이름이 안 뜸). 열면 바로 이 상세로 옴
       // ?v=데이터 버전: 카톡은 같은 주소의 미리보기를 한동안 캐시하므로, 데이터가 바뀌면 새 주소로 공유돼 다시 읽게 함
       const url = NOSHARE.has(r.id) ? location.href : new URL(`s/${r.id}.html?v=${SHARE_V}`, location.href).href;
-      const title = `${r.유치원명} | 우리 동네 ${isDC(r) ? '어린이집' : '유치원'}`;
+      const title = `${r.유치원명} | 킨더맵`;
       try { if (navigator.share) { await navigator.share({ title, url }); return; } } catch (e) { return; }
       try { await navigator.clipboard.writeText(url); $('d-share').innerHTML = ICON.check + '주소 복사됨'; } catch (e) { prompt('이 주소를 복사하세요', url); }
     });
     $('detail').hidden = false;
     $('detail').querySelector('.panel').scrollTop = 0;
-    document.title = isDC(r) ? `${r.유치원명} 평가·연장보육 | 우리 동네 어린이집` : `${r.유치원명} 원비·반 인원 | 우리 동네 유치원`;
+    document.title = isDC(r) ? `${r.유치원명} 평가·연장보육 | 킨더맵` : `${r.유치원명} 원비·반 인원 | 킨더맵`;
   }
   function route() {
     const h = location.hash.slice(1);
     if (h.startsWith('kc') && !DROWS.length) { loadDC().then(route, () => {}); return; }
     $('detail').hidden = true; $('cmp').hidden = true;
-    document.title = `우리 동네 ${NOUN()} 지도`;
+    document.title = `킨더맵 — 우리동네 ${NOUN()} 지도`;
     if (h === 'compare') openCompare();
     else if (h.startsWith('k') && byId(h.slice(1))) {
       const r = byId(h.slice(1));
