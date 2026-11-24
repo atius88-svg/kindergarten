@@ -6,7 +6,7 @@
 import datetime, html, json, math, os, re, statistics, sys, traceback, urllib.parse
 
 NOINDEX, GU, LIMIT = True, '성북구', 30
-SITE = 'https://atius88-svg.github.io/kindergarten/'
+SITE = 'https://kindermap.kr/'
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 L = lambda p: json.load(open(os.path.join(root, 'src/data', p), encoding='utf-8'))
 

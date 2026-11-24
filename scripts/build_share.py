@@ -11,7 +11,7 @@
 """
 import hashlib, html, json, os, re, sys
 
-SITE = 'https://atius88-svg.github.io/kindergarten/'
+SITE = 'https://kindermap.kr/'
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 OUT = os.path.join(root, 's')
 FONT = os.path.join(root, 'scripts', 'fonts', 'Jua-Regular.ttf')
