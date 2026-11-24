@@ -552,9 +552,12 @@ const busBadge = (r) => isDC(r) ? '' : r.차량운영여부 === '운영'
 // 출처: 어린이집정보공개포털 OPEN API(기본·나이별 반·입소 대기) + 포털 화면(운영시간·평가·연장보육).
 // 크기가 커서(약 1.4MB) index.html에 넣지 않고 dc.json을 어린이집 모드에 들어갈 때만 불러온다(src/build.py가 만든다).
 const DC_URL = '%%DC_URL%%';
+// 사이트 맨 앞 주소. 상세를 열면 주소창을 s/{id}.html로 바꾸므로(사파리 자체 공유도 그곳 미리보기가 가게) 파일은 늘 이 주소 기준으로 받는다
+const ROOT = new URL('./', location.href.split('#')[0]).href;
+const at = (p) => new URL(p, ROOT).href;
 let DROWS = [];
 let dcLoad = null;
-const loadDC = () => dcLoad || (dcLoad = fetch(DC_URL).then((r) => { if (!r.ok) throw new Error('dc.json ' + r.status); return r.json(); })
+const loadDC = () => dcLoad || (dcLoad = fetch(at(DC_URL)).then((r) => { if (!r.ok) throw new Error('dc.json ' + r.status); return r.json(); })
   .then(initDC).catch((e) => { dcLoad = null; throw e; }));
 const isDC = (r) => String(r.id)[0] === 'c';
 const DC_TYPES = ['국공립', '민간', '가정', '직장·법인'];
@@ -605,7 +608,7 @@ async function loadEvFull(det) {
   det.dataset.done = '1';
   const box = det.querySelector('.body');
   try {
-    const res = await fetch(`ev/${det.dataset.full}.json?v=${EV_V}`);
+    const res = await fetch(at(`ev/${det.dataset.full}.json?v=${EV_V}`));
     if (!res.ok) throw new Error(res.status);
     const d = await res.json();
     box.innerHTML = d.a.map(([area, t]) => `<div class="area"><b>${esc(area)}</b>${t.split(/(?<=[.!?])\s+/).map((x) => isTip(x) ? `<mark>${esc(x)}</mark>` : esc(x)).join(' ')}</div>`).join('')
@@ -614,7 +617,7 @@ async function loadEvFull(det) {
 }
 async function loadEvDoc(box) {
   try {
-    tipsLoad = tipsLoad || fetch(`dc_tips.json?v=${EV_V}`).then((res) => { if (!res.ok) throw new Error(res.status); return res.json(); });
+    tipsLoad = tipsLoad || fetch(at(`dc_tips.json?v=${EV_V}`)).then((res) => { if (!res.ok) throw new Error(res.status); return res.json(); });
     const tips = (await tipsLoad)[box.dataset.ev] || [];
     box.innerHTML = `<div class="tip"><b>보완 권고</b>${tips.map(([a, x]) => `<div>· <b>${esc(a)}</b>: ${esc(x)}</div>`).join('')}</div>`;
   } catch (e) { tipsLoad = null; box.textContent = '보완 권고 내용을 불러오지 못했어요. 아래 영역별 평가 전문에서 확인해 주세요.'; }
@@ -642,7 +645,7 @@ function srcNote(r) {
 let spLoad = null;
 async function loadSpDoc(box) {
   try {
-    spLoad = spLoad || fetch(`kg_sp.json?v=${SP_V}`).then((res) => { if (!res.ok) throw new Error(res.status); return res.json(); });
+    spLoad = spLoad || fetch(at(`kg_sp.json?v=${SP_V}`)).then((res) => { if (!res.ok) throw new Error(res.status); return res.json(); });
     const list = ((await spLoad)[box.dataset.sp] || [])[+box.dataset.a] || [];
     const rows = list.map(([area, name, w, f]) => `<div><span>${esc(name)}<small>${esc(area)}${f ? ` · 주 ${f}회` : ''}</small></span><b>${w ? won(w) : '0원'}</b></div>`).join('');
     const areas = [...new Set(list.map((x) => x[0]))].join(' · ');
@@ -960,6 +963,7 @@ async function start() {
     document.querySelectorAll('.mode button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mode === MODE));
   };
   fillSelects();
+  document.querySelector('.brand a').href = ROOT;  // 주소창이 s/…일 때도 맨 앞으로
   // 처음 위치: 우리 집 → (위치 권한을 이미 허용한 사람은) 내 위치 → 서울 중심(서울시청). 처음부터 위치 권한을 묻지는 않는다.
   Object.assign(S, SEOUL);
   loadCond();
@@ -1199,7 +1203,7 @@ async function start() {
     $('d-share').addEventListener('click', async () => {
       // 공유는 기관별 미리보기 주소 s/{id}.html로(카톡은 주소 뒤 #k…를 안 봐서 지도 주소로는 이름이 안 뜸). 열면 바로 이 상세로 옴
       // ?v=데이터 버전: 카톡은 같은 주소의 미리보기를 한동안 캐시하므로, 데이터가 바뀌면 새 주소로 공유돼 다시 읽게 함
-      const url = NOSHARE.has(r.id) ? location.href : new URL(`s/${r.id}.html?v=${SHARE_V}`, location.href).href;
+      const url = NOSHARE.has(r.id) ? location.href : at(`s/${r.id}.html?v=${SHARE_V}`);
       const title = `${r.유치원명} | 킨더맵`;
       try { if (navigator.share) { await navigator.share({ title, url }); return; } } catch (e) { return; }
       try { await navigator.clipboard.writeText(url); $('d-share').innerHTML = ICON.check + '주소 복사됨'; } catch (e) { prompt('이 주소를 복사하세요', url); }
@@ -1209,6 +1213,7 @@ async function start() {
     document.title = isDC(r) ? `${r.유치원명} 평가·연장보육 | 킨더맵` : `${r.유치원명} 원비·반 인원 | 킨더맵`;
   }
   function route() {
+    S.lastH = location.hash;
     const h = location.hash.slice(1);
     if (h.startsWith('kc') && !DROWS.length) { loadDC().then(route, () => {}); return; }
     $('detail').hidden = true; $('cmp').hidden = true;
@@ -1220,9 +1225,20 @@ async function start() {
       if (!S.routed) { S.lat = r.위도; S.lng = r.경도; $('gu').value = r.구; S.routed = true; render(true); }
       openDetail(r.id, true);
     }
+    syncPath();
     drawCbar();
   }
-  window.addEventListener('hashchange', route);
+  // 상세가 열려 있으면 주소창 경로를 기관별 공유 페이지(s/{id}.html)로 — 사파리 '공유'·주소 복사로 보내도 그곳 이름·이미지 미리보기가 뜸.
+  // 그 주소로 다시 들어오면 s/ 페이지가 바로 지도 상세(#k{id})로 넘겨 줌. 해시(#k…)는 그대로 두므로 화면 이동 방식은 같음
+  function syncPath() {
+    const m = /^#k(c?[\w]+)$/.exec(location.hash);
+    const want = (m && byId(m[1]) && !NOSHARE.has(m[1]) ? at(`s/${m[1]}.html`) : ROOT) + location.hash;
+    if (location.href !== want) { try { history.replaceState(history.state, '', want); } catch (e) {} }
+  }
+  // 주소창 경로를 바꾸므로(syncPath) 뒤로 가기 때 hashchange 없이 popstate만 오기도 함 → 둘 다 받고, 같은 주소면 한 번만
+  const onNav = () => { if (location.hash !== S.lastH) route(); else syncPath(); };
+  window.addEventListener('hashchange', onNav);
+  window.addEventListener('popstate', onNav);
   $('d-back').addEventListener('click', () => { history.length > 1 && S.navIn ? history.back() : (location.hash = ''); });
   $('c-back').addEventListener('click', () => { location.hash = ''; });
   window.addEventListener('hashchange', () => { S.navIn = true; });
