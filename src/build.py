@@ -122,6 +122,27 @@ meta = json.dumps({'kg_pb': kgm.get('pb'), 'kg_t': kgm.get('t'), 'det': dts[-1] 
                    'dc_t': dcm.get('t'), 'ptl': [ptl[0], ptl[-1]] if ptl else None}, ensure_ascii=False)
 # og.png가 바뀌면 이미지 주소도 바뀌게(카톡은 이미지를 주소 기준으로 캐시)
 og_v = hashlib.md5(open(os.path.join(d, '..', 'og.png'), 'rb').read()).hexdigest()[:8]
+# 어린이집 첫 화면 주소 dc/ — 카톡 미리보기는 어린이집 테마(og-dc.png), 사람이 열면 ../?m=dc 로 넘김(지도는 주소창을 다시 dc/로 바꿔 둠)
+og_dc_v = hashlib.md5(open(os.path.join(d, '..', 'og-dc.png'), 'rb').read()).hexdigest()[:8]
+os.makedirs(os.path.join(d, '..', 'dc'), exist_ok=True)
+open(os.path.join(d, '..', 'dc', 'index.html'), 'w', encoding='utf-8').write(f'''<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>킨더맵 — 우리동네 어린이집 지도</title>
+<meta name="description" content="서울 어린이집의 평가, 입소 대기, 연장보육, 선생님 근속을 지도에서 한눈에 비교해요. 어린이집정보공개포털 공시 자료 기준.">
+<link rel="canonical" href="https://kindermap.kr/dc/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="킨더맵">
+<meta property="og:title" content="킨더맵 — 서울 어린이집 평가·입소 대기 비교 지도">
+<meta property="og:description" content="평가, 입소 대기, 연장보육, 선생님 근속을 지도에서 비교해요.">
+<meta property="og:url" content="https://kindermap.kr/dc/">
+<meta property="og:image" content="https://kindermap.kr/og-dc.png?v={og_dc_v}">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<script>location.replace('../?m=dc' + location.hash)</script>
+</head><body><p><a href="../?m=dc">킨더맵 어린이집 지도 열기</a></p></body></html>
+''')
 h = (r('template.html').replace('%%OG_V%%', og_v).replace('%%NOSHARE%%', json.dumps(noshare)).replace('%%SHARE_V%%', share_v).replace('%%DATA%%', r('data/kg_seoul.json.txt'))
      .replace('%%COST%%', cost_json).replace('%%SP_V%%', sp_v).replace('%%META%%', meta).replace('%%DC_URL%%', f'dc.json?v={ver}')
      .replace('%%RCRT%%', r('data/kg_rcrt.json')).replace('%%DET%%', det).replace('%%EV_V%%', ev_v))
