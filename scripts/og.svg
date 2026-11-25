@@ -22,8 +22,8 @@
     <path d="M10 17v15a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V17" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
     <circle cx="20" cy="24" r="4.5" fill="#ffc94a"/>
   </g>
-  <text x="96" y="318" font-family="Noto Sans CJK KR" font-weight="700" font-size="34" letter-spacing="10" fill="#ffffff" fill-opacity="0.72">우리동네</text>
-  <text x="90" y="425" font-family="Jua" font-size="96" fill="#ffc94a">유치원<tspan font-family="Noto Sans CJK KR" font-weight="700" dx="6">·</tspan><tspan dx="6">어린이집</tspan></text>
+  <text x="96" y="318" font-family="Noto Sans CJK KR" font-weight="700" font-size="32" letter-spacing="2" fill="#ffffff" fill-opacity="0.72">우리동네 유치원·어린이집</text>
+  <text x="88" y="432" font-family="Jua" font-size="124" fill="#ffc94a">킨더맵</text>
   <text x="94" y="500" font-family="Noto Sans CJK KR" font-weight="700" font-size="34" fill="#ffffff">원비 · 한 반 인원 · 내년 빈자리 · 입소 대기</text>
   <text x="94" y="550" font-family="Noto Sans CJK KR" font-weight="400" font-size="27" fill="#ffffff" fill-opacity="0.72">서울 유치원·어린이집 공시 정보를 지도에서 비교해요</text>
   <rect y="618" width="1200" height="12" fill="#ffc94a"/>
