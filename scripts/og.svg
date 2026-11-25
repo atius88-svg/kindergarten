@@ -1,24 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <!-- 사이트 전체 미리보기: 유치원(초록·노랑)과 어린이집(남색·민트)을 반반 — 한쪽 테마로 보이지 않게 -->
-  <rect width="1200" height="630" fill="#1f3a32"/>
-  <rect x="600" width="600" height="630" fill="#2b2f4a"/>
-  <!-- 위 가운데: 로고(지붕 노랑, 점 민트) + 킨더맵 -->
-  <g transform="translate(372 70) scale(3.3)">
-    <path d="M5 19 20 6l15 13" fill="none" stroke="#ffc94a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M10 17v15a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V17" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
-    <circle cx="20" cy="24" r="4.5" fill="#8be0bd"/>
+  <!-- 사이트 전체 미리보기(차콜): 왼쪽 로고, 오른쪽 기관별 썸네일 모양 카드 두 장(이름은 실제 기관으로 오해하지 않게 ○○) -->
+  <rect width="1200" height="630" fill="#1e2427"/>
+  <g transform="translate(96 120) scale(2.4)"><path d="M5 19 20 6l15 13" fill="none" stroke="#ffc94a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 17v15a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V17" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/><circle cx="20" cy="24" r="4.5" fill="#8be0bd"/></g>
+  <text x="88" y="345" font-family="Jua" font-size="140" fill="#ffffff">킨더맵</text>
+  <text x="96" y="415" font-family="Noto Sans CJK KR" font-weight="700" font-size="32" fill="#ffffff" fill-opacity="0.8">우리동네 유치원·어린이집 비교 지도</text>
+  <text x="96" y="470" font-family="Noto Sans CJK KR" font-weight="400" font-size="27" fill="#ffffff" fill-opacity="0.6">평가·입소대기·특색활동·원비를 한눈에 비교해요</text>
+  <g transform="translate(640 95) rotate(-6)">
+    <rect width="460" height="250" rx="18" fill="#1f3a32" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
+    <text x="34" y="62" font-family="Jua" font-size="26" fill="#ffffff">성북구 · 사립 유치원</text>
+    <text x="34" y="128" font-family="Jua" font-size="52" fill="#ffc94a">○○유치원</text>
+    <rect x="34" y="158" width="150" height="40" rx="20" fill="none" stroke="#ffc94a" stroke-width="3"/><text x="109" y="187" text-anchor="middle" font-family="Jua" font-size="24" fill="#ffc94a">원비·빈자리</text>
+    <path d="M0 210h460v22a18 18 0 0 1-18 18H18a18 18 0 0 1-18-18z" fill="#ffc94a"/>
   </g>
-  <text x="530" y="175" font-family="Jua" font-size="120" fill="#ffffff">킨더맵</text>
-  <text x="600" y="250" text-anchor="middle" font-family="Noto Sans CJK KR" font-weight="400" font-size="30" fill="#ffffff" fill-opacity="0.75">서울 유치원·어린이집 공시 정보를 지도에서 비교해요</text>
-  <!-- 아래 반반 -->
-  <text x="300" y="405" text-anchor="middle" font-family="Jua" font-size="92" fill="#ffc94a">유치원</text>
-  <text x="300" y="470" text-anchor="middle" font-family="Noto Sans CJK KR" font-weight="700" font-size="30" fill="#ffffff">원비 · 한 반 인원 · 내년 빈자리</text>
-  <text x="900" y="405" text-anchor="middle" font-family="Jua" font-size="92" fill="#8be0bd">어린이집</text>
-  <text x="900" y="470" text-anchor="middle" font-family="Noto Sans CJK KR" font-weight="700" font-size="30" fill="#ffffff">평가 · 입소 대기 · 연장보육</text>
-  <g stroke="#ffffff" stroke-width="4">
-    <circle cx="240" cy="540" r="13" fill="#d4483b"/><circle cx="300" cy="540" r="13" fill="#2f6fd0"/><circle cx="360" cy="540" r="13" fill="#ffc94a"/>
-    <circle cx="840" cy="540" r="13" fill="#d4483b"/><circle cx="900" cy="540" r="13" fill="#e08a00"/><circle cx="960" cy="540" r="13" fill="#8be0bd"/>
+  <g transform="translate(700 290) rotate(4)">
+    <rect width="460" height="250" rx="18" fill="#2b2f4a" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
+    <text x="34" y="62" font-family="Jua" font-size="26" fill="#ffffff">마포구 · 국공립 어린이집</text>
+    <text x="34" y="128" font-family="Jua" font-size="52" fill="#8be0bd">○○어린이집</text>
+    <rect x="34" y="158" width="196" height="40" rx="20" fill="none" stroke="#8be0bd" stroke-width="3"/><text x="132" y="187" text-anchor="middle" font-family="Jua" font-size="24" fill="#8be0bd">평가·입소 대기</text>
+    <path d="M0 210h460v22a18 18 0 0 1-18 18H18a18 18 0 0 1-18-18z" fill="#8be0bd"/>
   </g>
-  <rect y="618" width="600" height="12" fill="#ffc94a"/>
-  <rect x="600" y="618" width="600" height="12" fill="#8be0bd"/>
 </svg>
