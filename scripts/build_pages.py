@@ -194,6 +194,7 @@ small{{color:#5b6b64}}a{{color:#1f6f54}}
 {sec("선생님·운영", f'<table>{"".join(info)}</table>')}
 {sec("위치·연락처", place)}
 <p><small>출처: 유치원알리미 정보공시, 유보통합포털 모집요강. 정확한 내용은 유치원에 직접 확인하세요.</small></p>
+<p><small>정보가 다르거나 바뀐 게 있으면 <a href="mailto:kindermap2026@gmail.com?subject={urllib.parse.quote("[정정 요청] " + name)}">kindermap2026@gmail.com</a>으로 알려 주세요. 유치원 관계자의 정정 요청도 받아요.</small></p>
 </main></body></html>
 '''
 
