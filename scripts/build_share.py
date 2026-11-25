@@ -4,7 +4,7 @@
 지도 서비스는 한 페이지라 기관마다 미리보기를 다르게 할 수 없어서, 기관마다 작은 HTML을 만들어 og 태그만 넣고
 사람이 열면 스크립트로 바로 지도 상세(../#k{id}, ../#kc{stcode})로 보낸다. noindex라 검색에는 안 잡힌다.
 - 대상: 지도에 있는 유치원 전부(kg_seoul.json.txt) + 어린이집 전부(dc_seoul.json). 파일 이름은 지도 상세 id와 같다(604, c11290000123).
-- 이미지(800×420): 이름·구·유형·정원. 정원은 1년에 한 번 정도만 바뀌어 대부분 그대로 → 글자가 바뀐 곳·새 곳만 다시 그린다(s/images.json에 그린 글자 기록).
+- 이미지(800×420): 구·유형, 이름, 정원 + 아래 '킨더맵' 띠. 정원은 1년에 한 번 정도만 바뀌어 대부분 그대로 → 글자가 바뀐 곳·새 곳만 다시 그린다(s/images.json에 그린 글자 기록).
 - 설명 문구: 유치원은 만 5세 월 비용·원아 수·한 반 인원(공시 기준), 어린이집은 숫자 없이 안내 문구(어린이집 API 약관 확인 전).
 - 지도에서 빠진 곳의 s/ 파일은 지운다. 한 번에 많이 지워야 하면(데이터 이상일 수 있음) 지우지 않고 오류로 알린다 → 일부러면 --prune.
 필요: Pillow(pip install pillow), scripts/fonts/Jua-Regular.ttf (SIL OFL, scripts/fonts/OFL.txt).
@@ -16,6 +16,7 @@ root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 OUT = os.path.join(root, 's')
 FONT = os.path.join(root, 'scripts', 'fonts', 'Jua-Regular.ttf')
 W, H = 800, 420
+DESIGN = 'v2'  # 이미지 디자인을 바꾸면 올림 → 전부 다시 그림(+?v=가 바뀌어 카톡도 새로 읽음)
 STYLE = {'kg': ('#1f3a32', '#ffc94a', '유치원'), 'dc': ('#2b2f4a', '#8be0bd', '어린이집')}  # 사이트 맨 위 바 색
 e = html.escape
 
@@ -66,12 +67,12 @@ def page(fid, mode, name, gu, kind, cap, desc, ver):
     return f'''<!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{e(title)} | 우리동네 {STYLE[mode][2]}</title>
+<title>{e(title)} | 킨더맵</title>
 <meta name="robots" content="noindex">
 <meta name="description" content="{e(desc)}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="우리동네 유치원·어린이집">
-<meta property="og:title" content="{e(title)}">
+<meta property="og:site_name" content="킨더맵">
+<meta property="og:title" content="{e(title)} | 킨더맵">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{url}">
 <meta property="og:image" content="{img}">
@@ -88,16 +89,15 @@ def draw(mode, name, gu, kind, cap, path):
     im = Image.new('RGB', (W, H), bg)
     d = ImageDraw.Draw(im)
     F = lambda s: ImageFont.truetype(FONT, s)
-    # 왼쪽 위: 집 아이콘 + '우리동네 유치원/어린이집' (사이트 로고와 같은 모양)
-    s, x0, y0 = 1.3, 52, 40
-    P = lambda x, y: (x0 + x * s, y0 + y * s)
-    d.line([P(5, 19), P(20, 6), P(35, 19)], fill=acc, width=5, joint='curve')
-    d.line([P(10, 17), P(10, 32), P(30, 32), P(30, 17)], fill='#ffffff', width=4, joint='curve')
-    d.ellipse([P(15.5, 19.5), P(24.5, 28.5)], fill=acc)
-    d.text((x0 + 56, y0 + 8), f'우리동네 {noun}', font=F(30), fill='#d7ddda')
-    # 오른쪽 위: 지도 마커 점
-    for cx, cy, col in [(694, 52, '#d4483b'), (738, 80, '#2f6fd0'), (690, 104, '#e08a00')]:
-        d.ellipse([cx - 12, cy - 12, cx + 12, cy + 12], fill=col, outline='#ffffff', width=4)
+    # 위: 구 · 유형 (Jua에 가운뎃점 글자가 없어 점은 직접 그림)
+    sz = 32
+    while sz > 24 and d.textlength(gu + kind, font=F(sz)) + 31 > W - 108:
+        sz -= 2
+    f1 = F(sz)
+    d.text((54, 48), gu, font=f1, fill='#ffffff')
+    gx = 54 + d.textlength(gu, font=f1) + 12
+    d.ellipse([gx, 48 + sz // 2 - 2, gx + 7, 48 + sz // 2 + 5], fill='#ffffff')
+    d.text((gx + 19, 48), kind, font=f1, fill='#ffffff')
     # 가운데: 이름(길면 줄이고, 그래도 길면 두 줄)
     name = name.replace('＆', '&')
     size, lines = 78, [name]
@@ -110,29 +110,27 @@ def draw(mode, name, gu, kind, cap, path):
         size = 64
         while size > 34 and max(d.textlength(l, font=F(size)) for l in lines) > W - 104:
             size -= 2
-    y = 215 - (len(lines) * size * 1.15) / 2
+    y = 165 - (len(lines) * size * 1.15) / 2
     for l in lines:
         d.text((52, y), l, font=F(size), fill=acc)
         y += size * 1.15
-    # 아래 오른쪽: 정원 알약, 왼쪽: 구 · 유형
-    right = W - 52
+    # 이름 아래: 정원 알약(테두리)
     if cap:
-        fc = F(36)
-        t = f'정원 {cap}명'
+        fc, t, py = F(30), f'정원 {cap}명', int(y) + 8
         tw = d.textlength(t, font=fc)
-        d.rounded_rectangle([right - tw - 44, 306, right, 364], radius=29, fill=acc)
-        d.text((right - tw - 22, 314), t, font=fc, fill=bg)
-        right -= tw + 44 + 24
-    sz = 34
-    while sz > 24 and d.textlength(gu + kind, font=F(sz)) + 35 > right - 54:
-        sz -= 2
-    f2 = F(sz)
-    ty = 318 + (34 - sz) // 2
-    d.text((54, ty), gu, font=f2, fill='#ffffff')
-    gx = 54 + d.textlength(gu, font=f2) + 14
-    d.ellipse([gx, ty + 18, gx + 7, ty + 25], fill='#ffffff')
-    d.text((gx + 21, ty), kind, font=f2, fill='#ffffff')
-    d.rectangle([0, H - 10, W, H], fill=acc)
+        d.rounded_rectangle([52, py, 52 + tw + 40, py + 50], radius=25, outline=acc, width=3)
+        d.text((72, py + 7), t, font=fc, fill=acc)
+    # 아래 띠: 집 아이콘 + 킨더맵(사이트 로고) / 오른쪽 안내
+    top = H - 98
+    d.rectangle([0, top, W, H], fill=acc)
+    s, x0, y0 = 1.25, 46, top + 23
+    P = lambda x, y: (x0 + x * s, y0 + y * s)
+    d.line([P(5, 19), P(20, 6), P(35, 19)], fill=bg, width=5, joint='curve')
+    d.line([P(10, 17), P(10, 32), P(30, 32), P(30, 17)], fill=bg, width=4, joint='curve')
+    d.ellipse([P(15.5, 19.5), P(24.5, 28.5)], fill=bg)
+    d.text((x0 + 56, top + 25), '킨더맵', font=F(42), fill=bg)
+    t, f3 = f'주변 {noun}도 지도에서 비교', F(28)
+    d.text((W - 52 - d.textlength(t, font=f3), top + 34), t, font=f3, fill=bg)
     im.quantize(colors=48, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).save(path, optimize=True)
 
 
@@ -144,7 +142,7 @@ def main():
     drawn = wrote = 0
     for fid, mode, name, gu, kind, cap, desc in rows:
         p = os.path.join(OUT, f'{fid}.html')
-        key = f'{mode}|{name}|{gu}|{kind}|{cap or ""}'
+        key = f'{DESIGN}|{mode}|{name}|{gu}|{kind}|{cap or ""}'
         txt = page(fid, mode, name, gu, kind, cap, desc, hashlib.md5(key.encode()).hexdigest()[:8])
         if not os.path.exists(p) or open(p, encoding='utf-8').read() != txt:
             open(p, 'w', encoding='utf-8').write(txt)

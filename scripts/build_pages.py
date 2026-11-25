@@ -140,7 +140,7 @@ def page(r):
                  f'<table>{"".join(contact)}</table>\n'
                  f'<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={KAKAO_KEY}&autoload=false"></script>\n'
                  f'<script>kakao.maps.load(function(){{var p=new kakao.maps.LatLng({r["위도"]},{r["경도"]});new kakao.maps.StaticMap(document.getElementById("map"),{{center:p,level:3,marker:{{position:p}}}})}})</script>')
-    title = f'{name} 원비·정원·내년 빈자리 | {gu} 유치원 | 우리동네 유치원'
+    title = f'{name} 원비·정원·내년 빈자리 | {gu} 유치원 | 킨더맵'
     desc = ' '.join(lead)[:150]
     ld = {'@context': 'https://schema.org', '@type': 'Preschool', 'name': name,
           'address': {'@type': 'PostalAddress', 'addressRegion': '서울특별시', 'addressLocality': gu, 'addressCountry': 'KR'},
@@ -161,7 +161,7 @@ def page(r):
 <meta name="description" content="{e(desc)}">
 {robots}<link rel="canonical" href="{SITE}k/{r["id"]}.html">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="우리동네 유치원·어린이집">
+<meta property="og:site_name" content="킨더맵">
 <meta property="og:title" content="{e(name)} · {gu} 유치원 원비·정원·내년 빈자리">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{SITE}k/{r["id"]}.html">
@@ -179,7 +179,7 @@ th,td{{padding:8px 10px;border-bottom:1px solid #e6ece8;text-align:left}}
 .cta{{display:block;text-align:center;margin:20px 0;padding:14px;border-radius:12px;background:#1f3a32;color:#ffc94a;font-weight:700;text-decoration:none}}
 small{{color:#5b6b64}}a{{color:#1f6f54}}
 </style></head><body><main>
-<small><a href="../">우리동네 유치원</a> › {gu} › 유치원</small>
+<small><a href="../">킨더맵</a> › {gu} › 유치원</small>
 <h1>{e(name)}</h1>
 {f'<small>서울 {e(addr)}</small>' if addr else ''}
 <p class="lead">{e(" ".join(lead))}</p>
