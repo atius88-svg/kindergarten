@@ -10,7 +10,7 @@
 <meta property="og:title" content="킨더맵 — 서울 유치원·어린이집 원비·빈자리 비교 지도">
 <meta property="og:description" content="원비, 한 반 인원, 내년 예상 빈자리, 입소 대기를 지도에서 비교해요.">
 <meta property="og:url" content="https://kindermap.kr/">
-<meta property="og:image" content="https://kindermap.kr/og.png?v=78f57ed3">
+<meta property="og:image" content="https://kindermap.kr/og.png?v=4bd79289">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <!-- 카카오 지도 SDK는 큰 데이터 스크립트를 읽는 동안 미리 받아 둔다(아래 스크립트가 같은 주소로 실행) -->
@@ -876,7 +876,12 @@ const km = (a, b, c, d) => {
 };
 
 const S = { lat: null, lng: null, sel: null, cmp: {} };
-let MODE = (() => { try { return localStorage.getItem('kg-mode') === 'dc' ? 'dc' : 'kg'; } catch (e) { return 'kg'; } })();
+// 모드: 주소의 ?m=dc|kg(어린이집 주소 dc/가 ../?m=dc로 넘김) > 마지막으로 본 모드 > 유치원
+let MODE = (() => {
+  const q = new URLSearchParams(location.search).get('m');
+  if (q === 'dc' || q === 'kg') { try { localStorage.setItem('kg-mode', q); } catch (e) {} return q; }
+  try { return localStorage.getItem('kg-mode') === 'dc' ? 'dc' : 'kg'; } catch (e) { return 'kg'; }
+})();
 // 어린이집 모드로 시작하면 카카오 지도를 받는 동안 dc.json도 같이 받기 시작(start()가 같은 요청을 이어 씀)
 if (MODE === 'dc' || location.hash.startsWith('#kc')) loadDC().catch(() => {});
 const cur = () => (MODE === 'dc' ? DROWS : ROWS);
@@ -1238,7 +1243,8 @@ async function start() {
   // 그 주소로 다시 들어오면 s/ 페이지가 바로 지도 상세(#k{id})로 넘겨 줌. 해시(#k…)는 그대로 두므로 화면 이동 방식은 같음
   function syncPath() {
     const m = /^#k(c?[\w]+)$/.exec(location.hash);
-    const want = (m && byId(m[1]) && !NOSHARE.has(m[1]) ? at(`s/${m[1]}.html`) : ROOT) + location.hash;
+    // 상세가 아니면 어린이집 모드는 dc/(어린이집 미리보기), 유치원은 맨 앞 주소
+    const want = (m && byId(m[1]) && !NOSHARE.has(m[1]) ? at(`s/${m[1]}.html`) : MODE === 'dc' ? at('dc/') : ROOT) + location.hash;
     if (location.href !== want) { try { history.replaceState(history.state, '', want); } catch (e) {} }
   }
   // 주소창 경로를 바꾸므로(syncPath) 뒤로 가기 때 hashchange 없이 popstate만 오기도 함 → 둘 다 받고, 같은 주소면 한 번만
@@ -1262,6 +1268,7 @@ async function start() {
     S.sel = null;
     fillSelects();
     if (!quiet && location.hash) location.hash = '';
+    syncPath();
     render(true);
   }
   document.querySelectorAll('.mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
