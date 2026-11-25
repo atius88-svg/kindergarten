@@ -1,11 +1,11 @@
 # 기관별 정적 상세 페이지(SEO 시험): python3 scripts/build_pages.py  (저장소 루트에서 실행)
-# 시험 단계: 성북구 유치원 30곳만 k/{id}.html 로 만든다. 모든 페이지에 noindex를 넣어 검색에 잡히지 않게 한다.
-# 배포를 결정하면 NOINDEX=False, GU=None, LIMIT=None 으로 바꾼다 → 저장소 루트에 sitemap.xml도 만든다(noindex인 동안은 만들지 않음).
+# 서울 운영 중 유치원 전부 k/{id}.html 로 만들고 검색을 허용한다 + 저장소 루트에 sitemap.xml.
+# 다시 시험 단계로 돌리려면 NOINDEX=True(이때 sitemap.xml은 지움), GU='성북구', LIMIT=30.
 # 대상에서 빠진 곳(폐원·휴원 등)의 옛 k/{id}.html은 지운다. 한 번에 많이 지워야 하면(데이터 이상일 수 있음) 지우지 않고 알리며,
 # 일부러 줄인 거면 --prune 을 붙여 실행한다.
 import datetime, html, json, math, os, re, statistics, sys, traceback, urllib.parse
 
-NOINDEX, GU, LIMIT = True, '성북구', 30
+NOINDEX, GU, LIMIT = False, None, None  # 2026-11-25 서울 운영 중 유치원 전부 공개(검색 허용)
 SITE = 'https://kindermap.kr/'
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 L = lambda p: json.load(open(os.path.join(root, 'src/data', p), encoding='utf-8'))
@@ -18,6 +18,8 @@ BASIS = COSTD['basis'].split('(')[0].strip()
 DET = L('kg_detail.json')  # 주소·전화·홈페이지·통학차량 대수·CCTV 수 (scripts/fetch_detail.py가 매달 수집). 값이 빠질 수 있어 .get으로 읽는다
 KAKAO_KEY = '0688a80cbe72ae0757d555b93dc48ab9'  # 사이트 지도와 같은 JS 키(등록 도메인에서만 동작)
 GEN = set()  # 이번에 만드는 페이지 id
+import hashlib
+OG_V = hashlib.md5(open(os.path.join(root, 'og.png'), 'rb').read()).hexdigest()[:8]  # 카톡이 이미지를 주소로 캐시 → og.png가 바뀌면 주소도 바뀌게
 
 
 def dist_m(a, b):
@@ -165,7 +167,8 @@ def page(r):
 <meta property="og:title" content="{e(name)} · {gu} 유치원 원비·정원·내년 빈자리">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{SITE}k/{r["id"]}.html">
-<meta property="og:image" content="{SITE}og.png">
+<meta property="og:image" content="{SITE}og.png?v={OG_V}">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>
