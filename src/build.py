@@ -120,7 +120,9 @@ ptl = sorted(v['t'] for v in json.loads(r('data/dc_portal.json')).values() if v.
 dts = sorted(v['t'] for v in json.loads(r('data/kg_detail.json')).values() if v.get('t'))
 meta = json.dumps({'kg_pb': kgm.get('pb'), 'kg_t': kgm.get('t'), 'det': dts[-1] if dts else None,
                    'dc_t': dcm.get('t'), 'ptl': [ptl[0], ptl[-1]] if ptl else None}, ensure_ascii=False)
-h = (r('template.html').replace('%%NOSHARE%%', json.dumps(noshare)).replace('%%SHARE_V%%', share_v).replace('%%DATA%%', r('data/kg_seoul.json.txt'))
+# og.png가 바뀌면 이미지 주소도 바뀌게(카톡은 이미지를 주소 기준으로 캐시)
+og_v = hashlib.md5(open(os.path.join(d, '..', 'og.png'), 'rb').read()).hexdigest()[:8]
+h = (r('template.html').replace('%%OG_V%%', og_v).replace('%%NOSHARE%%', json.dumps(noshare)).replace('%%SHARE_V%%', share_v).replace('%%DATA%%', r('data/kg_seoul.json.txt'))
      .replace('%%COST%%', cost_json).replace('%%SP_V%%', sp_v).replace('%%META%%', meta).replace('%%DC_URL%%', f'dc.json?v={ver}')
      .replace('%%RCRT%%', r('data/kg_rcrt.json')).replace('%%DET%%', det).replace('%%EV_V%%', ev_v))
 open(os.path.join(d, '..', 'index.html'), 'w', encoding='utf-8').write(h + '\n' if not h.endswith('\n') else h)
