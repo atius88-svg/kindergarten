@@ -3,6 +3,8 @@
 사용법 (저장소 루트에서):
     CHILDCARE_API_KEY=운영키 python3 scripts/fetch_dc.py
     python3 scripts/fetch_dc.py --fixtures 폴더   # {시군구코드}.json(응답 item 목록)으로 오프라인 테스트, 파일은 안 씀
+    python3 scripts/fetch_dc.py --merge           # API는 안 부르고, dc_portal.json 값만 dc_seoul.json에 다시 합침
+                                                  # (워크플로: API → 포털 수집 → 합치기 순서라 새로 생긴 곳도 같은 달에 채워짐)
 
 - 운영계정 키 필요(개발키는 01, 02… 자리표시 값만 돌려줌). 운영계정 만료 2027-11-09 → 12개월마다 갱신.
 - API에 없는 운영시간·평가·연장보육은 src/data/dc_portal.json(scripts/fetch_dc_portal.py, 포털 화면 수집)에서,
@@ -104,8 +106,28 @@ def convert(a, gu):
     }
 
 
+def merge_portal():
+    d = json.load(open(DATA, encoding='utf-8'))
+    portal = json.load(open(PORTAL, encoding='utf-8')) if os.path.exists(PORTAL) else {}
+    idx = {c: i for i, c in enumerate(d['cols'])}
+    n = 0
+    for row in d['rows']:
+        pt = portal.get(row[idx['id']][1:])
+        if not pt:
+            continue  # 포털 값이 없으면 지금 값 유지(fetch_dc 본 실행과 같은 규칙)
+        for k in KEEP:
+            v = pt.get(k) if k != '운영시간' else (pt.get(k) or None)
+            if row[idx[k]] != v:
+                row[idx[k]] = v; n += 1
+    with open(DATA, 'w', encoding='utf-8') as f:
+        json.dump(d, f, ensure_ascii=False, separators=(',', ':'))
+    print(f'포털 값 합치기: {len(d["rows"])}곳 중 바뀐 칸 {n}개')
+
+
 def main():
     args = sys.argv[1:]
+    if args[:1] == ['--merge']:
+        return merge_portal()
     test = args[:1] == ['--fixtures']
     raw = []
     for code, gu in DISTRICTS.items():
