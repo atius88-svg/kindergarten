@@ -263,11 +263,20 @@
   .dtag.n { background: #fdf3e3; color: #a8640a; }
   .hbar { grid-column: 1 / -1; padding-bottom: 2px; }
   .hbar .trk { position: relative; height: 8px; border-radius: 99px; background: rgba(0,0,0,.07); }
-  .hbar .trk i { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--brand) 45%, #fff); }
+  .hbar .trk i { position: absolute; top: 0; bottom: 0; background: #8fa39a; background: color-mix(in srgb, var(--brand) 45%, #fff); }  /* color-mix 못 쓰는 옛 브라우저(iOS 16.1 이하)는 앞 줄 색 */
   .hbar .trk i:first-child { border-radius: 99px 0 0 99px; } .hbar .trk i:last-child { border-radius: 0 99px 99px 0; } .hbar .trk i:only-child { border-radius: 99px; }
   .hbar .trk i.ext { background: #5bab7c; }
   .hbar .tk { position: relative; height: 14px; margin-top: 3px; }
   .hbar .tk span { position: absolute; transform: translateX(-50%); font-size: 10px; color: var(--muted); }
+  .hbar .tk span { white-space: nowrap; }
+  .ccard .fl { flex-wrap: wrap; row-gap: 3px; } .ccard .fl span { white-space: nowrap; }
+  .crow .k { white-space: nowrap; }
+  @media (max-width: 374px) {  /* 아이폰 SE(1세대)·작은 안드로이드 */
+    .ccard { padding: 12px; } .cgrid { gap: 8px; }
+    .ccard .num { font-size: 24px; } .ccard .num small { font-size: 13px; } .ccard .num em { font-size: 11.5px; }
+    .ccard .ch, .ccard .fl { font-size: 11px; }
+    .crow .cic { display: none; } .crow .cv b { font-size: 14px; }
+  }
   .facts.full li { grid-template-columns: 7em 1fr; }
   .evdoc { margin-top: 6px; font-size: 13px; }
   .evdoc .tip { margin: 8px 0 0; padding: 8px 12px; border-radius: 0 8px 8px 0; border-left: 2px solid var(--neu); background: var(--bg); color: var(--fg); }
