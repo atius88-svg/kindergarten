@@ -38,7 +38,7 @@ def parse_summary(text):
     addr = g(r"kinderAddr\s*=\s*'주소 : '\s*\+\s*'([^']*)'")
     web = g(r"homepage\s*=\s*'홈페이지 : '\s*\+\s*'([^']*)'")
     web = web.strip() if web else ''
-    return {'addr': addr.replace('서울특별시', '', 1).strip() if addr else None,
+    return {'addr': addr.replace('서울특별시', '', 1).strip() if addr else None,  # 경기는 '경기도 …' 그대로(build_pages가 앞에 '서울'을 붙이지 않음)
             'tel': tel.strip() if tel else None,
             'web': web if web.startswith(('http://', 'https://')) else None}
 
