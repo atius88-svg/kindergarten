@@ -99,7 +99,6 @@
   .badge.g small { color: var(--good); font-weight: 500; } .badge.b small { color: var(--bad); font-weight: 500; } .badge.n small { color: var(--neu); font-weight: 500; }
   .badge .ic { color: var(--muted); }
   .badge.bus-on { }
-  .badge.bus-off { background: transparent; border-color: var(--line); color: var(--muted); }
   .ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
   .badge .ic { width: 14px; height: 14px; vertical-align: -2px; }
   .icons { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
@@ -186,8 +185,18 @@
   .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .actions a, .actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; font: inherit; font-size: 13px; text-decoration: none; color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 0 4px; background: var(--panel); cursor: pointer; }
   .actions .ic { color: var(--muted); }
-  .actions .on { background: var(--fg); border-color: var(--fg); color: var(--panel); font-weight: 500; }
-  .actions .on .ic { color: inherit; }
+  .actions { grid-template-columns: 2fr 1fr 1fr; }
+  .actions #d-heart { height: 44px; font-size: 14px; font-weight: 600; background: var(--brand); border-color: var(--brand); color: #fff; }
+  .actions #d-heart .ic { color: var(--brand-acc); }
+  .actions #d-heart.on { background: var(--panel); border-color: var(--brand); color: var(--brand); }
+  .actions #d-heart.on .ic { color: inherit; }
+  .actions a, .actions #d-share { height: 44px; }
+  .dbadges { display: grid; gap: 2px; }
+  .dbadges .badges { margin-top: 0; }
+  .dbadges .badges.key { gap: 6px; margin-bottom: 4px; }
+  .badges.key .badge { height: 34px; padding: 0 12px; border-radius: 8px; font-size: 15px; font-weight: 600; }
+  .badges.key .badge small { font-size: 12px; }
+  .badges.key .badge .ic { width: 16px; height: 16px; }
   .d-sub { color: var(--muted); font-size: 13px; margin-bottom: -4px; }
   .facts.full li { grid-template-columns: 7em 1fr; }
   .evdoc { margin-top: 6px; font-size: 13px; }
@@ -485,10 +494,10 @@ function headCmp(r, k) {
 function badges(r) {
   if (isDC(r)) return dcBadges(r);
   const out = [];
-  if (r.상태) out.push(['n', r.상태 === '휴원' ? '지금 휴원' : '공시 전', RCRT.r[r.id] ? `${RCRT.aid}학년도 모집` : '', `${STATE_TXT[r.상태] || ''}. ${RCRT.aid}학년도 원아를 모집해요.`]);
+  if (r.상태) out.push(['n', r.상태 === '휴원' ? '지금 휴원' : '공시 전', RCRT.r[r.id] ? `${RCRT.aid}학년도 모집` : '', `${STATE_TXT[r.상태] || ''}. ${RCRT.aid}학년도 원아를 모집해요.`, 1]);
   const cc = costCmp(r);
-  if (cc) out.push([cc.cls, ICON.won + (cc.none ? '' : cc.total === 0 ? '0원' : won(cc.total)), cc.lab, cc.avg != null ? `월 비용 · ${r.구} ${r.유형} 평균 월 ${won(Math.round(cc.avg))}` : '월 비용']);
-  if (cc && !cc.none && cc.sp && cc.sp.v > 0) out.push(['', ICON.plus + `특성화비 ${won(cc.sp.v)}`, '', `특성화 활동 ${cc.sp.n}개 · 월 학부모 부담 (기본 원비와 별도)`]);
+  if (cc) out.push([cc.cls, ICON.won + (cc.none ? '' : cc.total === 0 ? '0원' : won(cc.total)), cc.lab, cc.avg != null ? `월 비용 · ${r.구} ${r.유형} 평균 월 ${won(Math.round(cc.avg))}` : '월 비용', 1]);
+  if (cc && !cc.none && cc.sp && cc.sp.v > 0) out.push(['', ICON.plus + `특성화비 ${won(cc.sp.v)}`, '', `특성화 활동 ${cc.sp.n}개 · 월 학부모 부담 (기본 원비와 별도)`, 1]);
   if (r.원아수 != null) {
     const { m, sd } = SIZE_AVG[r.유형];
     const z = (r.원아수 - m) / sd;
@@ -498,8 +507,8 @@ function badges(r) {
   const st = seatOf(r);
   if (st && !st.none && st.cap) out.push([seatCls(st.pct), ICON.seat + `${st.mix ? '혼합' : '만' + st.age + '세'} ${st.kids}/${st.cap}`, seatLab(st.pct), `${st.mix ? `만 ${st.age}세 반이 따로 없어 혼합반 기준` : `만 ${st.age}세 반 ${st.n}개`} · 다니는 아이/정원`]);
   const nx = nextOf(r);
-  if (nx && nx.v != null) out.push([nextCls(nx.v), ICON.next + `내년 빈자리 ${nx.v ? nx.v + '자리' : '없음'}`, '추정', `내년 만 ${nx.age}세 정원 ${nx.cap}명 − 올라올 아이 ${nx.up}명 (${RCRT.aid}학년도 모집요강 기준 추정)`]);
-  else if (nx && nx.none) out.push(['b', ICON.next + `내년 만${nx.age}세 반 없음`, '', `${RCRT.aid}학년도 모집요강 기준`]);
+  if (nx && nx.v != null) out.push([nextCls(nx.v), ICON.next + `내년 빈자리 ${nx.v ? nx.v + '자리' : '없음'}`, '추정', `내년 만 ${nx.age}세 정원 ${nx.cap}명 − 올라올 아이 ${nx.up}명 (${RCRT.aid}학년도 모집요강 기준 추정)`, 1]);
+  else if (nx && nx.none) out.push(['b', ICON.next + `내년 만${nx.age}세 반 없음`, '', `${RCRT.aid}학년도 모집요강 기준`, 1]);
   const cs = headCmp(r, '학급당원아');
   if (cs) out.push([cs.cls, ICON.cls + `반 ${cs.v}명`, cs.lab, `한 반 인원 · 서울 ${r.유형} 평균 ${cs.a}명`]);
   const ts = headCmp(r, '교사1인당원아');
@@ -556,7 +565,7 @@ function costCmp(r) {
 
 const busBadge = (r) => isDC(r) ? '' : r.차량운영여부 === '운영'
   ? `<span class="badge bus-on">${ICON.bus}차량</span>`
-  : r.차량운영여부 === '미운영' ? `<span class="badge bus-off">${ICON.bus}없음</span>` : '';
+  : r.차량운영여부 === '미운영' ? `<span class="badge n" title="통학차량 없음 · 직접 등·하원해야 해요">${ICON.bus}차량 <small>없음</small></span>` : '';
 
 // ---------- 어린이집 (서울 25개 구) ----------
 // 출처: 어린이집정보공개포털 OPEN API(기본·나이별 반·입소 대기) + 포털 화면(운영시간·평가·연장보육).
@@ -691,12 +700,12 @@ function dcEval(r) {
 function dcBadges(r) {
   const out = [];
   const w = waitOf(r);
-  if (w) out.push([w.cls, ICON.wait + `${w.who ? w.who.replace('만 ', '') + ' ' : ''}대기 ${w.v}명`, w.lab, `입소 대기 신청 아동 수${w.who ? ` (${w.who})` : ' (전체 나이)'} · 서울 상위 25%는 ${WAIT_P75[w.i]}명 이상 · 중복 신청 포함`]);
+  if (w) out.push([w.cls, ICON.wait + `${w.who ? w.who.replace('만 ', '') + ' ' : ''}대기 ${w.v}명`, w.lab, `입소 대기 신청 아동 수${w.who ? ` (${w.who})` : ' (전체 나이)'} · 서울 상위 25%는 ${WAIT_P75[w.i]}명 이상 · 중복 신청 포함`, 1]);
   if (r.연장반 != null) out.push(r.연장반 > 0 ? ['g', ICON.moon + `연장반 ${r.연장반}개`, `${r.연장아동}명`, '19:30 이후 연장보육반 · 이용 아동 수'] : ['b', ICON.moon + '연장반', '없음', '연장보육반']);
   const f = r.충원율;
-  out.push([f >= 95 ? 'b' : f < 70 ? 'g' : '', ICON.kids + `${r.원아수}/${r.정원}명`, f >= 95 ? '꽉 참' : f < 70 ? '여유' : '', '현원/정원 · 꽉 찬 곳은 대기가 있을 가능성이 높아요']);
+  out.push([f >= 95 ? 'b' : f < 70 ? 'g' : '', ICON.kids + `${r.원아수}/${r.정원}명`, f >= 95 ? '꽉 참' : f < 70 ? '여유' : '', '현원/정원 · 꽉 찬 곳은 대기가 있을 가능성이 높아요', 1]);
   if (r.차량운영여부 === '운영') out.push(['bus-on', ICON.bus + '차량', '', '통학차량 운영']);
-  else if (r.차량운영여부 === '미운영') out.push(['bus-off', ICON.bus + '없음', '', '통학차량 없음']);
+  else if (r.차량운영여부 === '미운영') out.push(['n', ICON.bus + '차량', '없음', '통학차량 없음 · 직접 등·하원해야 해요']);
   const ts = headCmp(r, '교사1인당원아');
   if (ts) out.push([ts.cls, ICON.tch + `1:${ts.v}`, ts.lab, `선생님 1명당 아이 · 서울 ${r.유형} 평균 ${ts.a}명`]);
   const e = dcEval(r);
@@ -1067,7 +1076,13 @@ async function start() {
 
   // 목록: 처음 PAGE곳만 그리고 '더 보기'로 이어 그린다(반경 5km면 어린이집이 500곳 넘음)
   const PAGE = 40;
-  const badgeHTML = (r) => badges(r).map(([c, t, lab, tip]) => `<span class="badge ${c}"${tip ? ` title="${esc(tip)}"` : ''}>${t}${lab ? ` <small>${lab}</small>` : ''}</span>`).join('') + busBadge(r);
+  const bHTML = (xs) => xs.map(([c, t, lab, tip]) => `<span class="badge ${c}"${tip ? ` title="${esc(tip)}"` : ''}>${t}${lab ? ` <small>${lab}</small>` : ''}</span>`).join('');
+  const badgeHTML = (r) => bHTML(badges(r)) + busBadge(r);
+  // 상세: 원비·빈자리(어린이집은 대기·현원)를 맨 윗줄에 크게, 나머지는 아래 줄
+  const detailBadges = (r) => {
+    const all = badges(r), key = all.filter((x) => x[4]), rest = all.filter((x) => !x[4]);
+    return (key.length ? `<div class="badges key">${bHTML(key)}</div>` : '') + `<div class="badges">${bHTML(rest)}${busBadge(r)}</div>`;
+  };
   const cardHTML = (x, d, cmp) => {
     const dsc = describe(x);
     return `
@@ -1204,7 +1219,7 @@ async function start() {
     $('d-svc-n').textContent = NOUN();
     $('d-body').innerHTML = `
       <div class="d-sub">${d}${esc(r.구)} · ${esc(r.설립유형)}</div>
-      <div class="badges">${badgeHTML(r)}</div>
+      <div class="dbadges">${detailBadges(r)}</div>
       ${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
       <div class="actions">
         <button type="button" id="d-heart" class="${inCmp ? 'on' : ''}">${inCmp ? ICON.check + '비교함에 담김' : ICON.plus + '비교함에 담기'}</button>
