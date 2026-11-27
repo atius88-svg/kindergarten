@@ -27,6 +27,30 @@ SEOUL = {
     11560: '영등포구', 11590: '동작구', 11620: '관악구', 11650: '서초구', 11680: '강남구', 11710: '송파구',
     11740: '강동구',
 }
+# 경기(2026-11-28 준비): 어린이집과 같은 지역·같은 이름표('성남 분당구', '광명시'). 시군구 코드는 행정표준코드.
+# ※ 유치원알리미 API가 구 있는 시를 구 코드(41135)로 받는지 시 코드(41130)로 받는지는 첫 실행에서 확인 — 0곳이면 로그에 경고.
+GYEONGGI = {
+    41131: '성남 수정구', 41133: '성남 중원구', 41135: '성남 분당구', 41210: '광명시',
+    41450: '하남시', 41171: '안양 만안구', 41173: '안양 동안구', 41290: '과천시',
+    41192: '부천 원미구', 41194: '부천 소사구', 41196: '부천 오정구',
+    41281: '고양 덕양구', 41285: '고양 일산동구', 41287: '고양 일산서구', 41310: '구리시',
+    41360: '남양주시', 41150: '의정부시', 41570: '김포시', 41430: '의왕시', 41410: '군포시', 41390: '시흥시',
+}
+AREAS = {**{k: (11, v) for k, v in SEOUL.items()}, **{k: (41, v) for k, v in GYEONGGI.items()}}
+GG_LABELS = set(GYEONGGI.values())
+SIDOS = [('11', '서울특별시'), ('41', '경기도')]
+
+
+def area_label(addr):
+    """주소 낱말 → 지역 이름표. 서울 '성북구', 경기 구 있는 시 '성남 분당구', 구 없는 시 '광명시'. 모르면 ''."""
+    if len(addr) < 2:
+        return ''
+    if addr[0].startswith('서울'):
+        return addr[1] if addr[1].endswith('구') else ''
+    if addr[0].startswith('경기') and addr[1].endswith('시'):
+        lab = f'{addr[1][:-1]} {addr[2]}' if len(addr) > 2 and addr[2].endswith('구') else addr[1]
+        return lab if lab in GG_LABELS else ''
+    return ''
 MIN_ROWS = 600  # 지금 705곳. 이보다 크게 줄면 무언가 잘못된 것
 SITE = 'https://e-childschoolinfo.moe.go.kr'
 AFTERSCHOOL_CODE = '111'  # 공시항목 '방과후 과정 편성ㆍ운영에 관한 사항'
@@ -39,16 +63,19 @@ def http(url, data=None, timeout=60):
 
 
 def fetch_afterschool():
-    """가장 최근 1차 공시의 서울 방과후 CSV → ({(구, 이름): 참여원아 계}, 차수). 실패하면 ({}, None)."""
+    """가장 최근 1차 공시의 서울·경기 방과후 CSV → ({(구, 이름): 참여원아 계}, 차수). 실패하면 ({}, None)."""
     try:
         for y in range(datetime.date.today().year, datetime.date.today().year - 3, -1):
             timing = f'{y}1'
             items = json.loads(http(f'{SITE}/gongsi/{timing}/findGongsiList.do'))
             if AFTERSCHOOL_CODE not in items.values():
                 continue
-            form = urllib.parse.urlencode({'combineSidoName': '서울특별시', 'combineSidoCode': '11', 'timingListCode': timing,
-                                           'gongsiListCode': AFTERSCHOOL_CODE, 'safetyListCode': '', 'ExcelCsv': '2'}).encode()
-            return parse_afterschool(http(f'{SITE}/download/getOpenData.do', form, timeout=120)), timing
+            out = {}
+            for code, name in SIDOS:
+                form = urllib.parse.urlencode({'combineSidoName': name, 'combineSidoCode': code, 'timingListCode': timing,
+                                               'gongsiListCode': AFTERSCHOOL_CODE, 'safetyListCode': '', 'ExcelCsv': '2'}).encode()
+                out.update(parse_afterschool(http(f'{SITE}/download/getOpenData.do', form, timeout=120)))
+            return out, timing
     except Exception as e:
         print(f'방과후 CSV를 받지 못해 기존 값을 씁니다: {e}', file=sys.stderr)
     return {}, None
@@ -58,13 +85,16 @@ def parse_afterschool(text):
     out = {}
     for r in csv.DictReader(io.StringIO(text)):
         addr = (r.get('주소') or '').split()
-        if len(addr) > 1 and r.get('유치원명'):
-            out[(addr[1], r['유치원명'].strip())] = num(r.get('참여원아 계'))
+        lab = area_label(addr)
+        if not lab and len(addr) > 1 and addr[0].startswith('경기') and addr[1].endswith('시'):
+            lab = addr[1][:-1]  # 구가 빠진 주소(부천 등) → 시 이름만, 아래에서 (시, 이름)으로 한 번 더 찾음
+        if lab and r.get('유치원명'):
+            out[(lab, r['유치원명'].strip())] = num(r.get('참여원아 계'))
     return out
 
 
 def fetch(api, sgg, key):
-    q = urllib.parse.urlencode({'key': key, 'sidoCode': 11, 'sggCode': sgg})
+    q = urllib.parse.urlencode({'key': key, 'sidoCode': AREAS[sgg][0], 'sggCode': sgg})
     for i in range(4):
         try:
             req = urllib.request.Request(f'{BASE}{api}.do?{q}', headers={'User-Agent': 'kindergarten-map-updater'})
@@ -135,7 +165,8 @@ def build(raw):
             '유치원명': b['kindername'].strip(),
             '설립유형': est,
             '유형': '사립' if est.startswith('사립') else '국공립',
-            '구': addr[1] if len(addr) > 1 and addr[1].endswith('구') else b.get('_gu', ''),
+            '구': area_label(addr) or b.get('_gu', ''),
+            '시도': 41 if b.get('_gu') in GG_LABELS else None,  # 경기만 41(서울은 비워 둠 — 화면의 '서울 평균'은 시도 41을 뺀 곳으로 계산)
             '위도': lat, '경도': lng,
             '원아수': kids,
             '충원율': float(round(kids / cap * 100)) if cap else None,  # 반 정원 기준 (2026-11-10부터)
@@ -169,7 +200,7 @@ def main():
         key = os.environ.get('KINDER_API_KEY')
         if not key:
             sys.exit('KINDER_API_KEY 환경변수가 없습니다.')
-        for sgg, gu in SEOUL.items():
+        for sgg, (_, gu) in AREAS.items():
             for a in APIS:
                 rows = fetch(a, sgg, key)
                 if a == 'basicInfo2':
@@ -177,7 +208,8 @@ def main():
                         x['_gu'] = gu
                 raw[a] += rows
                 time.sleep(0.3)
-            print(f'{gu}: {len([x for x in raw["basicInfo2"] if x.get("_gu") == gu])}곳')
+            n = len([x for x in raw["basicInfo2"] if x.get("_gu") == gu])
+            print(f'{gu}: {n}곳' + ('  ← 0곳: 이 시군구 코드를 API가 모르는 것일 수 있음' if n == 0 else ''))
         min_rows = MIN_ROWS
         aft, timing = fetch_afterschool()
     if aft:
@@ -188,7 +220,7 @@ def main():
         sys.exit(f'받은 유치원이 {len(new)}곳뿐이라 갱신하지 않습니다(최소 {min_rows}).')
 
     old = json.load(open(DATA, encoding='utf-8'))
-    cols = old['cols'] + [c for c in ('정원', '인가정원', '연령별', '상태') if c not in old['cols']]
+    cols = old['cols'] + [c for c in ('정원', '인가정원', '연령별', '상태', '시도') if c not in old['cols']]
     extra = json.load(open(EXTRA, encoding='utf-8'))['rows'] if os.path.exists(EXTRA) else []
     old_rows = [dict(zip(cols, r)) for r in old['rows']]
     by_name = {}
@@ -215,7 +247,7 @@ def main():
             next_id += 1
         used.add(n['id'])
         ids[n['kindercode']] = n['id']
-        p = aft.get((n['구'], n['유치원명']))
+        p = aft.get((n['구'], n['유치원명']), aft.get((n['구'].split()[0], n['유치원명'])))
         n['방과후참여율'] = float(round(p / n['원아수'] * 100)) if p is not None and n['원아수'] else (prev or {}).get('방과후참여율')
         rows.append(n)
 
