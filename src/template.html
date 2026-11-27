@@ -691,10 +691,10 @@ function detailCards(r, tags) {
     C3.push(busRow(r));
   } else {
     const nx = nextOf(r), st = seatOf(r), c = costOf(r);
-    // 카드 A: 내년 빈자리 — 10자리 이상 초록, 1~9자리 주황, 없음 빨강
+    // 카드 A: 내년 빈자리 — 절대 숫자로 좋고 나쁨을 가를 수 없어 바탕색 없음(0자리·반 없음만 글자 빨강)
     let head = '내년 빈자리', num = '<span class="na">정보 없음</span>', cls = '';
-    if (nx && nx.v != null) { head = `내년 만 ${nx.age}세 빈자리`; cls = nx.v >= 10 ? 'g' : nx.v > 0 ? 'n' : 'b'; num = nx.v ? `${nx.v}<small>자리</small><em>(추정)</em>` : '<span class="b">없음</span><em>(추정)</em>'; }
-    else if (nx && nx.none) { head = `내년 만 ${nx.age}세 빈자리`; cls = 'b'; num = '<span class="b">반 없음</span>'; }
+    if (nx && nx.v != null) { head = `내년 만 ${nx.age}세 빈자리`; num = nx.v ? `${nx.v}<small>자리</small><em>(추정)</em>` : '<span class="b">없음</span><em>(추정)</em>'; }
+    else if (nx && nx.none) { head = `내년 만 ${nx.age}세 빈자리`; num = '<span class="b">반 없음</span>'; }
     const sc = st && fillCls(st.pct);
     const now = st && !st.none && st.cap ? `<div class="foot"><div class="fl"><span>현재 ${st.mix ? '혼합반' : `만 ${st.age}세 반`}</span><span>${st.kids}/${st.cap}명 ${pill(sc, seatLab(st.pct))}</span></div>${bar(st.pct, sc)}</div>` : '';
     A = `<div class="ccard big ${cls ? 't-' + cls : ''}"><div class="ch"><span>${head}</span></div><div class="num">${num}</div>${now}</div>`;
@@ -728,7 +728,7 @@ function detailCards(r, tags) {
   }
   out.push(`<div class="cgrid">${A}${B}</div>`);
   if (C2.length) out.push(`<div class="ccard"><div class="ct">${ICON.kids}${isDC(r) ? '보육 환경' : '반·선생님'}</div>${C2.join('')}</div>`);
-  if (tags && tags.length) out.push(`<div class="dtags">${tags.map(tagChip).join('')}</div>`);
+  out.push(`<div class="dtags">${tags && tags.length ? tags.map(tagChip).join('') : '<span class="dtag">특이사항 없음</span>'}</div>`);
   if (C3.length) out.push(`<div class="ccard">${C3.join('<div class="sep"></div>')}</div>`);
   return `<div class="dcards">${out.join('')}</div>`;
 }
