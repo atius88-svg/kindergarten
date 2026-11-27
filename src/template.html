@@ -781,7 +781,7 @@ let WAIT_P75 = [], WAIT_MED = null;
 function initDC(DC) {
   DROWS = DC.rows.map((v) => Object.fromEntries(DC.cols.map((c, i) => [c, v[i]])));
   DC_BY = new Map(DROWS.map((r) => [r.id, r]));
-  const SEO = DROWS.filter((r) => r.id.startsWith('c11'));  // 평균·대기 기준은 화면 문구대로 '서울'만(경기 곳도 서울 평균과 비교)
+  const SEO = DROWS.filter((r) => !r.id.startsWith('c41'));  // 평균·대기 기준은 화면 문구대로 '서울'만(경기 곳도 서울 평균과 비교)
   DC_TYPES.forEach((t) => {
     DAVG[t] = {};
     ['교사1인당원아', '4년이상비율', '1년미만비율', '원아수'].forEach((k) => {
