@@ -44,6 +44,14 @@ def won(n):
     return f'{round(n / 1000) / 10:g}만원' if n >= 10000 else f'{n:,}원'
 
 
+def gg(r):  # 경기 유치원(fetch_kg.py '시도' 41)
+    return r.get('시도') == 41
+
+
+def full_addr(addr):  # kg_detail 주소: 서울은 '서울특별시'를 뗀 '성북구 …', 경기는 '경기도 …'
+    return addr if addr.startswith('경기') else f'서울 {addr}'
+
+
 def cost_avg(typ, gu, a):
     v = [COST[str(r['id'])][a] + (COST[str(r['id'])][a + 3] or 0) for r in ROWS
          if r['구'] == gu and r['유형'] == typ and r['상태'] is None and COST.get(str(r['id'])) and COST[str(r['id'])][a] is not None]
@@ -51,7 +59,7 @@ def cost_avg(typ, gu, a):
 
 
 def avg(typ, k):
-    v = [r[k] for r in ROWS if r['유형'] == typ and r[k] is not None and r['상태'] is None and not (k == '교사1인당원아' and r['데이터주의'])]
+    v = [r[k] for r in ROWS if r['유형'] == typ and r[k] is not None and r['상태'] is None and not gg(r) and not (k == '교사1인당원아' and r['데이터주의'])]  # 문구가 '서울 평균'이라 서울만
     return statistics.mean(v) if v else None
 
 
@@ -133,7 +141,7 @@ def page(r):
     addr, tel, web = det.get('addr'), det.get('tel'), det.get('web')
     if addr or tel:
         q = urllib.parse.quote(f'{name},{r["위도"]},{r["경도"]}')
-        contact = ([f'<tr><th>주소</th><td>서울 {e(addr)}</td></tr>'] if addr else []) + \
+        contact = ([f'<tr><th>주소</th><td>{e(full_addr(addr))}</td></tr>'] if addr else []) + \
                   ([f'<tr><th>전화</th><td><a href="tel:{e(tel)}">{e(tel)}</a></td></tr>'] if tel else [])
         if web and web.startswith(('http://', 'https://')):
             contact.append(f'<tr><th>홈페이지</th><td><a href="{e(web)}" rel="nofollow noopener" target="_blank">{e(web.split("//")[1].rstrip("/"))}</a></td></tr>')
@@ -145,7 +153,7 @@ def page(r):
     title = f'{name} 원비·정원·내년 빈자리 | {gu} 유치원 | 킨더맵'
     desc = ' '.join(lead)[:150]
     ld = {'@context': 'https://schema.org', '@type': 'Preschool', 'name': name,
-          'address': {'@type': 'PostalAddress', 'addressRegion': '서울특별시', 'addressLocality': gu, 'addressCountry': 'KR'},
+          'address': {'@type': 'PostalAddress', 'addressRegion': '경기도' if gg(r) else '서울특별시', 'addressLocality': gu, 'addressCountry': 'KR'},
           'geo': {'@type': 'GeoCoordinates', 'latitude': r['위도'], 'longitude': r['경도']}}
     if addr:
         ld['address']['streetAddress'] = addr
@@ -187,7 +195,7 @@ small{{color:#5b6b64}}a{{color:#1f6f54}}
 </style></head><body><main>
 <small><a href="../">킨더맵</a> › {gu} › 유치원</small>
 <h1>{e(name)}</h1>
-{f'<small>서울 {e(addr)}</small>' if addr else ''}
+{f'<small>{e(full_addr(addr))}</small>' if addr else ''}
 <p class="lead">{e(" ".join(lead))}</p>
 <a class="cta" href="../#k{r["id"]}">지도에서 주변 유치원과 비교하기</a>
 {sec("한 달 비용", tbl(["", "교육비", "방과후", "합계"], cost_lines) + f"<small>정부 지원금을 뺀 학부모 부담 고지액({BASIS} 공시)이에요. 특성화 활동·차량·현장학습 같은 선택 비용은 빠져 있어요.</small>" if cost_lines else "")}

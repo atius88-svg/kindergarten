@@ -447,6 +447,7 @@ const KAKAO_JS_KEY = '0688a80cbe72ae0757d555b93dc48ab9';
 
 const RAW = %%DATA%%;
 const ROWS = RAW.rows.map((v) => Object.fromEntries(RAW.cols.map((c, i) => [c, v[i]])));
+const SEO_KG = ROWS.filter((r) => r.시도 !== 41);  // '서울 평균' 문구용: 경기(시도 41) 유치원은 빼고 계산
 ROWS.forEach((r) => { r.id = String(r.id); });
 const KG_BY = new Map(ROWS.map((r) => [r.id, r]));
 let DC_BY = new Map();
@@ -462,7 +463,7 @@ const AVG = {};
 ['국공립', '사립'].forEach((t) => {
   AVG[t] = {};
   METRICS.forEach(([k]) => {
-    const vs = ROWS.filter((r) => r.유형 === t && r[k] != null && !(k === '교사1인당원아' && r.데이터주의)).map((r) => +r[k]);
+    const vs = SEO_KG.filter((r) => r.유형 === t && r[k] != null && !(k === '교사1인당원아' && r.데이터주의)).map((r) => +r[k]);
     const m = vs.reduce((a, b) => a + b, 0) / vs.length;
     const sd = Math.sqrt(vs.reduce((a, b) => a + (b - m) ** 2, 0) / (vs.length - 1));
     AVG[t][k] = { m, sd };
@@ -494,14 +495,14 @@ const vs = (r, k, unit, fewer, more) => {
 const toMin = (s) => { const m = /(\d{1,2}):(\d{2})/.exec(s || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; };
 const HOURS = (() => {
   const o = [], c = [];
-  ROWS.forEach((r) => { const [a, b] = (r.운영시간 || '').split('~'); const x = toMin(a), y = toMin(b); if (x != null && y != null) { o.push(x); c.push(y); } });
+  SEO_KG.forEach((r) => { const [a, b] = (r.운영시간 || '').split('~'); const x = toMin(a), y = toMin(b); if (x != null && y != null) { o.push(x); c.push(y); } });
   const avg = (v) => v.reduce((s, n) => s + n, 0) / v.length;
   return { open: avg(o), close: avg(c) };
 })();
 const fmtMin = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(Math.round(m % 60)).padStart(2, '0')}`;
 const SIZE_AVG = {};
 ['국공립', '사립'].forEach((t) => {
-  const v = ROWS.filter((r) => r.유형 === t && r.원아수 != null).map((r) => +r.원아수);
+  const v = SEO_KG.filter((r) => r.유형 === t && r.원아수 != null).map((r) => +r.원아수);
   const m = v.reduce((a, b) => a + b, 0) / v.length;
   SIZE_AVG[t] = { m, sd: Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / (v.length - 1)) };
 });
@@ -626,7 +627,7 @@ const COST_AVG = {};
 function costAvg(type, a, gu) {  // gu 없으면 서울 전체
   const key = `${type}|${a}|${gu || ''}`;
   if (key in COST_AVG) return COST_AVG[key];
-  const v = ROWS.filter((r) => (!gu || r.구 === gu) && r.유형 === type && COST[r.id] && COST[r.id][a] != null)
+  const v = (gu ? ROWS : SEO_KG).filter((r) => (!gu || r.구 === gu) && r.유형 === type && COST[r.id] && COST[r.id][a] != null)
     .map((r) => COST[r.id][a] + (COST[r.id][a + 3] || 0));
   return (COST_AVG[key] = v.length ? v.reduce((s, n) => s + n, 0) / v.length : null);
 }
