@@ -204,7 +204,19 @@
   .ccard .sub, .crow .sub { font-size: 11px; color: var(--muted); display: block; line-height: 1.4; }
   .ccard .cpill { margin: 2px 0; }
   .ccard .foot { margin-top: auto; padding-top: 10px; }
-  .ccard.big .foot { border-top: 1px solid rgba(0,0,0,.07); margin-top: 10px; }
+  .ccard.big .num { margin-bottom: 8px; }
+  .ccard.big .foot { border-top: 1px solid rgba(0,0,0,.07); }
+  .ccard .dtags { margin-top: 8px; }
+  .dcards.anim > * { animation: cardIn .45s cubic-bezier(.16,1,.3,1) both; }
+  .dcards.anim > :nth-child(2) { animation-delay: .07s; } .dcards.anim > :nth-child(3) { animation-delay: .14s; }
+  .dcards.anim > :nth-child(4) { animation-delay: .21s; } .dcards.anim > :nth-child(5) { animation-delay: .28s; }
+  .dcards.anim .cgrid > .ccard:nth-child(2) { animation: cardIn .45s .05s cubic-bezier(.16,1,.3,1) both; }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .dcards.anim .bar1 i, .dcards.anim .hbar .trk i { transform-origin: left center; animation: barIn .9s .25s cubic-bezier(.22,1,.36,1) both; }
+  .dcards.anim .hbar .trk i:nth-child(2) { animation-delay: .45s; } .dcards.anim .hbar .trk i:nth-child(3) { animation-delay: .65s; }
+  .dcards.anim .gauge .mk { animation: cardIn .4s .7s both; }
+  @keyframes barIn { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
   .ccard .fl { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 6px; gap: 4px; }
   .ccard .fl span:first-child { color: var(--muted); }
   .pl { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: var(--bg); color: var(--muted); white-space: nowrap; }
@@ -639,6 +651,11 @@ function costAvg3(type, a, gu) {  // 교육비+방과후+특성화비 평균(같
     .map((r) => { const c = COST[r.id]; return c[a] + (c[a + 3] || 0) + (c[6] ? c[6][a][0] || 0 : 0); });
   return (COST_AVG3[key] = v.length ? v.reduce((s, n) => s + n, 0) / v.length : null);
 }
+const cu = (v, dec = 0) => `<span class="cu" data-to="${v}" data-dec="${dec}">${v.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec })}</span>`;
+function bigWon(n) {  // 큰 숫자(카운트업) + 단위
+  if (n >= 10000) { const v = Math.round(n / 1000) / 10; return `${cu(v, v % 1 ? 1 : 0)}<small>만원</small>`; }
+  return `${cu(n)}<small>원</small>`;
+}
 const man = (n) => n === 0 ? '0' : n >= 10000 ? `${Math.round(n / 1000) / 10}만` : n.toLocaleString();
 // 운영시간 막대: 06~22시 위에 운영 구간. 서울 평균보다 30분 이상 일찍 열거나 늦게 닫는 부분은 진하게 표시
 function hoursRow(r) {
@@ -678,11 +695,11 @@ function detailCards(r, tags) {
     const w = waitOf(r);
     const f = r.충원율, fc = fillCls(f), fl = f >= 95 ? '꽉 참' : f < 70 ? '여유' : `${Math.round(f)}%`;
     A = `<div class="ccard big ${w ? 't-' + w.cls : ''}"><div class="ch"><span>입소 대기${w && w.who ? ` (${w.who})` : ''}</span>${w ? pill(w.cls, w.lab) : ''}</div>
-      <div class="num">${w ? `${w.v}<small>명</small>` : '<span class="na">정보 없음</span>'}</div>${w ? `<div class="sub">중복 신청 포함</div>` : ''}
+      <div class="num">${w ? `${cu(w.v)}<small>명</small>` : '<span class="na">정보 없음</span>'}</div>${w ? `<div class="sub">중복 신청 포함</div>` : ''}
       ${r.정원 ? `<div class="foot"><div class="fl"><span>현재 다니는 아이</span><span>${r.원아수}/${r.정원}명 ${pill(fc, fl)}</span></div>${bar(f, fc)}</div>` : ''}</div>`;
     const bc = r.연장반 == null ? '' : r.연장반 > 0 ? 'g' : 'b';
     B = `<div class="ccard big ${bc ? 't-' + bc : ''}"><div class="ch"><span>연장보육반</span></div>
-      <div class="num">${r.연장반 == null ? '<span class="na">정보 없음</span>' : r.연장반 > 0 ? `${r.연장반}<small>개</small>` : '<span class="b">없음</span>'}</div>
+      <div class="num">${r.연장반 == null ? '<span class="na">정보 없음</span>' : r.연장반 > 0 ? `${cu(r.연장반)}<small>개</small>` : '<span class="b">없음</span>'}</div>
       <div class="sub">${r.연장반 > 0 ? `지금 ${r.연장아동}명 이용 · 저녁 7시 반 이후` : '저녁 7시 반 이후 보육'}</div></div>`;
     const ts = headCmp(r, '교사1인당원아');
     if (ts) C2.push(row('', '선생님 1명당 아이', `${ts.v}명`, pill(ts.cls, ts.lab), '', ts.lab === '확인 필요' ? '' : gauge(ts.v, ts.a, ts.cls)));
@@ -693,7 +710,7 @@ function detailCards(r, tags) {
     const nx = nextOf(r), st = seatOf(r), c = costOf(r);
     // 카드 A: 내년 빈자리 — 절대 숫자로 좋고 나쁨을 가를 수 없어 바탕색 없음(0자리·반 없음만 글자 빨강)
     let head = '내년 빈자리', num = '<span class="na">정보 없음</span>', cls = '';
-    if (nx && nx.v != null) { head = `내년 만 ${nx.age}세 빈자리`; num = nx.v ? `${nx.v}<small>자리</small><em>(추정)</em>` : '<span class="b">없음</span><em>(추정)</em>'; }
+    if (nx && nx.v != null) { head = `내년 만 ${nx.age}세 빈자리`; num = nx.v ? `${cu(nx.v)}<small>자리</small><em>(추정)</em>` : '<span class="b">없음</span><em>(추정)</em>'; }
     else if (nx && nx.none) { head = `내년 만 ${nx.age}세 빈자리`; num = '<span class="b">반 없음</span>'; }
     const sc = st && fillCls(st.pct);
     const now = st && !st.none && st.cap ? `<div class="foot"><div class="fl"><span>현재 ${st.mix ? '혼합반' : `만 ${st.age}세 반`}</span><span>${st.kids}/${st.cap}명 ${pill(sc, seatLab(st.pct))}</span></div>${bar(st.pct, sc)}</div>` : '';
@@ -703,7 +720,7 @@ function detailCards(r, tags) {
     if (c && c.none) bnum = `<span class="na">만 ${c.age}세 반 없음</span>`;
     else if (c) {
       const sp = c.sp ? c.sp.v || 0 : 0, tot = c.edu + c.aft + sp, avg = costAvg3(r.유형, c.age - 3, r.구);
-      bnum = tot === 0 ? '0<small>원</small>' : won(tot).replace(/(만원|원)$/, '<small>$1</small>');
+      bnum = bigWon(tot);
       bsub = tot === 0 ? '교육비·방과후·특성화비 모두 0원' : `교육비 ${man(c.edu)} + 방과후 ${man(c.aft)} + 특성화 ${man(sp)}`;
       const d = avg == null ? null : Math.round((tot - avg) / 10000);
       const who = `${r.구} ${r.유형} 평균`;
@@ -728,7 +745,7 @@ function detailCards(r, tags) {
   }
   out.push(`<div class="cgrid">${A}${B}</div>`);
   if (C2.length) out.push(`<div class="ccard"><div class="ct">${ICON.kids}${isDC(r) ? '보육 환경' : '반·선생님'}</div>${C2.join('')}</div>`);
-  out.push(`<div class="dtags">${tags && tags.length ? tags.map(tagChip).join('') : '<span class="dtag">특이사항 없음</span>'}</div>`);
+  out.push(`<div class="ccard"><div class="ct">${ICON.star}이 ${isDC(r) ? '어린이집' : '유치원'}의 특징</div><div class="dtags">${tags && tags.length ? tags.map(tagChip).join('') : '<span class="dtag">특이사항 없음</span>'}</div></div>`);
   if (C3.length) out.push(`<div class="ccard">${C3.join('<div class="sep"></div>')}</div>`);
   return `<div class="dcards">${out.join('')}</div>`;
 }
@@ -1370,12 +1387,27 @@ async function start() {
     document.title = `${NOUN()} 비교 | 킨더맵`;
   }
 
+  // 핵심 수치 카운트업(0 → 값, 0.8초, 끝에서 느려짐). 카드 등장 순서에 맞춰 조금 늦게 시작
+  function countUp(root) {
+    root.querySelectorAll('.cu').forEach((el) => {
+      const to = +el.dataset.to, dec = +el.dataset.dec || 0;
+      if (!to) return;
+      const fmt = (v) => v.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
+      el.textContent = fmt(0);
+      const t0 = performance.now() + 150, D = 800;
+      const f = (t) => { const k = Math.max(0, Math.min(1, (t - t0) / D)); el.textContent = fmt(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); };
+      requestAnimationFrame(f);
+    });
+  }
+
   // ---------- 상세 화면 ----------
   function openDetail(id, keep) {
     const r = byId(id); if (!r) return;
     S.open = id;
     if (!keep && location.hash !== '#k' + id) { location.hash = 'k' + id; return; }
     const dsc = describe(r);
+    const fresh = $('detail').hidden || S.animId !== id;
+    S.animId = id;
     const inCmp = store.get().includes(id);
     const d = S.dist && S.dist[id] != null ? `기준 위치에서 ${S.dist[id].toFixed(1)}km · ` : '';
     $('d-title').textContent = r.유치원명;
@@ -1390,6 +1422,8 @@ async function start() {
       </div>
       <ul class="facts full">${dsc.facts.map(([k, v, cmp, c]) => `<li><span class="k">${k}</span><span class="v ${c ? 'c-' + c : ''}">${v}${cmp ? `<span class="cmp">${cmp}</span>` : ''}</span></li>`).join('')}</ul>
       ${(({ L, src }) => `<div class="srcnote"><b>자료 기준</b>${L.map(([k, v]) => `<div><span>${k}</span>${esc(v)}</div>`).join('')}<p>${src}</p><p>정보가 다르거나 바뀐 게 있으면 <a href="mailto:${MAIL}?subject=${encodeURIComponent('[정정 요청] ' + r.유치원명)}">${MAIL}</a>으로 알려 주세요.</p></div>`)(srcNote(r))}`;
+    const dc = $('d-body').querySelector('.dcards');
+    if (dc && fresh && !matchMedia('(prefers-reduced-motion: reduce)').matches) { dc.classList.add('anim'); countUp(dc); }
     $('d-body').querySelectorAll('.evdoc[data-ev]').forEach(loadEvDoc);
     $('d-body').querySelectorAll('.spdoc[data-sp]').forEach(loadSpDoc);
     $('d-body').querySelectorAll('details[data-full]').forEach((det) => det.addEventListener('toggle', () => det.open && loadEvFull(det)));
