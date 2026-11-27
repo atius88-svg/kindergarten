@@ -73,6 +73,25 @@ for row in DCJ['rows']:
         row += [len(TIPS[k]), [n for n, pat in FEAT if re.search(pat, full[k])][:3], None]
     else:
         row += [None, None, None]
+# 좌표 점검: 같은 구·시 어린이집 좌표의 중앙값에서 10km 넘게 떨어진 곳은 공공 API 좌표 오류로 보고
+# 일단 그 구·시 가운데로 옮겨 두고(엉뚱한 곳에 찍히지 않게), 화면에서 카카오 주소 검색으로 정확한 위치를 찾는다(dc.json 'fix').
+import math, statistics
+ci = {c: i for i, c in enumerate(DCJ['cols'])}
+by_gu = {}
+for row in DCJ['rows']:
+    by_gu.setdefault(row[ci['구']], []).append(row)
+DCJ['fix'] = []
+for gu, rs in by_gu.items():
+    mla = statistics.median(x[ci['위도']] for x in rs); mlo = statistics.median(x[ci['경도']] for x in rs)
+    dist = lambda x: math.hypot((x[ci['위도']] - mla) * 111, (x[ci['경도']] - mlo) * 88)
+    ds = sorted(dist(x) for x in rs)
+    lim = max(10, 1.5 * ds[int(len(ds) * 0.95)])  # 넓은 시(남양주·김포 등)는 바깥쪽도 멀어서, 그 지역 95% 거리의 1.5배와 10km 중 큰 값
+    for x in rs:
+        dk = dist(x)
+        if dk > lim:
+            print(f'좌표 의심: {x[ci["id"]]} {x[ci["유치원명"]]} ({gu}, 가운데서 {dk:.0f}km) → {gu} 가운데로, 화면에서 주소로 다시 찾음')
+            DCJ['fix'].append([x[ci['id']], x[ci['주소']]])
+            x[ci['위도']], x[ci['경도']] = round(mla, 6), round(mlo, 6)
 dc = json.dumps(DCJ, ensure_ascii=False, separators=(',', ':'))
 tips_json = json.dumps({'c' + k: v for k, v in sorted(TIPS.items()) if v}, ensure_ascii=False, separators=(',', ':'))
 open(os.path.join(d, '..', 'dc_tips.json'), 'w', encoding='utf-8').write(tips_json + '\n')
