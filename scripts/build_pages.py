@@ -35,7 +35,7 @@ def cost5(i):
 
 def nearby(r, km=1.0, n=5):
     v = [(dist_m(r, o), o) for o in ROWS if o['id'] != r['id'] and o['상태'] is None and o['위도'] and o['경도']]
-    return sorted((d, o) for d, o in v if d <= km * 1000)[:n]
+    return sorted(((d, o) for d, o in v if d <= km * 1000), key=lambda x: (x[0], x[1]['id']))[:n]  # 같은 좌표(같은 건물)면 id순
 AGE = ['만 3세', '만 4세', '만 5세', '혼합반', '특수반']
 e = html.escape
 
