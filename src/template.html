@@ -426,7 +426,7 @@
       <div class="icons kg-only"><span><i data-ic="won"></i>월 비용</span><span><i data-ic="kids"></i>원아 수</span><span><i data-ic="cls"></i>한 반 인원</span><span><i data-ic="tch"></i>선생님 1명 : 아이</span><span><i data-ic="clock"></i>운영시간</span><span><i data-ic="bus"></i>통학차량</span></div>
       <div class="icons dc-only"><span><i data-ic="wait"></i>입소 대기</span><span><i data-ic="moon"></i>연장보육반</span><span><i data-ic="kids"></i>현원/정원</span><span><i data-ic="bus"></i>통학차량</span><span><i data-ic="tch"></i>선생님 1명 : 아이</span><span><i data-ic="star"></i>평가</span></div>
       <div class="legend kg-only">지도를 누르면 그곳이 기준 위치가 됩니다. 출처: 유치원알리미 2026년 정보공시</div>
-      <div class="legend dc-only">지도를 누르면 그곳이 기준 위치가 됩니다. 서울 25개 구 어린이집. 출처: 어린이집정보공개포털·공공데이터포털</div>
+      <div class="legend dc-only">지도를 누르면 그곳이 기준 위치가 됩니다. 서울 25개 구·성남·광명 어린이집. 출처: 어린이집정보공개포털·공공데이터포털</div>
       <div class="legend">정보 정정·문의: <a href="mailto:kindermap2026@gmail.com">kindermap2026@gmail.com</a></div>
     </details>
   </aside>
@@ -781,15 +781,16 @@ let WAIT_P75 = [], WAIT_MED = null;
 function initDC(DC) {
   DROWS = DC.rows.map((v) => Object.fromEntries(DC.cols.map((c, i) => [c, v[i]])));
   DC_BY = new Map(DROWS.map((r) => [r.id, r]));
+  const SEO = DROWS.filter((r) => !r.id.startsWith('c41'));  // 평균·대기 기준은 화면 문구대로 '서울'만(경기 곳도 서울 평균과 비교)
   DC_TYPES.forEach((t) => {
     DAVG[t] = {};
     ['교사1인당원아', '4년이상비율', '1년미만비율', '원아수'].forEach((k) => {
-      const v = DROWS.filter((r) => r.유형 === t && r[k] != null).map((r) => +r[k]);
+      const v = SEO.filter((r) => r.유형 === t && r[k] != null).map((r) => +r[k]);
       const m = v.reduce((a, b) => a + b, 0) / v.length;
       DAVG[t][k] = { m, sd: Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / Math.max(1, v.length - 1)) };
     });
   });
-  const w = DROWS.filter((r) => r.대기);
+  const w = SEO.filter((r) => r.대기);
   WAIT_P75 = WAIT_LAB.map((_, i) => { const v = w.map((r) => r.대기[i]).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length * 0.75)] : null; });
   const tot = w.map((r) => r.대기[7]).sort((a, b) => a - b);
   WAIT_MED = tot.length ? tot[Math.floor(tot.length / 2)] : null;
@@ -1159,7 +1160,7 @@ function loadCond() {
 }
 
 const SEOUL = { lat: 37.5665, lng: 126.978 };
-const inSeoul = (lat, lng) => lat > 37.41 && lat < 37.72 && lng > 126.76 && lng < 127.19;
+const inSeoul = (lat, lng) => lat > 37.33 && lat < 37.72 && lng > 126.76 && lng < 127.20;  // 서울 + 경기 시험 지역(성남 분당까지·광명)
 function guCenter(gu) {
   const rs = cur().filter((r) => r.구 === gu);
   return { lat: rs.reduce((a, r) => a + r.위도, 0) / rs.length, lng: rs.reduce((a, r) => a + r.경도, 0) / rs.length };
@@ -1578,7 +1579,7 @@ async function start() {
       }
       places.keywordSearch(q, (pr, ps) => {
         show(ps === kakao.maps.services.Status.OK ? pr.map((x) => ({ name: x.place_name, addr: x.road_address_name || x.address_name, lat: +x.y, lng: +x.x })) : []);
-      }, { location: new kakao.maps.LatLng(37.5665, 126.978), radius: 20000 });
+      }, { location: new kakao.maps.LatLng(S.lat, S.lng), radius: 20000 });  // 지금 지도 기준(분당은 서울시청에서 20km 넘음)
     });
   });
   drawHome();

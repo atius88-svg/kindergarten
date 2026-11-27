@@ -58,6 +58,14 @@ jobs:
         continue-on-error: true
         timeout-minutes: 50
         run: python3 scripts/fetch_detail.py --days 25 --minutes 40
+      - name: 어린이집 API에서 받기 (서울 25개 구 + 경기 시험 지역, 운영키 만료 2027-11-09) — 명단을 먼저 받아야 새로 생긴 곳도 아래 포털·평가 수집 대상이 됨
+        id: dc
+        if: env.ONLY == '전체' || env.ONLY == '어린이집만'
+        continue-on-error: true
+        timeout-minutes: 15
+        env:
+          CHILDCARE_API_KEY: ${{ secrets.CHILDCARE_API_KEY }}
+        run: python3 scripts/fetch_dc.py
       - name: 어린이집 포털 화면(운영시간·평가·연장보육) — 받은 지 90일 넘은 곳만, 최대 90분(한 곳 약 4초)
         id: portal
         if: env.ONLY == '전체' || env.ONLY == '어린이집만'
@@ -78,14 +86,12 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python3 scripts/analyze_dc_eval.py --minutes 35 ${{ inputs.ai_limit && format('--limit {0}', inputs.ai_limit) || '' }}
-      - name: 어린이집 API에서 받기 (서울 25개 구, 운영키 만료 2027-11-09)
-        id: dc
+      - name: 어린이집 포털 값 합치기 (방금 받은 운영시간·평가·연장보육을 dc_seoul.json에 반영, API 호출 없음)
+        id: dcmerge
         if: env.ONLY == '전체' || env.ONLY == '어린이집만'
         continue-on-error: true
-        timeout-minutes: 15
-        env:
-          CHILDCARE_API_KEY: ${{ secrets.CHILDCARE_API_KEY }}
-        run: python3 scripts/fetch_dc.py
+        timeout-minutes: 5
+        run: python3 scripts/fetch_dc.py --merge
       - name: 기관별 정적 페이지(k/) 빌드
         id: pages
         continue-on-error: true   # 한 곳 오류로 갱신 전체가 막히지 않게(오류 난 페이지는 예전 파일 유지)
@@ -127,10 +133,11 @@ jobs:
             유치원 API=${{ steps.kg.outcome }}
             유치원 원비=${{ steps.cost.outcome }}
             유치원 상세정보=${{ steps.detail.outcome }}
+            어린이집 API=${{ steps.dc.outcome }}
             어린이집 포털=${{ steps.portal.outcome }}
             어린이집 평가결과서=${{ steps.dceval.outcome }}
             어린이집 평가 AI 정리=${{ steps.dcai.outcome }}
-            어린이집 API=${{ steps.dc.outcome }}
+            어린이집 포털 값 합치기=${{ steps.dcmerge.outcome }}
             index.html 빌드=${{ steps.build.outcome }}
             k/ 페이지 빌드=${{ steps.pages.outcome }}
             공유 미리보기 빌드=${{ steps.share.outcome }}

@@ -3,6 +3,8 @@
 사용법 (저장소 루트에서):
     CHILDCARE_API_KEY=운영키 python3 scripts/fetch_dc.py
     python3 scripts/fetch_dc.py --fixtures 폴더   # {시군구코드}.json(응답 item 목록)으로 오프라인 테스트, 파일은 안 씀
+    python3 scripts/fetch_dc.py --merge           # API는 안 부르고, dc_portal.json 값만 dc_seoul.json에 다시 합침
+                                                  # (워크플로: API → 포털 수집 → 합치기 순서라 새로 생긴 곳도 같은 달에 채워짐)
 
 - 운영계정 키 필요(개발키는 01, 02… 자리표시 값만 돌려줌). 운영계정 만료 2027-11-09 → 12개월마다 갱신.
 - API에 없는 운영시간·평가·연장보육은 src/data/dc_portal.json(scripts/fetch_dc_portal.py, 포털 화면 수집)에서,
@@ -23,7 +25,9 @@ DISTRICTS = {
     '11260': '중랑구', '11290': '성북구', '11305': '강북구', '11320': '도봉구', '11350': '노원구', '11380': '은평구',
     '11410': '서대문구', '11440': '마포구', '11470': '양천구', '11500': '강서구', '11530': '구로구', '11545': '금천구',
     '11560': '영등포구', '11590': '동작구', '11620': '관악구', '11650': '서초구', '11680': '강남구', '11710': '송파구',
-    '11740': '강동구'}
+    '11740': '강동구',
+    # 경기도 1차 시험(2026-11-27): 성남(구 3곳)·광명(구 없음). 시군구 코드는 행정표준코드 기준, 첫 실행에서 확인
+    '41131': '성남 수정구', '41133': '성남 중원구', '41135': '성남 분당구', '41210': '광명시'}
 KEEP = ['운영시간', '평가완료', '평가연월', '평가', '연장반', '연장아동']  # API에 없는 항목
 # 나이별 반(cpmsapi030 명세서 v1.7): class_cnt_*/child_cnt_* — 만0~5세, 영아혼합(0~2), 영유아혼합(2~3), 유아혼합(3~5), 특수
 AGES = ['00', '01', '02', '03', '04', '05', 'M2', 'M3', 'M5', 'SP']
@@ -102,8 +106,28 @@ def convert(a, gu):
     }
 
 
+def merge_portal():
+    d = json.load(open(DATA, encoding='utf-8'))
+    portal = json.load(open(PORTAL, encoding='utf-8')) if os.path.exists(PORTAL) else {}
+    idx = {c: i for i, c in enumerate(d['cols'])}
+    n = 0
+    for row in d['rows']:
+        pt = portal.get(row[idx['id']][1:])
+        if not pt:
+            continue  # 포털 값이 없으면 지금 값 유지(fetch_dc 본 실행과 같은 규칙)
+        for k in KEEP:
+            v = pt.get(k) if k != '운영시간' else (pt.get(k) or None)
+            if row[idx[k]] != v:
+                row[idx[k]] = v; n += 1
+    with open(DATA, 'w', encoding='utf-8') as f:
+        json.dump(d, f, ensure_ascii=False, separators=(',', ':'))
+    print(f'포털 값 합치기: {len(d["rows"])}곳 중 바뀐 칸 {n}개')
+
+
 def main():
     args = sys.argv[1:]
+    if args[:1] == ['--merge']:
+        return merge_portal()
     test = args[:1] == ['--fixtures']
     raw = []
     for code, gu in DISTRICTS.items():
