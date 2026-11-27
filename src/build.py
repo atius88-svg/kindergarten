@@ -73,25 +73,32 @@ for row in DCJ['rows']:
         row += [len(TIPS[k]), [n for n, pat in FEAT if re.search(pat, full[k])][:3], None]
     else:
         row += [None, None, None]
-# 좌표 점검: 같은 구·시 어린이집 좌표의 중앙값에서 10km 넘게 떨어진 곳은 공공 API 좌표 오류로 보고
-# 일단 그 구·시 가운데로 옮겨 두고(엉뚱한 곳에 찍히지 않게), 화면에서 카카오 주소 검색으로 정확한 위치를 찾는다(dc.json 'fix').
+# 좌표 점검: 같은 구·시 좌표의 중앙값에서 max(10km, 그 지역 95% 거리×1.5)보다 먼 곳은 공공 API 좌표 오류로 보고
+# 일단 그 구·시 가운데로 옮겨 두고(엉뚱한 곳에 찍히지 않게), 화면에서 카카오 주소 검색으로 정확한 위치를 찾는다('fix': [[id, 주소]]).
 import math, statistics
-ci = {c: i for i, c in enumerate(DCJ['cols'])}
-by_gu = {}
-for row in DCJ['rows']:
-    by_gu.setdefault(row[ci['구']], []).append(row)
-DCJ['fix'] = []
-for gu, rs in by_gu.items():
-    mla = statistics.median(x[ci['위도']] for x in rs); mlo = statistics.median(x[ci['경도']] for x in rs)
-    dist = lambda x: math.hypot((x[ci['위도']] - mla) * 111, (x[ci['경도']] - mlo) * 88)
-    ds = sorted(dist(x) for x in rs)
-    lim = max(10, 1.5 * ds[int(len(ds) * 0.95)])  # 넓은 시(남양주·김포 등)는 바깥쪽도 멀어서, 그 지역 95% 거리의 1.5배와 10km 중 큰 값
-    for x in rs:
-        dk = dist(x)
-        if dk > lim:
-            print(f'좌표 의심: {x[ci["id"]]} {x[ci["유치원명"]]} ({gu}, 가운데서 {dk:.0f}km) → {gu} 가운데로, 화면에서 주소로 다시 찾음')
-            DCJ['fix'].append([x[ci['id']], x[ci['주소']]])
-            x[ci['위도']], x[ci['경도']] = round(mla, 6), round(mlo, 6)
+
+
+def fix_coords(J, addr_of, what):
+    ci = {c: i for i, c in enumerate(J['cols'])}
+    by_gu = {}
+    for row in J['rows']:
+        by_gu.setdefault(row[ci['구']], []).append(row)
+    J['fix'] = []
+    for gu, rs in by_gu.items():
+        mla = statistics.median(x[ci['위도']] for x in rs); mlo = statistics.median(x[ci['경도']] for x in rs)
+        dist = lambda x: math.hypot((x[ci['위도']] - mla) * 111, (x[ci['경도']] - mlo) * 88)
+        ds = sorted(dist(x) for x in rs)
+        lim = max(10, 1.5 * ds[int(len(ds) * 0.95)])  # 넓은 시(남양주·김포 등)는 바깥쪽도 멀어서
+        for x in rs:
+            dk = dist(x)
+            addr = addr_of(x, ci)
+            if dk > lim and addr:
+                print(f'{what} 좌표 의심: {x[ci["id"]]} {x[ci["유치원명"]]} ({gu}, 가운데서 {dk:.0f}km) → {gu} 가운데로, 화면에서 주소로 다시 찾음')
+                J['fix'].append([str(x[ci['id']]), addr])
+                x[ci['위도']], x[ci['경도']] = round(mla, 6), round(mlo, 6)
+
+
+fix_coords(DCJ, lambda x, ci: x[ci['주소']], '어린이집')
 dc = json.dumps(DCJ, ensure_ascii=False, separators=(',', ':'))
 tips_json = json.dumps({'c' + k: v for k, v in sorted(TIPS.items()) if v}, ensure_ascii=False, separators=(',', ':'))
 open(os.path.join(d, '..', 'dc_tips.json'), 'w', encoding='utf-8').write(tips_json + '\n')
@@ -148,12 +155,12 @@ open(os.path.join(d, '..', 'dc', 'index.html'), 'w', encoding='utf-8').write(f''
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>킨더맵 — 우리동네 어린이집 지도</title>
-<meta name="description" content="서울 어린이집의 평가, 입소 대기, 연장보육, 선생님 근속을 지도에서 한눈에 비교해요. 어린이집정보공개포털 공시 자료 기준.">
+<meta name="description" content="서울·경기 어린이집의 평가, 입소 대기, 연장보육, 선생님 근속을 지도에서 한눈에 비교해요. 어린이집정보공개포털 공시 자료 기준.">
 <link rel="canonical" href="https://kindermap.kr/dc/">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="킨더맵">
-<meta property="og:title" content="킨더맵 — 서울 어린이집 평가·입소 대기 비교 지도">
+<meta property="og:title" content="킨더맵 — 서울·경기 어린이집 평가·입소 대기 비교 지도">
 <meta property="og:description" content="평가, 입소 대기, 연장보육, 선생님 근속을 지도에서 비교해요.">
 <meta property="og:url" content="https://kindermap.kr/dc/">
 <meta property="og:image" content="https://kindermap.kr/og-dc.png?v={og_dc_v}">
@@ -162,7 +169,14 @@ open(os.path.join(d, '..', 'dc', 'index.html'), 'w', encoding='utf-8').write(f''
 <script>location.replace('../?m=dc' + location.hash)</script>
 </head><body><p><a href="../?m=dc">킨더맵 어린이집 지도 열기</a></p></body></html>
 ''')
-h = (r('template.html').replace('%%OG_V%%', og_v).replace('%%NOSHARE%%', json.dumps(noshare)).replace('%%SHARE_V%%', share_v).replace('%%DATA%%', r('data/kg_seoul.json.txt'))
+KGD = json.loads(r('data/kg_seoul.json.txt'))
+_det = json.loads(r('data/kg_detail.json'))
+def _kg_addr(x, ci):  # kg_detail 주소: 서울은 '서울특별시'를 뗀 '성북구 …', 경기는 '경기도 …'
+    a = (_det.get(str(x[ci['id']])) or {}).get('addr')
+    return (a if a.startswith('경기') else '서울특별시 ' + a) if a else None
+fix_coords(KGD, _kg_addr, '유치원')
+kg_data = json.dumps(KGD, ensure_ascii=False, separators=(',', ':'))
+h = (r('template.html').replace('%%OG_V%%', og_v).replace('%%NOSHARE%%', json.dumps(noshare)).replace('%%SHARE_V%%', share_v).replace('%%DATA%%', kg_data)
      .replace('%%COST%%', cost_json).replace('%%SP_V%%', sp_v).replace('%%META%%', meta).replace('%%DC_URL%%', f'dc.json?v={ver}')
      .replace('%%RCRT%%', r('data/kg_rcrt.json')).replace('%%DET%%', det).replace('%%EV_V%%', ev_v))
 open(os.path.join(d, '..', 'index.html'), 'w', encoding='utf-8').write(h + '\n' if not h.endswith('\n') else h)

@@ -1540,18 +1540,16 @@ async function start() {
   // 우리 집: 주소·아파트 이름 검색 또는 지금 기준 위치로 저장 (localStorage 'kg-home')
   const geo = kakao.maps.services ? new kakao.maps.services.Geocoder() : null;
   const places = kakao.maps.services ? new kakao.maps.services.Places() : null;
-  // 공공 API 좌표가 틀린 어린이집(빌드 때 그 구·시 가운데로 옮겨 둔 곳, dc.json 'fix')을 주소로 다시 찾아 마커를 옮긴다
-  let fixed = false;
-  fixPos = () => {
-    if (fixed || !geo || !DC_FIX.length) return;
-    fixed = true;
-    DC_FIX.forEach(([id, addr]) => geo.addressSearch(addr, (res, st) => {
-      const r = DC_BY.get(id);
-      if (!r || st !== kakao.maps.services.Status.OK || !res.length) return;
-      r.위도 = +res[0].y; r.경도 = +res[0].x;
-      if (ovs.has(id)) ovs.get(id).setPosition(new kakao.maps.LatLng(r.위도, r.경도));
-    }));
-  };
+  // 공공 API 좌표가 틀린 곳(빌드 때 그 구·시 가운데로 옮겨 둔 곳, 'fix')을 카카오 주소 검색으로 다시 찾아 마커를 옮긴다
+  const fixList = (list, BY) => geo && list.forEach(([id, addr]) => geo.addressSearch(addr, (res, st) => {
+    const r = BY.get(id);
+    if (!r || st !== kakao.maps.services.Status.OK || !res.length) return;
+    r.위도 = +res[0].y; r.경도 = +res[0].x;
+    if (ovs.has(id)) ovs.get(id).setPosition(new kakao.maps.LatLng(r.위도, r.경도));
+  }));
+  fixList(RAW.fix || [], KG_BY);  // 유치원(index.html 안)
+  let fixedDC = false;
+  fixPos = () => { if (!fixedDC && DC_FIX.length) { fixedDC = true; fixList(DC_FIX, DC_BY); } };  // 어린이집(dc.json을 받은 뒤)
   if (DROWS.length) fixPos();
   const drawHome = () => {
     const h = HOME.get();
