@@ -765,7 +765,7 @@ const busBadge = (r) => isDC(r) ? '' : r.차량운영여부 === '운영'
 // ---------- 어린이집 (서울 25개 구) ----------
 // 출처: 어린이집정보공개포털 OPEN API(기본·나이별 반·입소 대기) + 포털 화면(운영시간·평가·연장보육).
 // 크기가 커서(약 1.4MB) index.html에 넣지 않고 dc.json을 어린이집 모드에 들어갈 때만 불러온다(src/build.py가 만든다).
-const DC_URL = 'dc.json?v=e559c9dd1f';
+const DC_URL = 'dc.json?v=c0bb8a3ccc';
 // 사이트 맨 앞 주소. 상세를 열면 주소창을 s/{id}.html로 바꾸므로(사파리 자체 공유도 그곳 미리보기가 가게) 파일은 늘 이 주소 기준으로 받는다
 const ROOT = new URL('./', location.href.split('#')[0]).href;
 const at = (p) => new URL(p, ROOT).href;
@@ -812,7 +812,7 @@ function waitOf(r) {
 // 개편 전 평가(총평 문구가 있거나 2024-07 이전)는 '제도 개편 전 평가'로 따로 표시한다.
 const EVAL_NOTE_OLD = '2024년 7월 평가제 개편 이전에 받은 평가예요(4개 영역). A~D 등급은 개편 때 삭제돼 당시 총평 문구를 보여드려요.';
 const EVAL_NOTE_NEW = '2024년 7월 개편된 평가제로 받은 평가예요. A~D 등급은 없어요.';
-const EV_V = '03c40b27';  // dc_tips.json 버전
+const EV_V = '81fd585d';  // dc_tips.json 버전
 // 개편 후 평가의 보완 권고 문장(dc_tips.json: {id: [[영역, 문장]]}) — 보완 권고가 있는 곳 상세를 처음 열 때 한 번 받는다
 let tipsLoad = null;
 const PORTAL_EVAL = (id) => `https://info.childcare.go.kr/info_html5/pnis/search/preview/AppraisaAuthenticationGradeSlPu.jsp?flag=PI&STCODE_POP=${id.slice(1)}`;
