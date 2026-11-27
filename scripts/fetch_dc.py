@@ -138,6 +138,7 @@ def main():
         return merge_portal()
     test = args[:1] == ['--fixtures']
     raw = []
+    city_cache = {}
     for code, gu in DISTRICTS.items():
         if test:
             items = json.load(open(os.path.join(args[1], code + '.json'), encoding='utf-8'))
@@ -145,7 +146,18 @@ def main():
             key = os.environ.get('CHILDCARE_API_KEY')
             if not key:
                 sys.exit('CHILDCARE_API_KEY 환경변수가 없습니다.')
-            items = fetch(code, key)
+            try:
+                items = fetch(code, key)
+            except RuntimeError as e:
+                if 'INFO-200' not in str(e) or ' ' not in gu:
+                    raise
+                # 구 코드로 0곳이면(2026-11 용인 수지구 41465) 시 코드로 받아 주소의 구 이름으로 고른다
+                city = code[:4] + '0'
+                allc = city_cache.get(city) or fetch(city, key)
+                city_cache[city] = allc
+                g = gu.split()[1]
+                items = [a for a in allc if f' {g} ' in f" {a.get('craddr', '')} "]
+                print(f'  {gu}: 구 코드 결과 없음 → 시 코드 {city}({len(allc)}곳)에서 주소로 {len(items)}곳', file=sys.stderr)
             time.sleep(1)
         print(f'{gu}: {len(items)}곳')
         raw += [(a, gu) for a in items]
