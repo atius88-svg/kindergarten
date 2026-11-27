@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>킨더맵 — 우리동네 유치원·어린이집 지도</title>
-<meta name="description" content="서울 유치원·어린이집 원비, 빈자리, 입소 대기, 평가를 지도에서 한눈에 비교해요.">
+<meta name="description" content="서울·경기 유치원·어린이집 원비, 빈자리, 입소 대기, 평가를 지도에서 한눈에 비교해요.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="킨더맵">
-<meta property="og:title" content="킨더맵 — 서울 유치원·어린이집 원비·빈자리 비교 지도">
+<meta property="og:title" content="킨더맵 — 서울·경기 유치원·어린이집 원비·빈자리 비교 지도">
 <meta property="og:description" content="평가·입소대기·특색활동·원비를 한눈에 비교해요.">
 <meta property="og:url" content="https://kindermap.kr/">
 <meta property="og:image" content="https://kindermap.kr/og.png?v=%%OG_V%%">
@@ -772,14 +772,16 @@ const at = (p) => new URL(p, ROOT).href;
 let DROWS = [];
 let dcLoad = null;
 const loadDC = () => dcLoad || (dcLoad = fetch(at(DC_URL)).then((r) => { if (!r.ok) throw new Error('dc.json ' + r.status); return r.json(); })
-  .then(initDC).catch((e) => { dcLoad = null; throw e; }));
+  .then((d) => { initDC(d); fixPos(); }).catch((e) => { dcLoad = null; throw e; }));
 const isDC = (r) => String(r.id)[0] === 'c';
 const DC_TYPES = ['국공립', '민간', '가정', '직장·법인'];
 const DC_COLOR = { 국공립: 'var(--pub)', 민간: 'var(--pri)', 가정: '#e08a00', '직장·법인': '#8a5cc2' };
 const DAVG = {};
 let WAIT_P75 = [], WAIT_MED = null;
+let DC_FIX = [], fixPos = () => {};  // 좌표 보정(아래 start()에서 채움)
 function initDC(DC) {
   DROWS = DC.rows.map((v) => Object.fromEntries(DC.cols.map((c, i) => [c, v[i]])));
+  DC_FIX = DC.fix || [];
   DC_BY = new Map(DROWS.map((r) => [r.id, r]));
   const SEO = DROWS.filter((r) => !r.id.startsWith('c41'));  // 평균·대기 기준은 화면 문구대로 '서울'만(경기 곳도 서울 평균과 비교)
   DC_TYPES.forEach((t) => {
@@ -970,7 +972,7 @@ function dcDescribe(r) {
     if (c === 'b') tags.push(['b', '새로 온 선생님이 많아요']);
     facts.push(['새 선생님', `선생님 <b>${r['1년미만비율']}%</b>가 근무 1년이 안 됐어요.`, `담임이 자주 바뀌는지 가늠하는 지표예요. 서울 ${r.유형} 평균은 ${Math.round(DAVG[r.유형]['1년미만비율'].m)}%예요.`, c]);
   }
-  facts.push(['운영 시간', r.운영시간 ? `<b>${esc(r.운영시간)}</b>` : '정보 없음', '서울 어린이집은 대부분 07:30~19:30 기본 운영이에요.', '']);
+  facts.push(['운영 시간', r.운영시간 ? `<b>${esc(r.운영시간)}</b>` : '정보 없음', '어린이집은 대부분 07:30~19:30 기본 운영이에요.', '']);
   facts.push(['시설', `보육실 <b>${r.보육실}개</b> · 놀이터 <b>${r.놀이터 ? r.놀이터 + '곳' : '없음'}</b> · CCTV <b>${r.CCTV ?? '-'}대</b>`, r.놀이터 ? '' : '바깥 놀이는 근처 공원을 이용하는지 물어보세요.', r.CCTV === 0 ? 'b' : '']);
   facts.push(['통학 차량', r.차량운영여부 === '운영' ? '<b>운영해요.</b> 노선은 어린이집에 확인하세요.' : '<b>운영하지 않아요.</b>', '', '']);
   facts.push(['연락처', `${esc(r.주소)}${r.전화 ? `<br><a href="tel:${esc(r.전화)}"><b>${esc(r.전화)}</b></a>` : ''}`, '', '']);
@@ -1537,6 +1539,19 @@ async function start() {
   // 우리 집: 주소·아파트 이름 검색 또는 지금 기준 위치로 저장 (localStorage 'kg-home')
   const geo = kakao.maps.services ? new kakao.maps.services.Geocoder() : null;
   const places = kakao.maps.services ? new kakao.maps.services.Places() : null;
+  // 공공 API 좌표가 틀린 어린이집(빌드 때 그 구·시 가운데로 옮겨 둔 곳, dc.json 'fix')을 주소로 다시 찾아 마커를 옮긴다
+  let fixed = false;
+  fixPos = () => {
+    if (fixed || !geo || !DC_FIX.length) return;
+    fixed = true;
+    DC_FIX.forEach(([id, addr]) => geo.addressSearch(addr, (res, st) => {
+      const r = DC_BY.get(id);
+      if (!r || st !== kakao.maps.services.Status.OK || !res.length) return;
+      r.위도 = +res[0].y; r.경도 = +res[0].x;
+      if (ovs.has(id)) ovs.get(id).setPosition(new kakao.maps.LatLng(r.위도, r.경도));
+    }));
+  };
+  if (DROWS.length) fixPos();
   const drawHome = () => {
     const h = HOME.get();
     homeMark.setMap(null);
