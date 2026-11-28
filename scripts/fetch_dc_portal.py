@@ -12,6 +12,7 @@
     python3 scripts/fetch_dc_portal.py --days 0        # 전부 다시
     python3 scripts/fetch_dc_portal.py --limit 20      # 앞에서 20곳만(시험)
     python3 scripts/fetch_dc_portal.py --minutes 50    # 이 시간이 지나면 저장하고 멈춤(다음 실행이 이어서 받음)
+    python3 scripts/fetch_dc_portal.py --share 12      # 90일 안 됐어도 오래된 순으로 전체의 1/12은 받음(매주 실행 → 12주에 한 바퀴, 갱신 날짜가 고르게 퍼짐)
     python3 scripts/fetch_dc_portal.py --parse 요약.html 평가.html 총평.html 연장.html   # 파서 시험
 """
 import concurrent.futures as cf, datetime, html, json, os, re, sys, time, urllib.request
@@ -109,12 +110,17 @@ def main():
         print(json.dumps(r, ensure_ascii=False))
         return
     opt = lambda k, d: int(a[a.index(k) + 1]) if k in a else d
-    days, limit, minutes, workers = opt('--days', 90), opt('--limit', 0), opt('--minutes', 0), opt('--workers', 4)
+    days, limit, minutes, workers, share = opt('--days', 90), opt('--limit', 0), opt('--minutes', 0), opt('--workers', 4), opt('--share', 0)
     dc = json.load(open(DC, encoding='utf-8'))
     ids = [r[0][1:] for r in dc['rows'] if str(r[0]).startswith('c') and r[0][1:].isdigit()]
     old = json.load(open(OUT, encoding='utf-8')) if os.path.exists(OUT) else {}
     cut = (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
     todo = [s for s in ids if s not in old or old[s].get('t', '') <= cut or days == 0]
+    if share:  # 한꺼번에 받은 곳들(2026-11 경기 확장 7천여 곳)이 같은 달에 몰리지 않게, 기한 전이라도 오래된 순으로 몫만큼 채움
+        n = -(-len(ids) // share)
+        if len(todo) < n:
+            have = set(todo)
+            todo += sorted((s for s in ids if s not in have), key=lambda s: old[s].get('t', ''))[:n - len(todo)]
     todo.sort(key=lambda s: old.get(s, {}).get('t', ''))  # 오래된 것부터
     if limit:
         todo = todo[:limit]
