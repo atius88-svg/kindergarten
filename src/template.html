@@ -88,7 +88,7 @@
   .list { overflow: auto; flex: 1; padding-bottom: 76px; }
   .item { padding: 16px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background-color .15s ease-out; }
   .item:hover, .item.on { background: var(--bg); }
-  .item:hover .badge, .item.on .badge { background: var(--panel); border-color: var(--line); }  /* 카드 바탕이 회색이 되면 배지는 흰 바탕으로 뒤집어 계속 보이게 */
+  .item:hover .badge:not(.g):not(.b):not(.n), .item.on .badge:not(.g):not(.b):not(.n) { background: var(--panel); border-color: var(--line); }  /* 카드 바탕이 회색이 되면 배지는 흰 바탕으로 뒤집어 계속 보이게 */
   .item .top { display: flex; justify-content: space-between; gap: 8px; }
   .item .name { font-weight: 600; }
   .item .name .kind { font-weight: 400; font-size: 12px; color: var(--muted); }
@@ -323,6 +323,57 @@
   body[data-mode="dc"] .kg-only, body[data-mode="kg"] .dc-only { display: none !important; }
   .kmark.hide { display: none; }
   .facts a { color: inherit; }
+  /* ---------- 첫 화면(2026-11-28 C안): 칩 줄·지도 접기·한 줄 안내·안내 창·카드 2칸 배지 ---------- */
+  .mapbox .maplegend { position: absolute; left: 10px; top: 10px; z-index: 20; padding: 4px 10px; border-radius: 8px; background: rgba(255,255,255,.94); color: #4a524d; font-size: 11.5px; box-shadow: 0 1px 4px rgba(0,0,0,.1); pointer-events: none; }
+  .mapfold { display: none; }
+  .side header { gap: 10px; padding: 12px 16px; }
+  .controls { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px 2px; }
+  .controls::-webkit-scrollbar { display: none; }
+  .controls > * { flex: none; height: 36px; min-width: 0; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); font: inherit; font-size: 14px; font-weight: 500; padding: 0 14px; white-space: nowrap; cursor: pointer; }
+  .controls > select { -webkit-appearance: none; appearance: none; padding-right: 28px; background: var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2369736d' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center; }
+  .controls > #age, .controls > #dcage { background-color: var(--brand); color: #fff; border-color: var(--brand); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); }
+  .controls > #me { display: inline-flex; align-items: center; gap: 6px; background: var(--panel); color: var(--brand); border-color: var(--brand); }
+  #cond-btn { display: inline-flex; align-items: center; gap: 4px; }
+  #cond-btn.on, #cond-btn[aria-expanded="true"] { border-color: var(--brand); color: var(--brand); }
+  .controls > #gu { max-width: 9.5em; }
+  @media (min-width: 801px) { .controls { flex-wrap: wrap; overflow: visible; } }
+  #cond-c:not(:empty) { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 2px; border-radius: 9px; background: var(--brand); color: #fff; font-size: 11px; }
+  .cond > summary { display: none; }
+  .cond:not([open]) { display: none; }
+  .intro { display: flex; align-items: center; gap: 4px; margin: 12px 16px 0; padding: 0 0 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  .intro-open { flex: 1; display: flex; align-items: center; justify-content: flex-start; gap: 8px; min-height: 44px; border: 0; background: none; padding: 0; font: inherit; font-size: 13.5px; color: #37403b; text-align: left; cursor: pointer; }
+  .intro-open b { color: var(--brand); }
+  .intro-open .q { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #ecf4ef; color: var(--brand); font-size: 11px; font-weight: 700; }
+  .intro-x { position: static; flex: none; width: 44px; height: 44px; display: grid; place-items: center; }
+  .lhead { display: flex; justify-content: space-between; padding: 12px 16px 4px; font-size: 13px; color: var(--muted); }
+  .lhead b { color: var(--brand); }
+  .guide-open { display: block; margin: 8px 0; padding: 0; border: 0; background: none; font: inherit; font-size: 12px; color: var(--brand); text-decoration: underline; cursor: pointer; }
+  .gsheet { position: fixed; inset: 0; z-index: 60; background: rgba(20,24,22,.5); display: flex; align-items: flex-end; justify-content: center; }
+  .gpanel { width: 100%; max-width: 480px; max-height: 88vh; overflow: auto; background: var(--panel); border-radius: 20px 20px 0 0; padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); display: grid; gap: 8px; }
+  @media (min-width: 801px) { .gsheet { align-items: center; } .gpanel { border-radius: 16px; } }
+  .ghead { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .ghead h2 { margin: 0; font-size: 17px; }
+  .gx { width: 36px; height: 36px; border: 0; border-radius: 50%; background: #f2f3f1; color: #4f5752; font-size: 18px; cursor: pointer; }
+  .gsteps { margin: 0; padding-left: 20px; font-size: 13.5px; line-height: 1.7; color: #37403b; }
+  .gpanel h3 { margin: 4px 0 0; font-size: 13.5px; }
+  .tier { border-radius: 12px; padding: 8px 12px; background: #f2f3f1; color: #4f5752; }
+  .tier b { display: flex; align-items: center; gap: 6px; font-size: 13.5px; }
+  .tier b i { width: 8px; height: 8px; border-radius: 50%; background: #8a918d; }
+  .tier p { margin: 2px 0 0; font-size: 12.5px; line-height: 1.5; font-weight: 400; color: inherit; }
+  .tier.g { background: #ecf4ef; color: #1a5a3a; } .tier.g i { background: var(--good); }
+  .tier.b { background: #fbeceb; color: #9e2f25; } .tier.b i { background: var(--bad); }
+  .tier.n { background: #fdf3e3; color: #8a4f0a; } .tier.n i { background: var(--neu); }
+  .gnote { margin: 0; font-size: 12px; color: var(--muted); }
+  .gok { height: 46px; border-radius: 12px; border: 0; font: inherit; font-size: 15px; font-weight: 700; margin-top: 4px; }
+  .item .nm { display: grid; gap: 2px; min-width: 0; }
+  .item .name { font-size: 15.5px; line-height: 1.35; }
+  .item .meta { font-size: 12.5px; color: #5e6662; }
+  .item .meta .dot { width: 7px; height: 7px; vertical-align: 1px; margin-right: 5px; }
+  .cbtn { height: 32px; padding: 0 10px; border-radius: 8px; }
+  .badges { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+  .badge { display: flex; flex-wrap: wrap; align-items: center; column-gap: 4px; height: auto; min-height: 30px; padding: 4px 8px; border-radius: 7px; background: #f2f3f1; line-height: 1.3; }
+  .badge.g { background: #ecf4ef; } .badge.b { background: #fbeceb; } .badge.n { background: #fdf3e3; }
+  .more { margin-top: 8px; }
   @media (max-width: 800px) {
     html, body { height: auto; }
     body { padding-bottom: 80px; }
@@ -332,6 +383,19 @@
     .brand .b2 { font-size: 21px; }
     .topbar .mode button { padding: 7px 11px; font-size: 13px; }
     #map { height: 230px; min-height: 0; }  /* 폰: 지도는 조금만, 목록이 먼저 보이게 */
+    .mapfold { display: inline-flex; align-items: center; position: absolute; right: 10px; bottom: 10px; z-index: 20; height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: var(--brand); color: #fff; font: inherit; font-size: 12.5px; font-weight: 500; box-shadow: 0 2px 6px rgba(0,0,0,.2); cursor: pointer; }
+    .mapbox.folded #map { height: 0; }
+    .mapbox.folded > :not(.mapfold) { display: none; }
+    .mapbox.folded { height: 44px; background: var(--bg); }
+    .mapbox.folded .mapfold { bottom: 6px; }
+    .side header { position: sticky; top: var(--tbh, 56px); z-index: 25; background: rgba(255,255,255,.97); }
+    .side header:has(.cond[open]) { position: static; }
+    .list { background: var(--bg); padding: 4px 12px 0; }
+    .item { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; margin-bottom: 10px; padding: 14px; }
+    .side { background: var(--bg); }
+    .item:hover, .item.on { background: var(--panel); }
+    .item.on { border-color: var(--brand); }
+    .item:hover .badge:not(.g):not(.b):not(.n), .item.on .badge:not(.g):not(.b):not(.n) { background: #f2f3f1; border-color: transparent; }
     .side { border-left: 0; border-top: 1px solid var(--line); }
     .list { overflow: visible; }
   }
@@ -346,32 +410,32 @@
   <div class="mode" role="group" aria-label="유치원 또는 어린이집"><button type="button" data-mode="kg" aria-pressed="true">유치원</button><button type="button" data-mode="dc" aria-pressed="false">어린이집</button></div>
 </header>
 <div class="app">
-  <div class="mapbox"><div id="map"></div><div class="mapsum" id="mapsum"></div><button type="button" id="research" hidden><i data-ic="redo"></i>이 지역에서 다시 찾기</button></div>
-  <aside class="side">
-    <header>
-      <div class="legend maplegend">
+  <div class="mapbox" id="mapbox"><div id="map"></div><div class="legend maplegend">
         <span><i class="dot" style="background:var(--pub)"></i>국공립</span>
         <span class="kg-only"><i class="dot" style="background:var(--pri)"></i>사립</span>
         <span class="dc-only"><i class="dot" style="background:var(--pri)"></i>민간</span>
         <span class="dc-only"><i class="dot" style="background:#e08a00"></i>가정</span>
         <span class="dc-only"><i class="dot" style="background:#8a5cc2"></i>직장·법인</span>
-      </div>
+      </div><button type="button" class="mapfold" id="mapfold" aria-expanded="true" aria-controls="mapbox">지도 접기</button><div class="mapsum" id="mapsum"></div><button type="button" id="research" hidden><i data-ic="redo"></i>이 지역에서 다시 찾기</button></div>
+  <aside class="side">
+    <header>
       <form class="find" id="find" role="search" autocomplete="off"><i data-ic="search" class="find-ic"></i><input id="find-q" type="search" placeholder="이름으로 찾기" enterkeyhint="search" aria-label="유치원·어린이집 이름 검색"><div class="find-res" id="find-res" hidden></div></form>
-      <div class="controls">
+      <div class="controls" role="group" aria-label="찾는 조건">
         <button class="primary" id="me" type="button"><i data-ic="locate"></i>내 위치</button>
-        <select id="gu" aria-label="구 선택"></select>
-        <select id="r" aria-label="반경">
-          <option value="1">1km</option><option value="2" selected>2km</option><option value="3">3km</option><option value="5">5km</option>
-        </select>
         <select id="age" class="kg-only" aria-label="아이 나이">
           <option value="0">만 3세</option><option value="1">만 4세</option><option value="2">만 5세</option>
         </select>
         <select id="dcage" class="dc-only" aria-label="아이 나이(어린이집)">
           <option value="">나이 전체</option><option value="0">만 0세</option><option value="1">만 1세</option><option value="2">만 2세</option><option value="3">만 3세</option><option value="4">만 4세</option><option value="5">만 5세</option>
         </select>
-        <select id="type" aria-label="유형">
-          <option value="">전체</option><option value="국공립">국공립</option><option value="사립">사립</option>
+        <select id="r" aria-label="반경">
+          <option value="1">1km</option><option value="2" selected>2km</option><option value="3">3km</option><option value="5">5km</option>
         </select>
+        <select id="gu" aria-label="구 선택"></select>
+        <select id="type" aria-label="유형">
+          <option value="">유형 전체</option><option value="국공립">국공립</option><option value="사립">사립</option>
+        </select>
+        <button type="button" id="cond-btn" aria-expanded="false" aria-controls="cond"><i data-ic="home"></i>우리 집·조건 <span id="cond-c"></span></button>
       </div>
       <details class="cond" id="cond"><summary><i data-ic="home"></i>우리 집·조건 <small id="cond-n">설정 안 함</small></summary>
         <div class="cond-grid">
@@ -408,17 +472,13 @@
       </details>
     </header>
     <div class="intro" id="intro" hidden>
+      <button type="button" class="intro-open" id="intro-open"><span class="q" aria-hidden="true">?</span><span>처음 오셨나요? <b>보는 법 ›</b></span></button>
       <button type="button" class="intro-x" id="intro-x" aria-label="안내 닫기">×</button>
-      <b>처음 오셨나요?</b>
-      <ol>
-        <li><b>위치</b>를 정하면 반경 안 <span class="noun">유치원</span>을 가까운 순으로 보여 줘요.</li>
-        <li><b>아이 나이</b>를 고르면 그 나이 반 기준으로 비용·자리를 비교해요.</li>
-        <li>카드를 누르면 자세히, <b>비교</b>를 누르면 3곳까지 나란히 봐요.</li>
-      </ol>
-      <div class="intro-btns"><button type="button" class="primary" id="intro-me"><i data-ic="locate"></i>내 위치로 보기</button><button type="button" id="intro-home"><i data-ic="home"></i>우리 집 정하기</button></div>
     </div>
+    <div class="lhead" id="lhead"></div>
     <div class="list" id="list"></div>
     <details class="guide"><summary>보는 법 · 출처</summary>
+      <button type="button" class="guide-open" id="guide-open">처음 오셨나요? 안내 다시 보기</button>
       <div class="summary" id="summary"></div>
       <div class="legend">
         <span><span class="g">초록</span> 학부모에게 좋은 점 · <span class="b">빨강</span> 확인해볼 점 · <span class="n">주황</span> 다른 곳과 다른 점<span class="dc-only"> · 연한 초록 칩은 평가결과서에 나온 특색 활동</span></span>
@@ -439,7 +499,22 @@
   <div class="bar"><button class="iconbtn" type="button" id="c-back" aria-label="닫기"><i data-ic="back"></i></button><b id="c-title">유치원 비교</b></div>
   <div class="body" id="c-body"></div>
 </div></div>
-<div class="cbar" id="cbar"><span class="names" id="c-names"></span><button class="clr" type="button" id="c-clear" hidden>비우기</button><button class="go" type="button" id="c-go">비교하기</button></div>
+<div class="gsheet" id="gsheet" hidden><section class="gpanel" role="dialog" aria-modal="true" aria-labelledby="g-title">
+  <div class="ghead"><h2 id="g-title">처음 오셨나요?</h2><button type="button" class="gx" id="g-x" aria-label="닫기">×</button></div>
+  <ol class="gsteps">
+    <li><b>위치</b>를 정하면 가까운 순으로 보여 줘요.</li>
+    <li><b>아이 나이</b>를 고르면 그 반 기준으로 비교해요.</li>
+    <li><b>비교</b>를 누르면 3곳까지 나란히 봐요.</li>
+  </ol>
+  <h3>배지 색깔은 평균과 비교한 거예요</h3>
+  <div class="tier g"><b><i></i>초록 · 좋은 점</b><p class="kg-only">원비가 싸거나, 반이 작거나, 자리에 여유가 있어요.</p><p class="dc-only">연장보육반이 있거나, 대기가 없거나, 자리에 여유가 있어요.</p></div>
+  <div class="tier b"><b><i></i>빨강 · 물어볼 점</b><p class="kg-only">원비가 비싸거나, 반이 크거나, 자리가 거의 찼어요. 나쁘다는 뜻은 아니에요.</p><p class="dc-only">대기가 많거나, 연장보육반이 없거나, 자리가 거의 찼어요. 나쁘다는 뜻은 아니에요.</p></div>
+  <div class="tier n"><b><i></i>주황 · 다른 점</b><p class="kg-only">통학차량이 없거나, 아이 수가 유독 많거나 적어요.</p><p class="dc-only">통학차량이 없어요.</p></div>
+  <div class="tier"><b><i></i>회색 · 참고</b><p>평균과 비슷하거나 참고용 정보예요.</p></div>
+  <p class="gnote kg-only">내년 빈자리는 추정치예요.</p>
+  <button type="button" class="primary gok" id="g-ok">확인했어요</button>
+</section></div>
+<div class="cbar" id="cbar" hidden><span class="names" id="c-names"></span><button class="clr" type="button" id="c-clear" hidden>비우기</button><button class="go" type="button" id="c-go">비교하기</button></div>
 
 <script>
 // 카카오 개발자센터(developers.kakao.com)에서 발급받은 JavaScript 키를 넣으세요.
@@ -1150,6 +1225,8 @@ function drawCondHints() {
   document.getElementById('f-cls-avg').textContent = `서울 평균 한 반: 사립 ${Math.round(AVG['사립'].학급당원아.m)}명 · 공립 ${Math.round(AVG['국공립'].학급당원아.m)}명`;
   const n = condCount();
   document.getElementById('cond-n').textContent = n ? `${n}개 적용 중` : '설정 안 함';
+  document.getElementById('cond-c').textContent = n ? n : '';
+  document.getElementById('cond-btn').classList.toggle('on', n > 0);
 }
 function saveCond() { try { localStorage.setItem('kg-cond', JSON.stringify(condVal())); } catch (e) {} }
 function loadCond() {
@@ -1179,7 +1256,7 @@ async function start() {
     $('gu').innerHTML = '<option value="">구 선택</option>' + gus.map((x) => `<option>${esc(x)}</option>`).join('');
     $('gu').value = gus.includes(g) ? g : '';
     const types = MODE === 'dc' ? DC_TYPES : ['국공립', '사립'];
-    $('type').innerHTML = '<option value="">전체</option>' + types.map((x) => `<option>${x}</option>`).join('');
+    $('type').innerHTML = '<option value="">유형 전체</option>' + types.map((x) => `<option>${x}</option>`).join('');
     document.body.dataset.mode = MODE;
     $('brand-noun').textContent = NOUN();
     document.querySelectorAll('#intro .noun').forEach((el) => { el.textContent = NOUN(); });
@@ -1280,7 +1357,7 @@ async function start() {
     const dsc = describe(x);
     return `
       <div class="item" data-id="${esc(x.id)}">
-        <div class="top"><span class="name">${esc(x.유치원명)} <span class="kind">[${esc(x.설립유형)}]</span></span><span class="right"><span class="meta">${d.toFixed(1)}km</span><button class="cbtn" type="button" data-heart="${esc(x.id)}" aria-pressed="${cmp.includes(x.id)}">${cmp.includes(x.id) ? ICON.check + '비교중' : ICON.plus + '비교'}</button></span></div>
+        <div class="top"><span class="nm"><span class="name">${esc(x.유치원명)}</span><span class="meta"><i class="dot" style="background:${isDC(x) ? DC_COLOR[x.유형] : x.유형 === '국공립' ? 'var(--pub)' : 'var(--pri)'}"></i>${esc(x.설립유형)} · ${d.toFixed(1)}km</span></span><span class="right"><button class="cbtn" type="button" data-heart="${esc(x.id)}" aria-pressed="${cmp.includes(x.id)}">${cmp.includes(x.id) ? ICON.check + '비교중' : ICON.plus + '비교'}</button></span></div>
         <div class="badges">${badgeHTML(x)}</div>
         ${dsc.tags.length ? `<div class="tags">${dsc.tags.map(([c, t]) => `<span class="tag ${c}">${t}</span>`).join('')}</div>` : ''}
         <div class="more">자세히 보기 ›</div>
@@ -1311,6 +1388,7 @@ async function start() {
     const mix = dcMode ? DC_TYPES.map((ty) => `${ty} ${near.filter((o) => o.x.유형 === ty).length}`).join(', ') : `국공립 ${pub}, 사립 ${near.length - pub}`;
     $('summary').innerHTML = `반경 <b>${r}km</b> 안에 ${NOUN()} <b>${near.length}곳</b> (${mix})` + (nc ? ` · 우리 집 조건에 맞는 곳 <b>${shown.length}곳</b>` : '');
     $('mapsum').innerHTML = `반경 ${r}km · ${NOUN()} <b>${near.length}곳</b>` + (nc ? ` · 조건 맞는 곳 <b>${shown.length}곳</b>` : '');
+    $('lhead').innerHTML = `<span>${NOUN()} <b>${shown.length}곳</b>${nc ? ' · 조건 적용' : ''}</span><span>가까운 순</span>`;
     drawCondHints();
     S.dist = Object.fromEntries(near.map((o) => [o.x.id, o.d]));
     S.shown = shown; S.listN = 0;
@@ -1344,11 +1422,12 @@ async function start() {
   }
   function drawCbar() {
     const v = store.get().filter(byId);
-    $('cbar').hidden = !$('cmp').hidden;
+    $('cbar').hidden = !$('cmp').hidden || v.length === 0;  // 비교함이 비어 있으면 막대를 숨김
     $('c-clear').hidden = v.length === 0;
     $('c-go').disabled = v.length < 2;
+    $('c-go').textContent = v.length >= 2 ? `${v.length}곳 비교하기` : '비교하기';
     $('c-names').textContent = v.length === 0 ? "비교함 0/3 · 카드의 '비교'를 눌러 담아 보세요"
-      : `비교함 ${v.length}/3 · ` + v.map((id) => byId(id).유치원명.replace(/(유치원|어린이집)$/, '').trim()).join(', ') + (v.length < 2 ? ' · 1곳 더 담으면 비교돼요' : '');
+      : v.map((id) => byId(id).유치원명.replace(/(유치원|어린이집)$/, '').trim()).join(', ') + (v.length < 2 ? ' · 1곳 더 담으면 비교돼요' : v.length < 3 ? ' · 1곳 더 담을 수 있어요' : '');
   }
   function flash(msg) { $('c-names').textContent = msg; $('cbar').hidden = false; setTimeout(drawCbar, 1800); }
   $('c-clear').addEventListener('click', () => { store.set([]); render(false); });
@@ -1638,8 +1717,28 @@ async function start() {
     $('intro').hidden = false;
   }
   $('intro-x').addEventListener('click', closeIntro);
-  $('intro-me').addEventListener('click', () => { closeIntro(); $('me').click(); });
-  $('intro-home').addEventListener('click', () => { closeIntro(); $('cond').open = true; $('cond').scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+  // 안내 창(처음 오셨나요? → 쓰는 법 + 배지 색깔). '확인했어요'를 누르면 목록 위 한 줄 안내도 닫는다.
+  const openGuide = () => { $('gsheet').hidden = false; $('g-ok').focus(); };
+  const closeGuide = (done) => { $('gsheet').hidden = true; if (done) closeIntro(); };
+  $('intro-open').addEventListener('click', openGuide);
+  $('guide-open').addEventListener('click', openGuide);
+  $('g-x').addEventListener('click', () => closeGuide(false));
+  $('g-ok').addEventListener('click', () => closeGuide(true));
+  $('gsheet').addEventListener('click', (e) => { if (e.target === $('gsheet')) closeGuide(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('gsheet').hidden) closeGuide(false); });
+  // '조건' 칩: 우리 집·조건 칸을 열고 닫는다
+  $('cond-btn').addEventListener('click', () => { $('cond').open = !$('cond').open; });
+  $('cond').addEventListener('toggle', () => { $('cond-btn').setAttribute('aria-expanded', $('cond').open); });
+  // 폰: 검색·칩 줄을 맨 위 바 바로 아래에 붙이려고 맨 위 바 높이를 CSS 변수로
+  const setTbh = () => document.documentElement.style.setProperty('--tbh', document.querySelector('.topbar').offsetHeight + 'px');
+  setTbh(); addEventListener('resize', setTbh);
+  // 폰: 지도 접기/펴기(펼 때 카카오 지도 크기 다시 계산)
+  $('mapfold').addEventListener('click', () => {
+    const f = $('mapbox').classList.toggle('folded');
+    $('mapfold').textContent = f ? '지도 펴기' : '지도 접기';
+    $('mapfold').setAttribute('aria-expanded', !f);
+    if (!f) { const c = map.getCenter(); map.relayout(); map.setCenter(c); }
+  });
 
   // 위치 권한을 이미 허용한 사람은 우리 집이 없을 때 내 위치에서 시작(서울 안일 때만). 권한을 새로 묻지는 않는다.
   if (!HOME.get() && !location.hash && navigator.permissions && navigator.geolocation) {
