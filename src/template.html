@@ -331,7 +331,7 @@
     .brand svg { width: 30px; height: 30px; }
     .brand .b2 { font-size: 21px; }
     .topbar .mode button { padding: 7px 11px; font-size: 13px; }
-    #map { height: 55vh; }
+    #map { height: 230px; min-height: 0; }  /* 폰: 지도는 조금만, 목록이 먼저 보이게 */
     .side { border-left: 0; border-top: 1px solid var(--line); }
     .list { overflow: visible; }
   }
@@ -1273,8 +1273,8 @@ async function start() {
     ovs.forEach((ov, id) => { if (!vis.has(id) && ov.getMap()) ov.setMap(null); });
   }
 
-  // 목록: 처음 PAGE곳만 그리고 '더 보기'로 이어 그린다(반경 5km면 어린이집이 500곳 넘음)
-  const PAGE = 40;
+  // 목록: 처음 PAGE곳(20곳)만 그리고 '더 보기'로 이어 그린다(반경 5km면 어린이집이 500곳 넘음)
+  const PAGE = 20;
   const badgeHTML = (r) => badges(r).map(([c, t, lab, tip]) => `<span class="badge ${c}"${tip ? ` title="${esc(tip)}"` : ''}>${t}${lab ? ` <small>${lab}</small>` : ''}</span>`).join('') + busBadge(r);
   const cardHTML = (x, d, cmp) => {
     const dsc = describe(x);
