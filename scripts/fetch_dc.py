@@ -37,8 +37,11 @@ DISTRICTS = {
     '41111': '수원 장안구', '41113': '수원 권선구', '41115': '수원 팔달구', '41117': '수원 영통구',
     '41460': '용인시',
     '41271': '안산 상록구', '41273': '안산 단원구', '41220': '평택시', '41480': '파주시',
-    '41610': '광주시', '41370': '오산시', '41500': '이천시', '41630': '양주시', '41550': '안성시'}
+    '41610': '광주시', '41370': '오산시', '41500': '이천시', '41630': '양주시', '41550': '안성시',
+    '41650': '포천시', '41670': '여주시', '41250': '동두천시'}
 # 시 코드로 한 번 받아 주소의 구 이름으로 나누는 곳. 용인은 구 코드가 어긋남(2026-11: 41463이 수지구 주소를, 41465는 결과 없음)
+# 결과가 없으면 옛 코드로 다시 받는 곳(여주는 2013년 시 승격 전 여주군 41730)
+ALT_CODES = {'41670': ['41730']}
 CITY_SPLIT = {'41460': ['용인 처인구', '용인 기흥구', '용인 수지구']}
 KEEP = ['운영시간', '평가완료', '평가연월', '평가', '연장반', '연장아동']  # API에 없는 항목
 # 나이별 반(cpmsapi030 명세서 v1.7): class_cnt_*/child_cnt_* — 만0~5세, 영아혼합(0~2), 영유아혼합(2~3), 유아혼합(3~5), 특수
@@ -149,7 +152,19 @@ def main():
             key = os.environ.get('CHILDCARE_API_KEY')
             if not key:
                 sys.exit('CHILDCARE_API_KEY 환경변수가 없습니다.')
-            items = fetch(code, key)
+            try:
+                items = fetch(code, key)
+            except RuntimeError as e:
+                if 'INFO-200' not in str(e) or code not in ALT_CODES:
+                    raise
+                for alt in ALT_CODES[code]:
+                    try:
+                        items = fetch(alt, key)
+                        print(f'  {gu}: {code} 결과 없음 → 옛 코드 {alt}로 받음', file=sys.stderr)
+                        break
+                    except RuntimeError as e2:
+                        if 'INFO-200' not in str(e2) or alt == ALT_CODES[code][-1]:
+                            raise
             time.sleep(1)
         if code in CITY_SPLIT:
             for lab in CITY_SPLIT[code]:
