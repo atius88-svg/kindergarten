@@ -426,7 +426,7 @@
       <div class="icons kg-only"><span><i data-ic="won"></i>월 비용</span><span><i data-ic="kids"></i>원아 수</span><span><i data-ic="cls"></i>한 반 인원</span><span><i data-ic="tch"></i>선생님 1명 : 아이</span><span><i data-ic="clock"></i>운영시간</span><span><i data-ic="bus"></i>통학차량</span></div>
       <div class="icons dc-only"><span><i data-ic="wait"></i>입소 대기</span><span><i data-ic="moon"></i>연장보육반</span><span><i data-ic="kids"></i>현원/정원</span><span><i data-ic="bus"></i>통학차량</span><span><i data-ic="tch"></i>선생님 1명 : 아이</span><span><i data-ic="star"></i>평가</span></div>
       <div class="legend kg-only">지도를 누르면 그곳이 기준 위치가 됩니다. 출처: 유치원알리미 2026년 정보공시</div>
-      <div class="legend dc-only">지도를 누르면 그곳이 기준 위치가 됩니다. 서울 25개 구와 경기 27개 시 어린이집. 출처: 어린이집정보공개포털·공공데이터포털</div>
+      <div class="legend dc-only">지도를 누르면 그곳이 기준 위치가 됩니다. 서울 25개 구와 경기 27개 시·3개 군 어린이집. 출처: 어린이집정보공개포털·공공데이터포털</div>
       <div class="legend">정보 정정·문의: <a href="mailto:kindermap2026@gmail.com">kindermap2026@gmail.com</a></div>
     </details>
   </aside>
@@ -1163,7 +1163,7 @@ function loadCond() {
 }
 
 const SEOUL = { lat: 37.5665, lng: 126.978 };
-const inSeoul = (lat, lng) => lat > 36.85 && lat < 38.20 && lng > 126.40 && lng < 127.80;  // 서울 + 경기 추가 지역(평택·파주·대부도·이천·안성·포천·여주까지)
+const inSeoul = (lat, lng) => lat > 36.85 && lat < 38.40 && lng > 126.40 && lng < 127.90;  // 서울 + 경기 추가 지역(평택·파주·대부도·이천·안성·포천·여주·양평·가평·연천까지)
 function guCenter(gu) {
   const rs = cur().filter((r) => r.구 === gu);
   return { lat: rs.reduce((a, r) => a + r.위도, 0) / rs.length, lng: rs.reduce((a, r) => a + r.경도, 0) / rs.length };
