@@ -35,7 +35,9 @@ DISTRICTS = {
     '41281': '고양 덕양구', '41285': '고양 일산동구', '41287': '고양 일산서구', '41310': '구리시',
     '41360': '남양주시', '41150': '의정부시', '41570': '김포시', '41430': '의왕시', '41410': '군포시', '41390': '시흥시',
     '41111': '수원 장안구', '41113': '수원 권선구', '41115': '수원 팔달구', '41117': '수원 영통구',
-    '41461': '용인 처인구', '41463': '용인 기흥구', '41465': '용인 수지구'}
+    '41460': '용인시'}
+# 시 코드로 한 번 받아 주소의 구 이름으로 나누는 곳. 용인은 구 코드가 어긋남(2026-11: 41463이 수지구 주소를, 41465는 결과 없음)
+CITY_SPLIT = {'41460': ['용인 처인구', '용인 기흥구', '용인 수지구']}
 KEEP = ['운영시간', '평가완료', '평가연월', '평가', '연장반', '연장아동']  # API에 없는 항목
 # 나이별 반(cpmsapi030 명세서 v1.7): class_cnt_*/child_cnt_* — 만0~5세, 영아혼합(0~2), 영유아혼합(2~3), 유아혼합(3~5), 특수
 AGES = ['00', '01', '02', '03', '04', '05', 'M2', 'M3', 'M5', 'SP']
@@ -138,7 +140,6 @@ def main():
         return merge_portal()
     test = args[:1] == ['--fixtures']
     raw = []
-    city_cache = {}
     for code, gu in DISTRICTS.items():
         if test:
             items = json.load(open(os.path.join(args[1], code + '.json'), encoding='utf-8'))
@@ -146,19 +147,18 @@ def main():
             key = os.environ.get('CHILDCARE_API_KEY')
             if not key:
                 sys.exit('CHILDCARE_API_KEY 환경변수가 없습니다.')
-            try:
-                items = fetch(code, key)
-            except RuntimeError as e:
-                if 'INFO-200' not in str(e) or ' ' not in gu:
-                    raise
-                # 구 코드로 0곳이면(2026-11 용인 수지구 41465) 시 코드로 받아 주소의 구 이름으로 고른다
-                city = code[:4] + '0'
-                allc = city_cache.get(city) or fetch(city, key)
-                city_cache[city] = allc
-                g = gu.split()[1]
-                items = [a for a in allc if f' {g} ' in f" {a.get('craddr', '')} "]
-                print(f'  {gu}: 구 코드 결과 없음 → 시 코드 {city}({len(allc)}곳)에서 주소로 {len(items)}곳', file=sys.stderr)
+            items = fetch(code, key)
             time.sleep(1)
+        if code in CITY_SPLIT:
+            for lab in CITY_SPLIT[code]:
+                g = lab.split()[1]
+                part = [a for a in items if f' {g} ' in f" {a.get('craddr', '')} "]
+                print(f'{lab}: {len(part)}곳')
+                raw += [(a, lab) for a in part]
+            left = len(items) - sum(1 for a in items if any(f" {l.split()[1]} " in f" {a.get('craddr', '')} " for l in CITY_SPLIT[code]))
+            if left:
+                print(f'  {gu}: 주소에 구 이름이 없어 뺀 곳 {left}곳', file=sys.stderr)
+            continue
         print(f'{gu}: {len(items)}곳')
         raw += [(a, gu) for a in items]
 
