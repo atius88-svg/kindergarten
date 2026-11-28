@@ -2,14 +2,15 @@ name: 유치원 데이터 갱신
 
 on:
   schedule:
-    - cron: '17 18 3 * *'   # 매월 4일 03:17 (한국시간)
+    - cron: '17 18 3 * *'   # 매월 4일 03:17 (한국시간) — 전체
+    - cron: '17 19 * * 0'   # 매주 월요일 04:17 (한국시간) — 어린이집 포털만(전체의 1/12씩, 12주에 한 바퀴)
   workflow_dispatch:        # Actions 탭에서 수동 실행
     inputs:
       only:
         description: '돌릴 단계(전체 = 정기 실행과 같음. 화면 빌드·커밋은 늘 함)'
         type: choice
         default: 전체
-        options: [전체, 유치원만, 어린이집만, AI 정리만, 화면만 다시 빌드]
+        options: [전체, 유치원만, 어린이집만, 어린이집 포털만, AI 정리만, 화면만 다시 빌드]
       cost_force:
         description: '원비를 공시 차수와 상관없이 서울 전체 다시 받기'
         type: boolean
@@ -18,6 +19,11 @@ on:
         description: '어린이집 평가 AI 정리 최대 곳 수(0이면 남은 곳 전부)'
         type: number
         default: 0
+
+# 주간·월간 실행이나 수동 실행이 겹치면 앞의 것이 끝날 때까지 기다림(같은 파일을 커밋하므로)
+concurrency:
+  group: data-update
+  cancel-in-progress: false
 
 permissions:
   contents: write   # 데이터 커밋
@@ -30,7 +36,7 @@ jobs:
   update:
     runs-on: ubuntu-latest
     env:
-      ONLY: ${{ inputs.only || '전체' }}   # 정기 실행에는 입력이 없어 '전체'
+      ONLY: ${{ inputs.only || (github.event.schedule == '17 19 * * 0' && '어린이집 포털만' || '전체') }}   # 정기 실행에는 입력이 없음: 매주 = 어린이집 포털만, 매월 = 전체
     steps:
       - uses: actions/checkout@v5
         with:
@@ -66,21 +72,21 @@ jobs:
         env:
           CHILDCARE_API_KEY: ${{ secrets.CHILDCARE_API_KEY }}
         run: python3 scripts/fetch_dc.py
-      - name: 어린이집 포털 화면(운영시간·평가·연장보육) — 받은 지 90일 넘은 곳만, 최대 90분(한 곳 약 4초)
+      - name: 어린이집 포털 화면(운영시간·평가·연장보육) — 90일 넘은 곳 + 오래된 순으로 전체의 1/12, 최대 90분(약 900곳에 55분)
         id: portal
-        if: env.ONLY == '전체' || env.ONLY == '어린이집만'
+        if: env.ONLY == '전체' || env.ONLY == '어린이집만' || env.ONLY == '어린이집 포털만'
         continue-on-error: true
         timeout-minutes: 100
-        run: python3 scripts/fetch_dc_portal.py --days 90 --minutes 90
+        run: python3 scripts/fetch_dc_portal.py --days 90 --share 12 --minutes 90
       - name: 어린이집 평가결과서(개편 후 평가의 영역별 종합의견) — 새로 평가받은 곳만, 최대 40분
         id: dceval
-        if: env.ONLY == '전체' || env.ONLY == '어린이집만'
+        if: env.ONLY == '전체' || env.ONLY == '어린이집만' || env.ONLY == '어린이집 포털만'
         continue-on-error: true
         timeout-minutes: 50
         run: python3 scripts/fetch_dc_eval.py --minutes 40
       - name: 어린이집 평가 AI 정리(Claude Haiku, 새로 받은 결과서만, 최대 35분)
         id: dcai
-        if: env.ONLY == '전체' || env.ONLY == '어린이집만' || env.ONLY == 'AI 정리만'
+        if: env.ONLY == '전체' || env.ONLY == '어린이집만' || env.ONLY == '어린이집 포털만' || env.ONLY == 'AI 정리만'
         continue-on-error: true
         timeout-minutes: 45
         env:
@@ -88,7 +94,7 @@ jobs:
         run: python3 scripts/analyze_dc_eval.py --minutes 35 ${{ inputs.ai_limit && format('--limit {0}', inputs.ai_limit) || '' }}
       - name: 어린이집 포털 값 합치기 (방금 받은 운영시간·평가·연장보육을 dc_seoul.json에 반영, API 호출 없음)
         id: dcmerge
-        if: env.ONLY == '전체' || env.ONLY == '어린이집만'
+        if: env.ONLY == '전체' || env.ONLY == '어린이집만' || env.ONLY == '어린이집 포털만'
         continue-on-error: true
         timeout-minutes: 5
         run: python3 scripts/fetch_dc.py --merge
