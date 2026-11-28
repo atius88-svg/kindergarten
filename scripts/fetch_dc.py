@@ -33,7 +33,12 @@ DISTRICTS = {
     '41192': '부천 원미구', '41194': '부천 소사구', '41196': '부천 오정구',
     # 3차(2026-11-27): 고양(구 3곳)·구리·남양주·의정부·김포·의왕·군포·시흥
     '41281': '고양 덕양구', '41285': '고양 일산동구', '41287': '고양 일산서구', '41310': '구리시',
-    '41360': '남양주시', '41150': '의정부시', '41570': '김포시', '41430': '의왕시', '41410': '군포시', '41390': '시흥시'}
+    '41360': '남양주시', '41150': '의정부시', '41570': '김포시', '41430': '의왕시', '41410': '군포시', '41390': '시흥시',
+    '41111': '수원 장안구', '41113': '수원 권선구', '41115': '수원 팔달구', '41117': '수원 영통구',
+    '41460': '용인시',
+    '41271': '안산 상록구', '41273': '안산 단원구', '41220': '평택시', '41480': '파주시'}
+# 시 코드로 한 번 받아 주소의 구 이름으로 나누는 곳. 용인은 구 코드가 어긋남(2026-11: 41463이 수지구 주소를, 41465는 결과 없음)
+CITY_SPLIT = {'41460': ['용인 처인구', '용인 기흥구', '용인 수지구']}
 KEEP = ['운영시간', '평가완료', '평가연월', '평가', '연장반', '연장아동']  # API에 없는 항목
 # 나이별 반(cpmsapi030 명세서 v1.7): class_cnt_*/child_cnt_* — 만0~5세, 영아혼합(0~2), 영유아혼합(2~3), 유아혼합(3~5), 특수
 AGES = ['00', '01', '02', '03', '04', '05', 'M2', 'M3', 'M5', 'SP']
@@ -145,6 +150,16 @@ def main():
                 sys.exit('CHILDCARE_API_KEY 환경변수가 없습니다.')
             items = fetch(code, key)
             time.sleep(1)
+        if code in CITY_SPLIT:
+            for lab in CITY_SPLIT[code]:
+                g = lab.split()[1]
+                part = [a for a in items if f' {g} ' in f" {a.get('craddr', '')} "]
+                print(f'{lab}: {len(part)}곳')
+                raw += [(a, lab) for a in part]
+            left = len(items) - sum(1 for a in items if any(f" {l.split()[1]} " in f" {a.get('craddr', '')} " for l in CITY_SPLIT[code]))
+            if left:
+                print(f'  {gu}: 주소에 구 이름이 없어 뺀 곳 {left}곳', file=sys.stderr)
+            continue
         print(f'{gu}: {len(items)}곳')
         raw += [(a, gu) for a in items]
 
@@ -161,8 +176,13 @@ def main():
         sys.exit(f'받은 어린이집이 {len(new)}곳뿐이라 갱신하지 않습니다(기존 {len(old_rows)}곳).')
 
     rows = []
+    new_ids = {n['id'] for n in new}
     for n in new:
-        prev = by_id.get(n['id']) or by_name.get((n['구'], n['유치원명']))
+        prev = by_id.get(n['id'])
+        if not prev:  # id가 바뀐 곳만 이름으로 찾되, 지금 다른 곳이 쓰는 id는 물려받지 않음(같은 이름이 옆 구에 있을 때)
+            prev = by_name.get((n['구'], n['유치원명']))
+            if prev and prev['id'] in new_ids:
+                prev = None
         if prev:
             n['id'] = prev['id']  # 공유된 상세 주소(#kc…) 유지
         pt = portal.get(n['id'][1:])
