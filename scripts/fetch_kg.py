@@ -40,6 +40,7 @@ GYEONGGI = {
     41271: '안산 상록구', 41273: '안산 단원구', 41220: '평택시', 41480: '파주시',
     41610: '광주시', 41370: '오산시', 41500: '이천시', 41630: '양주시', 41550: '안성시',
     41650: '포천시', 41670: '여주시', 41250: '동두천시',
+    41830: '양평군', 41820: '가평군', 41800: '연천군',
 }
 AREAS = {**{k: (11, v) for k, v in SEOUL.items()}, **{k: (41, v) for k, v in GYEONGGI.items()}}
 GG_LABELS = set(GYEONGGI.values())
@@ -52,7 +53,7 @@ def area_label(addr):
         return ''
     if addr[0].startswith('서울'):
         return addr[1] if addr[1].endswith('구') else ''
-    if addr[0].startswith('경기') and addr[1].endswith('시'):
+    if addr[0].startswith('경기') and addr[1].endswith(('시', '군')):
         lab = f'{addr[1][:-1]} {addr[2]}' if len(addr) > 2 and addr[2].endswith('구') else addr[1]
         return lab if lab in GG_LABELS else ''
     return ''
