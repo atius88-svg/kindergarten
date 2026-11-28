@@ -766,7 +766,7 @@ const busBadge = (r) => isDC(r) ? '' : r.차량운영여부 === '운영'
 // ---------- 어린이집 (서울 25개 구) ----------
 // 출처: 어린이집정보공개포털 OPEN API(기본·나이별 반·입소 대기) + 포털 화면(운영시간·평가·연장보육).
 // 크기가 커서(약 1.4MB) index.html에 넣지 않고 dc.json을 어린이집 모드에 들어갈 때만 불러온다(src/build.py가 만든다).
-const DC_URL = 'dc.json?v=3db17ba43f';
+const DC_URL = 'dc.json?v=b11394d325';
 // 사이트 맨 앞 주소. 상세를 열면 주소창을 s/{id}.html로 바꾸므로(사파리 자체 공유도 그곳 미리보기가 가게) 파일은 늘 이 주소 기준으로 받는다
 const ROOT = new URL('./', location.href.split('#')[0]).href;
 const at = (p) => new URL(p, ROOT).href;
