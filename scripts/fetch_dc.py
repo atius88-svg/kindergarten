@@ -175,8 +175,13 @@ def main():
         sys.exit(f'받은 어린이집이 {len(new)}곳뿐이라 갱신하지 않습니다(기존 {len(old_rows)}곳).')
 
     rows = []
+    new_ids = {n['id'] for n in new}
     for n in new:
-        prev = by_id.get(n['id']) or by_name.get((n['구'], n['유치원명']))
+        prev = by_id.get(n['id'])
+        if not prev:  # id가 바뀐 곳만 이름으로 찾되, 지금 다른 곳이 쓰는 id는 물려받지 않음(같은 이름이 옆 구에 있을 때)
+            prev = by_name.get((n['구'], n['유치원명']))
+            if prev and prev['id'] in new_ids:
+                prev = None
         if prev:
             n['id'] = prev['id']  # 공유된 상세 주소(#kc…) 유지
         pt = portal.get(n['id'][1:])
